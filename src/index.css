@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 /* Tokens (sin @theme) */
 :root{
   --color-bg: #0f0f0f;
