@@ -82,7 +82,7 @@ export default function Ranking() {
       .slice(0, 50); // por si quieres ver más de 14
   }, [rows, mode, meta]);
 
-  const valueHeader = `${mode === "total" ? "Media" : "Total"} ${meta.label}`;
+  const valueHeader = `${mode === "media" ? "Media" : "Total"} ${meta.label}`;
 
   return (
     <section>
