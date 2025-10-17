@@ -136,7 +136,7 @@ export default function Match() {
       </h2>
 
       {/* Marcador y parciales */}
-      <div className="card card--p" style={{marginBottom: 16}}>
+      <div className="card card--p" style={{ marginBottom: 16 }}>
         <div className="flex justify-between items-center">
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-gold)" }}>Marcador</div>
           {hasScore && (
@@ -145,11 +145,11 @@ export default function Match() {
             </div>
           )}
         </div>
-
+        
         {(q_pf.length === 4 || q_pa.length === 4) && (
-          <div className="grid" style={{ marginTop: 12, gridTemplateColumns: "repeat(4, minmax(100px, 1fr))", gap: 12 }}>
+          <div className="quarters-grid" style={{ marginTop: 12 }}>
             {["Q1", "Q2", "Q3", "Q4"].map((q, i) => (
-              <div key={q} className="card" style={{ padding: 10 }}>
+              <div key={q} className="card quarter" style={{ padding: 10 }}>
                 <div className="text-dim" style={{ fontSize: 12, marginBottom: 4 }}>{q}</div>
                 <div style={{ fontWeight: 700 }}>
                   {(q_pf[i] ?? "—")} — {(q_pa[i] ?? "—")}
@@ -159,32 +159,50 @@ export default function Match() {
           </div>
         )}
       </div>
-
-      {/* Tabla con ordenación por cabeceras */}
-      <div className="card" style={{ padding: "8px", overflowX: "auto" }}>
-        <table className="table">
+      
+      {/* Tabla con ordenación y primeras columnas "sticky" */}
+      <div className="card table-wrap" style={{ padding: 8 }}>
+        <table className="table sticky-first-two">
           <thead>
             <tr>
-              {columns.map((c) => (
-                <th key={c.key}>
-                  <button
-                    onClick={() => onClickHeader(c.key)}
-                    style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
-                    title={`Ordenar por ${c.title}`}
+              {columns.map((c, idx) => {
+                const isNum = c.key === "number";
+                const isName = c.key === "name";
+                return (
+                  <th
+                    key={c.key}
+                    className={`${isNum ? "col-num" : ""} ${isName ? "col-name" : ""}`}
+                    style={isNum ? { width: 64, minWidth: 64 } : isName ? { minWidth: 180 } : {}}
                   >
-                    {c.title}
-                    <Indicator colKey={c.key} />
-                  </button>
-                </th>
-              ))}
+                    <button
+                      onClick={() => onClickHeader(c.key)}
+                      style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+                      title={`Ordenar por ${c.title}`}
+                    >
+                      {c.title}
+                      <Indicator colKey={c.key} />
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {sortedRows.map((r, i) => (
               <tr key={i}>
-                {columns.map((c) => (
-                  <td key={c.key}>{c.render(r)}</td>
-                ))}
+                {columns.map((c) => {
+                  const isNum = c.key === "number";
+                  const isName = c.key === "name";
+                  return (
+                    <td
+                      key={c.key}
+                      className={`${isNum ? "col-num" : ""} ${isName ? "col-name" : ""}`}
+                      style={isNum ? { width: 64, minWidth: 64 } : isName ? { minWidth: 180 } : {}}
+                    >
+                      {c.render(r)}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

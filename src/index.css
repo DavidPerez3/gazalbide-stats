@@ -129,3 +129,59 @@ a:hover { color: var(--color-gold-2); }
 .legend__item { background: rgba(20,20,20,.8); border:1px solid rgba(212,175,55,.2); border-radius:10px; padding:10px; }
 .legend__key { font-weight:700; color: var(--color-gold); margin-bottom:4px; }
 .legend__desc { color: var(--color-ink-dim); font-size: 13px; line-height: 1.3; }
+
+/* ===== Quarters responsive grid ===== */
+.quarters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+/* En móvil: 2 x 2 */
+@media (max-width: 640px) {
+  .quarters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Opcional: que las cards de cuarto no se “aplasten” */
+.quarter {
+  min-height: 64px;
+}
+
+/* ===== Tabla con scroll y columnas sticky ===== */
+.table-wrap {
+  overflow-x: auto;           /* scroll horizontal en pantallas pequeñas */
+}
+
+/* Fijamos el fondo para que no se vea transparente al hacer sticky */
+.sticky-first-two th,
+.sticky-first-two td {
+  background: var(--color-bg-soft);
+}
+
+/* Primera columna (#) pegada a la izquierda */
+.sticky-first-two .col-num {
+  position: sticky;
+  left: 0;
+  z-index: 2;                 /* por encima del resto para que no quede tapada */
+  background: var(--color-bg-soft);
+  /* una línea para separar visualmente */
+  box-shadow: 1px 0 0 0 rgba(212, 175, 55, 0.25);
+}
+
+/* Segunda columna (Jugador) pegada a continuación */
+.sticky-first-two .col-name {
+  position: sticky;
+  left: 64px;                 /* mismo ancho fijo que la columna # */
+  z-index: 2;
+  background: var(--color-bg-soft);
+  box-shadow: 1px 0 0 0 rgba(212, 175, 55, 0.25);
+}
+
+/* Ajustes de tabla para que sea más legible en móvil */
+@media (max-width: 640px) {
+  .table th, .table td {
+    white-space: nowrap;      /* evita que se parta cada celda en varias líneas */
+  }
+}
