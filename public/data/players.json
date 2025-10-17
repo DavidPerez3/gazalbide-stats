@@ -1,58 +1,58 @@
 [
   {
-    "number": 14,
-    "name": "Iñaki"
-  },
-  {
-    "number": 10,
-    "name": "Oier"
-  },
-  {
-    "number": 15,
-    "name": "Kusky"
-  },
-  {
-    "number": 21,
-    "name": "Julen"
-  },
-  {
-    "number": 3,
-    "name": "Ibon"
-  },
-  {
-    "number": 1,
-    "name": "Josu"
-  },
-  {
-    "number": 9,
-    "name": "Aingeru"
-  },
-  {
-    "number": 6,
-    "name": "Lucho"
-  },
-  {
-    "number": 0,
+    "number": null,
     "name": "Iker"
   },
   {
-    "number": 13,
-    "name": "Aguirre"
+    "number": "1",
+    "name": "Josu"
   },
   {
-    "number": 17,
-    "name": "Covela"
+    "number": "3",
+    "name": "Ibon"
   },
   {
-    "number": 8,
+    "number": "6",
+    "name": "Lucho"
+  },
+  {
+    "number": "8",
     "name": "Aimar"
   },
   {
-    "number": 25,
-    "name": "Imanol"
+    "number": "9",
+    "name": "Aingeru"
   },
   {
-    "number": 11,
+    "number": "10",
+    "name": "Oier"
+  },
+  {
+    "number": "11",
     "name": "Jorge"
+  },
+  {
+    "number": "13",
+    "name": "Aguirre"
+  },
+  {
+    "number": "14",
+    "name": "Iñaki"
+  },
+  {
+    "number": "15",
+    "name": "Kusky"
+  },
+  {
+    "number": "17",
+    "name": "Covela"
+  },
+  {
+    "number": "21",
+    "name": "Julen"
+  },
+  {
+    "number": "25",
+    "name": "Imanol"
   }
 ]

@@ -4,6 +4,21 @@
     "date": "2025-10-12",
     "opponent": "Anboto Jatetxea",
     "file": "stats_gazal_a_vs_anboto_jatetxea_17_01_12-10-25.xls",
-    "sheet": "Gazal A Stats"
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 80,
+    "opp_pts": 46,
+    "q_pf": [
+      25,
+      21,
+      14,
+      20
+    ],
+    "q_pa": [
+      9,
+      16,
+      10,
+      11
+    ],
+    "result": "W"
   }
 ]
