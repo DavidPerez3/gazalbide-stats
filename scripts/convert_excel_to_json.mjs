@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import xlsx from "xlsx";
 
+/* ========= RUTAS Y PREPARACIÓN ========= */
 const inputDir = process.argv[2] || "./excels";
 const outputMatches = "./public/data/matches.json";
 const outputPlayers = "./public/data/players.json";
@@ -9,7 +10,7 @@ const outputStatsDir = "./public/data/player_stats";
 
 if (!fs.existsSync(outputStatsDir)) fs.mkdirSync(outputStatsDir, { recursive: true });
 
-/* ====================== Utils ======================= */
+/* ========= HELPERS GENERALES ========= */
 const toAscii = (s) =>
   String(s || "")
     .normalize("NFD")
@@ -32,13 +33,7 @@ function normalizeHeader(header) {
     .replace(/^_|_$/g, "");
 }
 
-function guessDateFromFilename(filename) {
-  const match = filename.match(/(\d{2})-(\d{2})-(\d{2})/);
-  if (!match) return null;
-  const [_, dd, mm, yy] = match;
-  return `20${yy}-${mm}-${dd}`;
-}
-
+/** Lee una hoja “estilo jugadores” y normaliza cabeceras */
 function readSheetAsObjects(file, sheetName) {
   const wb = xlsx.readFile(file);
   const ws = wb.Sheets[sheetName];
@@ -51,14 +46,12 @@ function readSheetAsObjects(file, sheetName) {
   });
 }
 
-/* ====== Parse estricto de Team Stats: PF/PA + parciales ====== */
-// Convierte celdas a número SOLO si son numéricas puras (o "25,0").
-// Ignora horas "17:01", textos, símbolos, etc.
+/** Convierte celdas a número solo si son numéricas puras (ignora “17:01”, texto, etc.) */
 function cellToNumberStrict(v) {
   if (v == null) return null;
   if (typeof v === "number" && Number.isFinite(v)) return v;
   const raw = String(v).trim();
-  if (/^\d{1,2}:\d{2}$/.test(raw)) return null; // hora tipo 17:01 -> ignorar
+  if (/^\d{1,2}:\d{2}$/.test(raw)) return null; // hora tipo 17:01
   const cleaned = raw.replace(",", ".").replace(/[^0-9.\-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
   if (!/^\-?\d+(\.\d+)?$/.test(cleaned)) return null;
@@ -66,18 +59,75 @@ function cellToNumberStrict(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-/**
- * Lee "Team Stats" (nombre exacto o aproximación) y devuelve:
- * { pf, pa, q_pf:[q1..q4], q_pa:[q1..q4] }
- * - Detecta fila de cabecera con Q1..Q4..Total
- * - Toma SOLO las primeras filas válidas que empiecen por "gazal" y "visit"
- * - Rechaza celdas con textos/horas (p. ej., "visitante (17:01)")
- */
-// Sustituye COMPLETA esta función por esta versión
+/* ========= PARSEO DEL NOMBRE DEL ARCHIVO =========
+   Soporta:
+   - stats_gazal_a_vs_oponente_hh_mm_dd-mm-yy.xls
+   - stats_oponente_vs_gazal_a_dd-mm-yy.xls
+*/
+function parseFilenameMeta(filename) {
+  const base = path.basename(filename, path.extname(filename)); // sin .xls/.xlsx
+  const ascii = toAscii(base);
+
+  // 1) fecha dd-mm-yy en cualquier parte
+  const mDate = ascii.match(/(\d{2})-(\d{2})-(\d{2})/);
+  const dateISO = mDate ? `20${mDate[3]}-${mDate[2]}-${mDate[1]}` : null;
+
+  // 2) separar por “vs”
+  const split = base.split(/[_-]vs[_-]?/i);
+  let left = null, right = null;
+  if (split.length >= 2) {
+    left = split[0].replace(/^stats[_-]?/i, "").trim();
+    right = split[1].trim();
+  }
+
+  // 3) limpiar sufijos de hora/fecha del lado derecho
+  const cleanTeamSlug = (s) => {
+    if (!s) return "";
+    return s
+      .replace(/_\d{1,2}_\d{2}_\d{2}-\d{2}-\d{2}$/i, "") // _hh_mm_dd-mm-yy
+      .replace(/_\d{2}-\d{2}-\d{2}$/i, "")               // _dd-mm-yy
+      .replace(/[-_]+/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  };
+
+  left = cleanTeamSlug(left);
+  right = cleanTeamSlug(right);
+
+  // 4) decide nuestro equipo vs rival (nuestro contiene “gazal”)
+  const isGazal = (s) => /gazal/.test(toAscii(s));
+  let opp = null;
+
+  if (isGazal(left) && !isGazal(right)) {
+    opp = right;
+  } else if (!isGazal(left) && isGazal(right)) {
+    opp = left;
+  } else if (isGazal(left) && isGazal(right)) {
+    opp = right; // raro, pero nos quedamos con el de la derecha como rival
+  } else {
+    // ninguno contiene “gazal”: por defecto el rival es el lado derecho
+    opp = right || left || "Desconocido";
+  }
+
+  const opponent = opp ? titleCase(opp) : "Desconocido";
+
+  // 5) id del partido
+  const slugOpp = opponent.toLowerCase().replace(/\s+/g, "-");
+  const matchId = dateISO
+    ? `${dateISO}-vs-${slugOpp || "desconocido"}`
+    : base.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+  return { dateISO, opponent, matchId };
+}
+
+/* ========= LECTURA “TEAM STATS” (PF/PA + parciales) =========
+   - Localiza la fila de cabecera con Q1..Q4..Total
+   - Selecciona las PRIMERAS dos filas con 5 números válidos (Q1-4 + Total)
+   - De esas dos, si una contiene “gazal” → esa es nuestra; la otra, rival
+   - Ignora celdas con formato hora y números fuera de rango razonable
+*/
 function readTeamStats(file) {
   const wb = xlsx.readFile(file);
-
-  // Localiza "Team Stats" (exacto o aproximado)
   let sheetName =
     wb.SheetNames.find((n) => toAscii(n).trim() === "team stats") ||
     wb.SheetNames.find((n) => toAscii(n).replace(/\s+/g, "").includes("teamstats"));
@@ -86,20 +136,10 @@ function readTeamStats(file) {
   const ws = wb.Sheets[sheetName];
   const table = xlsx.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
 
-  // Helpers estrictos
-  const isTime = (v) => typeof v === "string" && /^\s*\d{1,2}:\d{2}\s*$/.test(v);
-  const toNum = (v) => {
-    if (v == null) return null;
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    const s = String(v).trim().replace(",", ".");
-    if (isTime(s)) return null;             // 17:01 -> fuera
-    if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
-    return Number(s);
-  };
-  const validQuarter = (n) => typeof n === "number" && n >= 0 && n <= 60;   // rango razonable
-  const validTotal   = (n) => typeof n === "number" && n >= 0 && n <= 200;
+  const validQuarter = (n) => typeof n === "number" && n >= 0 && n <= 60;
+  const validTotal = (n) => typeof n === "number" && n >= 0 && n <= 200;
 
-  // 1) Detectar fila de cabecera con Q1..Q4..Total
+  // 1) localizar cabecera con Q1..Q4..Total
   let headerRowIdx = -1, idxQ1=-1, idxQ2=-1, idxQ3=-1, idxQ4=-1, idxTot=-1;
   for (let i = 0; i < Math.min(table.length, 15); i++) {
     const labels = (table[i] || []).map((c) => toAscii(String(c || "")).replace(/\s+/g, ""));
@@ -114,45 +154,49 @@ function readTeamStats(file) {
   }
   if (headerRowIdx === -1) return null;
 
-  // 2) Recoger CANDIDATOS: filas con 5 números válidos tras la cabecera
+  // 2) recolectar candidatos (primeras dos filas numéricas válidas)
   const candidates = [];
   for (let i = headerRowIdx + 1; i < table.length; i++) {
     const row = table[i] || [];
     const nameRaw = String(row[0] ?? "");
     const name = toAscii(nameRaw).trim();
 
-    const q1 = toNum(row[idxQ1]);
-    const q2 = toNum(row[idxQ2]);
-    const q3 = toNum(row[idxQ3]);
-    const q4 = toNum(row[idxQ4]);
-    const tot = toNum(row[idxTot]);
+    const q1 = cellToNumberStrict(row[idxQ1]);
+    const q2 = cellToNumberStrict(row[idxQ2]);
+    const q3 = cellToNumberStrict(row[idxQ3]);
+    const q4 = cellToNumberStrict(row[idxQ4]);
+    const tot = cellToNumberStrict(row[idxTot]);
 
-    const ok = [q1,q2,q3,q4].every(validQuarter) && validTotal(tot);
+    const ok = [q1, q2, q3, q4].every(validQuarter) && validTotal(tot);
     if (!ok) continue;
 
-    candidates.push({ name, q: [q1,q2,q3,q4], tot });
-    if (candidates.length >= 4) break; // nos bastan los primeros pares
+    candidates.push({ name, q: [q1, q2, q3, q4], tot });
+    if (candidates.length >= 2) break; // nos bastan dos filas (nuestro + rival)
   }
 
   if (candidates.length === 0) return null;
 
-  // 3) Elegir nuestro equipo y el rival:
-  //    - si hay uno que contiene "gazal" -> es nuestro
-  //    - el otro (primero distinto) -> rival
-  let our = candidates.find(c => c.name.includes("gazal")) || candidates[0];
-  let opp = candidates.find(c => c !== our) || null;
+  // 3) decidir quién es quién
+  const gazalIdx = candidates.findIndex((c) => c.name.includes("gazal"));
+  let our = null, opp = null;
+  if (gazalIdx !== -1) {
+    our = candidates[gazalIdx];
+    opp = candidates.find((c, i) => i !== gazalIdx) || null;
+  } else {
+    // si ninguna contiene “gazal”: tomamos la 1ª como nuestra y la 2ª como rival
+    our = candidates[0];
+    opp = candidates[1] || null;
+  }
 
   const pf = our?.tot ?? null;
-  const q_pf = our?.q ?? [null,null,null,null];
+  const q_pf = our?.q ?? [null, null, null, null];
   const pa = opp?.tot ?? null;
-  const q_pa = opp?.q ?? [null,null,null,null];
+  const q_pa = opp?.q ?? [null, null, null, null];
 
   return { pf, pa, q_pf, q_pa };
 }
 
-
-
-/* ===================== Main ===================== */
+/* ========= PROCESO PRINCIPAL ========= */
 async function main() {
   const files = fs
     .readdirSync(inputDir)
@@ -169,36 +213,30 @@ async function main() {
   for (const file of files) {
     const fullPath = path.join(inputDir, file);
 
-    // 1) Datos por jugador (Gazal A Stats)
-    const gazalSheetName = "Gazal A Stats";
-    const gazalRows = readSheetAsObjects(fullPath, gazalSheetName);
+    // 1) Hoja de jugadores (suele ser “Gazal A Stats”; dejamos fallback flexible)
+    let gazalSheetName = "Gazal A Stats";
+    let gazalRows = readSheetAsObjects(fullPath, gazalSheetName);
+    if (!gazalRows.length) {
+      // fallback: busca una hoja que contenga “gazal” y “stats”
+      const wb = xlsx.readFile(fullPath);
+      const guess = wb.SheetNames.find((n) => {
+        const s = toAscii(n);
+        return s.includes("gazal") && s.includes("stats");
+      });
+      if (guess) {
+        gazalSheetName = guess;
+        gazalRows = readSheetAsObjects(fullPath, gazalSheetName);
+      }
+    }
     if (!gazalRows.length) continue;
 
-    // 2) Meta desde el nombre del fichero
-    const base = path.basename(file, path.extname(file));
-    const dateISO = guessDateFromFilename(file);
+    // 2) Meta desde el nombre de archivo (fecha + rival + id)
+    const { dateISO, opponent, matchId } = parseFilenameMeta(file);
 
-    let opponent = null;
-    const vsMatch = base.match(
-      /vs[_-]?([a-z0-9_-]+?)(?:_\d{1,2}_\d{2}_\d{2}-\d{2}-\d{2})?$/i
-    );
-    if (vsMatch) {
-      opponent = vsMatch[1]
-        .replace(/[_-]+/g, " ")
-        .replace(/\s{2,}/g, " ")
-        .trim();
-    }
-    if (!opponent) opponent = "Desconocido";
-    opponent = titleCase(opponent);
-
-    const matchId = dateISO
-      ? `${dateISO}-vs-${opponent.toLowerCase().replace(/\s+/g, "-")}`
-      : base.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-
-    // 3) PF fallback sumando PTS de jugadores
+    // 3) PF fallback (sumando PTS por jugador)
     const pfFallback = gazalRows.reduce((acc, r) => acc + (Number(r.pts) || 0), 0);
 
-    // 4) Team Stats (sobrescribe solo si tiene valores válidos)
+    // 4) Leer Team Stats: PF/PA + Q1..Q4 (si existen)
     let pf = pfFallback;
     let pa = undefined;
     let q_pf = [null, null, null, null];
@@ -212,11 +250,12 @@ async function main() {
       if (Array.isArray(ts.q_pa) && ts.q_pa.some((n) => Number(n) > 0)) q_pa = ts.q_pa;
     }
 
+    // 5) Guardar metadata del partido
     matches.push({
       id: matchId,
       date: dateISO || "Desconocida",
       opponent,
-      file,
+      file: path.basename(file),
       sheet: gazalSheetName,
       gazal_pts: pf,
       opp_pts: typeof pa === "number" ? pa : undefined,
@@ -232,7 +271,7 @@ async function main() {
           : undefined,
     });
 
-    // 5) Stats por jugador → JSON por partido
+    // 6) Guardar JSON del partido (stats por jugador)
     const playersClean = gazalRows.map((p) => ({
       number: p.n || p.no || p.num || p.dorsal || null,
       name: p.jugador || p.player || "",
@@ -266,7 +305,7 @@ async function main() {
       JSON.stringify(playersClean, null, 2)
     );
 
-    // 6) Listado global de jugadores (orden por dorsal)
+    // 7) Acumular listado global de jugadores (clave por nombre)
     for (const p of playersClean) {
       if (!p.name) continue;
       const key = p.name.toLowerCase();
@@ -276,7 +315,10 @@ async function main() {
     }
   }
 
+  // matches.json
   fs.writeFileSync(outputMatches, JSON.stringify(matches, null, 2));
+
+  // players.json (ordenado por dorsal si existe)
   fs.writeFileSync(
     outputPlayers,
     JSON.stringify(
@@ -294,4 +336,5 @@ async function main() {
   console.log("- " + outputStatsDir + "/*.json");
 }
 
+/* ========= RUN ========= */
 main().catch((err) => console.error("❌ Error:", err));

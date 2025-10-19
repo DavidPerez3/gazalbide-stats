@@ -170,13 +170,16 @@ a:hover { color: var(--color-gold-2); }
   box-shadow: 1px 0 0 0 rgba(212, 175, 55, 0.25);
 }
 
-/* Segunda columna (Jugador) pegada a continuación */
+/* Segunda columna (Jugador) pegada a continuación — ancho automático */
 .sticky-first-two .col-name {
   position: sticky;
-  left: 64px;                 /* mismo ancho fijo que la columna # */
+  left: 64px; /* desplazamiento igual al ancho de la columna # */
   z-index: 2;
   background: var(--color-bg-soft);
   box-shadow: 1px 0 0 0 rgba(212, 175, 55, 0.25);
+  white-space: nowrap;
+  width: auto;         /* deja que crezca según contenido */
+  min-width: fit-content;
 }
 
 /* Ajustes de tabla para que sea más legible en móvil */
@@ -185,3 +188,163 @@ a:hover { color: var(--color-gold-2); }
     white-space: nowrap;      /* evita que se parta cada celda en varias líneas */
   }
 }
+
+/* La tabla permanece con layout auto (default), no forces table-layout: fixed */
+.table { border-collapse: collapse; }
+
+/* Sticky base */
+.sticky-first-two th,
+.sticky-first-two td { background: var(--color-bg-soft); }
+
+/* # pegado a la izquierda con ancho fijo */
+.sticky-first-two .col-num {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--color-bg-soft);
+  box-shadow: 1px 0 0 0 rgba(212,175,55,.25);
+  width: 64px; min-width: 64px; /* coherente con el JSX */
+}
+
+/* Jugador pegado a continuación, SIN ancho fijo */
+.sticky-first-two .col-name {
+  position: sticky;
+  left: 64px; /* coincide con el ancho de # */
+  z-index: 2;
+  background: var(--color-bg-soft);
+  box-shadow: 1px 0 0 0 rgba(212,175,55,.25);
+  /* No fijamos width/min-width aquí */
+  white-space: nowrap;
+}
+
+/* El texto del nombre ocupa sólo lo necesario */
+.cell-name {
+  display: inline-block;
+  width: -moz-fit-content;
+  width: fit-content;
+  max-width: none; /* que no lo recorten */
+}
+
+/* En móvil mantenemos no-wrap para evitar que crezca en altura */
+@media (max-width: 640px) {
+  .table th, .table td { white-space: nowrap; }
+}
+
+/* ===== Chips de cabecera (bonitos + clicables) ===== */
+.th-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid rgba(229,231,235,0.2);
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.th-btn:hover { border-color: var(--color-gold); color: var(--color-gold); }
+.sort-ind { font-size: 10px; opacity: 0.85; }
+
+/* ===== Quarters responsive grid ===== */
+.quarters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+}
+/* móvil: 2×2 */
+@media (max-width: 640px) {
+  .quarters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.quarter { min-height: 64px; }
+
+/* ===== Tabla con scroll y columnas sticky ===== */
+.table-wrap { overflow-x: auto; }
+.table { border-collapse: collapse; }
+
+/* Fondo sólido para que no trasluzca en sticky */
+.sticky-first-two th, .sticky-first-two td { background: var(--color-bg-soft); }
+
+/* # pegado a la izquierda con ancho fijo */
+.sticky-first-two .col-num {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--color-bg-soft);
+  box-shadow: 1px 0 0 0 rgba(212,175,55,.25);
+  width: 64px; min-width: 64px;
+}
+
+/* Jugador pegado, SIN ancho fijo (auto) */
+.sticky-first-two .col-name {
+  position: sticky; left: 64px; z-index: 2;
+  background: var(--color-bg-soft);
+  box-shadow: 1px 0 0 0 rgba(212,175,55,.25);
+  white-space: nowrap;
+}
+.cell-name {
+  display: inline-block;
+  width: fit-content;
+}
+
+/* Mejor legibilidad en móvil */
+@media (max-width: 640px) {
+  .table th, .table td { white-space: nowrap; }
+}
+
+/* --- Evita artefactos de sticky con tablas --- */
+.table {
+  border-collapse: separate;   /* <-- clave */
+  border-spacing: 0;           /* que no haya huecos */
+}
+
+/* fondo sólido + stacking context */
+.sticky-first-two th,
+.sticky-first-two td {
+  position: relative;
+  background: var(--color-bg-soft);
+}
+
+/* Columna # pegada a la izquierda */
+.sticky-first-two .col-num {
+  position: sticky;
+  left: 0;
+  z-index: 5; /* por encima de celdas normales */
+  background: var(--color-bg-soft);
+}
+
+/* Columna Jugador pegada a continuación (por encima de la #) */
+.sticky-first-two .col-name {
+  position: sticky;
+  left: 64px; /* mismo ancho que la # */
+  z-index: 6; /* un nivel por encima para que tape bien */
+  background: var(--color-bg-soft);
+  white-space: nowrap;
+}
+
+/* Aún más alto en el thead para que no se tape el header */
+.sticky-first-two thead .col-num { z-index: 7; }
+.sticky-first-two thead .col-name { z-index: 8; }
+
+/* Separador visual: línea dorada en el borde derecho de cada sticky */
+.sticky-first-two .col-num::after,
+.sticky-first-two .col-name::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 1px;
+  background: rgba(212, 175, 55, 0.28); /* dorado suave */
+  pointer-events: none;
+}
+
+/* Si ves ‘bleeding’ en algunos navegadores, fuerza nueva capa */
+.sticky-first-two .col-num,
+.sticky-first-two .col-name {
+  transform: translateZ(0);  /* crea su propia capa de pintura */
+}
+
+/* El contenedor también con fondo sólido */
+.table-wrap { background: var(--color-bg-soft); }
+

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getMatches, getMatchStats } from "../lib/data";
-import StatLegend from "../components/StatLegend";
 
 // Helpers % y minutos
 const pctNum = (m, a) => (Number(a) > 0 ? (Number(m) / Number(a)) * 100 : 0);
@@ -39,7 +38,7 @@ export default function Match() {
 
   // Orden
   const [sortKey, setSortKey] = useState("number");
-  const [sortDir, setSortDir] = useState("asc");
+  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +61,7 @@ export default function Match() {
     };
   }, [id]);
 
+  // Definición columnas
   const columns = [
     { key: "number", title: "#", getSort: (r) => Number(r.number) || 0, render: (r) => r.number ?? "" },
     { key: "name", title: "Jugador", getSort: (r) => String(r.name || "").toLowerCase(), render: (r) => r.name ?? "" },
@@ -112,7 +112,7 @@ export default function Match() {
   };
 
   const Indicator = ({ colKey }) =>
-    colKey === sortKey ? <span style={{ opacity: 0.7, marginLeft: 6 }}>{sortDir === "asc" ? "▲" : "▼"}</span> : null;
+    colKey === sortKey ? <span className="sort-ind">{sortDir === "asc" ? "▲" : "▼"}</span> : null;
 
   if (loading) return <section><div className="text-dim">Cargando partido…</div></section>;
   if (!meta) {
@@ -145,7 +145,7 @@ export default function Match() {
             </div>
           )}
         </div>
-        
+
         {(q_pf.length === 4 || q_pa.length === 4) && (
           <div className="quarters-grid" style={{ marginTop: 12 }}>
             {["Q1", "Q2", "Q3", "Q4"].map((q, i) => (
@@ -159,24 +159,30 @@ export default function Match() {
           </div>
         )}
       </div>
-      
-      {/* Tabla con ordenación y primeras columnas "sticky" */}
+
+      {/* Tabla con ordenación y columnas sticky */}
       <div className="card table-wrap" style={{ padding: 8 }}>
         <table className="table sticky-first-two">
           <thead>
             <tr>
-              {columns.map((c, idx) => {
+              {columns.map((c) => {
                 const isNum = c.key === "number";
                 const isName = c.key === "name";
                 return (
                   <th
                     key={c.key}
                     className={`${isNum ? "col-num" : ""} ${isName ? "col-name" : ""}`}
-                    style={isNum ? { width: 64, minWidth: 64 } : isName ? { minWidth: 180 } : {}}
+                    role="columnheader"
+                    aria-sort={c.key === sortKey ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                    style={isNum ? { width: 64, minWidth: 64 } : {}}
                   >
                     <button
+                      type="button"
+                      className="th-btn"
                       onClick={() => onClickHeader(c.key)}
-                      style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") onClickHeader(c.key);
+                      }}
                       title={`Ordenar por ${c.title}`}
                     >
                       {c.title}
@@ -197,9 +203,9 @@ export default function Match() {
                     <td
                       key={c.key}
                       className={`${isNum ? "col-num" : ""} ${isName ? "col-name" : ""}`}
-                      style={isNum ? { width: 64, minWidth: 64 } : isName ? { minWidth: 180 } : {}}
+                      style={isNum ? { width: 64, minWidth: 64 } : {}}
                     >
-                      {c.render(r)}
+                      {isName ? <span className="cell-name">{c.render(r)}</span> : c.render(r)}
                     </td>
                   );
                 })}
@@ -208,7 +214,6 @@ export default function Match() {
           </tbody>
         </table>
       </div>
-      <StatLegend></StatLegend>
     </section>
   );
 }

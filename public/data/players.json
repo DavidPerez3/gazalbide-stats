@@ -1,6 +1,6 @@
 [
   {
-    "number": null,
+    "number": "00",
     "name": "Iker"
   },
   {
@@ -18,10 +18,6 @@
   {
     "number": "8",
     "name": "Aimar"
-  },
-  {
-    "number": "9",
-    "name": "Aingeru"
   },
   {
     "number": "10",

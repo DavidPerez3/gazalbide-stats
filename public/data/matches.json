@@ -20,5 +20,27 @@
       11
     ],
     "result": "W"
+  },
+  {
+    "id": "2025-10-19-vs-viajes-olarizu",
+    "date": "2025-10-19",
+    "opponent": "Viajes Olarizu",
+    "file": "stats_viajes_olarizu_vs_gazal_a_19-10-25.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 60,
+    "opp_pts": 45,
+    "q_pf": [
+      10,
+      17,
+      16,
+      17
+    ],
+    "q_pa": [
+      7,
+      7,
+      15,
+      16
+    ],
+    "result": "W"
   }
 ]
