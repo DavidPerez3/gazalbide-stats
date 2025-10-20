@@ -2,8 +2,8 @@
   {
     "number": "14",
     "name": "Iñaki",
-    "min": "16:17",
-    "min_str": null,
+    "min": 977,
+    "min_str": "16:17",
     "pts": 2,
     "two_pm": 1,
     "two_pa": 1,
@@ -24,13 +24,13 @@
     "pfd": 0,
     "pir": 2,
     "eff": 3,
-    "plus_minus": 0
+    "plus_minus": 13
   },
   {
     "number": "10",
     "name": "Oier",
-    "min": "20:21",
-    "min_str": null,
+    "min": 1221,
+    "min_str": "20:21",
     "pts": 18,
     "two_pm": 5,
     "two_pa": 7,
@@ -51,13 +51,13 @@
     "pfd": 6,
     "pir": 28,
     "eff": 26,
-    "plus_minus": 0
+    "plus_minus": 17
   },
   {
     "number": "15",
     "name": "Kusky",
-    "min": "17:08",
-    "min_str": null,
+    "min": 1028,
+    "min_str": "17:08",
     "pts": 4,
     "two_pm": 0,
     "two_pa": 0,
@@ -78,13 +78,13 @@
     "pfd": 1,
     "pir": 2,
     "eff": 1,
-    "plus_minus": 0
+    "plus_minus": 18
   },
   {
     "number": "21",
     "name": "Julen",
-    "min": "16:54",
-    "min_str": null,
+    "min": 1014,
+    "min_str": "16:54",
     "pts": 9,
     "two_pm": 0,
     "two_pa": 0,
@@ -105,13 +105,13 @@
     "pfd": 1,
     "pir": 12,
     "eff": 12,
-    "plus_minus": 0
+    "plus_minus": 17
   },
   {
     "number": "3",
     "name": "Ibon",
-    "min": "20:49",
-    "min_str": null,
+    "min": 1249,
+    "min_str": "20:49",
     "pts": 2,
     "two_pm": 1,
     "two_pa": 5,
@@ -132,13 +132,13 @@
     "pfd": 1,
     "pir": -2,
     "eff": -1,
-    "plus_minus": 0
+    "plus_minus": 18
   },
   {
     "number": "1",
     "name": "Josu",
-    "min": "24:55",
-    "min_str": null,
+    "min": 1495,
+    "min_str": "24:55",
     "pts": 11,
     "two_pm": 5,
     "two_pa": 9,
@@ -159,13 +159,13 @@
     "pfd": 1,
     "pir": 16,
     "eff": 17,
-    "plus_minus": 0
+    "plus_minus": 21
   },
   {
     "number": "6",
     "name": "Lucho",
-    "min": "14:19",
-    "min_str": null,
+    "min": 859,
+    "min_str": "14:19",
     "pts": 0,
     "two_pm": 0,
     "two_pa": 0,
@@ -186,13 +186,13 @@
     "pfd": 0,
     "pir": -2,
     "eff": 1,
-    "plus_minus": 0
+    "plus_minus": 15
   },
   {
     "number": "00",
     "name": "Iker",
-    "min": "12:29",
-    "min_str": null,
+    "min": 749,
+    "min_str": "12:29",
     "pts": 5,
     "two_pm": 1,
     "two_pa": 3,
@@ -213,13 +213,13 @@
     "pfd": 0,
     "pir": -2,
     "eff": -1,
-    "plus_minus": 0
+    "plus_minus": 9
   },
   {
     "number": "13",
     "name": "Aguirre",
-    "min": "02:02",
-    "min_str": null,
+    "min": 122,
+    "min_str": "02:02",
     "pts": 0,
     "two_pm": 0,
     "two_pa": 0,
@@ -240,13 +240,13 @@
     "pfd": 0,
     "pir": 2,
     "eff": 3,
-    "plus_minus": 0
+    "plus_minus": 1
   },
   {
     "number": "8",
     "name": "Aimar",
-    "min": "14:50",
-    "min_str": null,
+    "min": 890,
+    "min_str": "14:50",
     "pts": 8,
     "two_pm": 3,
     "two_pa": 5,
@@ -267,13 +267,13 @@
     "pfd": 6,
     "pir": 6,
     "eff": 1,
-    "plus_minus": 0
+    "plus_minus": 12
   },
   {
     "number": "25",
     "name": "Imanol",
-    "min": "16:18",
-    "min_str": null,
+    "min": 978,
+    "min_str": "16:18",
     "pts": 9,
     "two_pm": 0,
     "two_pa": 2,
@@ -294,13 +294,13 @@
     "pfd": 0,
     "pir": 5,
     "eff": 7,
-    "plus_minus": 0
+    "plus_minus": 14
   },
   {
     "number": "11",
     "name": "Jorge",
-    "min": "23:32",
-    "min_str": null,
+    "min": 1412,
+    "min_str": "23:32",
     "pts": 12,
     "two_pm": 4,
     "two_pa": 6,
@@ -321,6 +321,6 @@
     "pfd": 4,
     "pir": 21,
     "eff": 17,
-    "plus_minus": 0
+    "plus_minus": 15
   }
 ]

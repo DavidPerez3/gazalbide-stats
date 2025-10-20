@@ -141,7 +141,7 @@ export default function Player() {
         {/* MIN */}
         <div className="card card--p">
           <div className="text-dim" style={{ fontSize: "12px", marginBottom: 6 }}>
-            MIN — {mode === "media" ? "Media" : "Total"}
+            MIN
           </div>
           <div style={{ fontSize: "20px", fontWeight: 700 }}>{minutesDisplay}</div>
         </div>
@@ -150,7 +150,7 @@ export default function Player() {
         {COUNT_METRICS.map(({ key, label }) => (
           <div key={key} className="card card--p">
             <div className="text-dim" style={{ fontSize: "12px", marginBottom: 6 }}>
-              {label} — {mode === "media" ? "Media" : "Total"}
+              {label}
             </div>
             <div style={{ fontSize: "20px", fontWeight: 700 }}>
               {mode === "media" ? displayedCounts[key].toFixed(2) : displayedCounts[key]}

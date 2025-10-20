@@ -8,6 +8,8 @@ const num = (v) => Number(v || 0);
 export default function Home() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState(""); // 🔎 búsqueda por oponente
+  const [order, setOrder] = useState("desc"); // ⬆⬇ orden por fecha
   const [teamTotals, setTeamTotals] = useState({
     games: 0,
     pointsFor: 0,
@@ -66,6 +68,22 @@ export default function Home() {
     })();
   }, []);
 
+  // 💡 Lista de partidos filtrada y ordenada
+  const filteredMatches = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const f = term
+      ? matches.filter(m => (m.opponent || "").toLowerCase().includes(term))
+      : matches;
+
+    const s = [...f].sort((a, b) => {
+      const da = new Date(a.date).getTime() || 0;
+      const db = new Date(b.date).getTime() || 0;
+      return da - db; // asc por defecto
+    });
+
+    return order === "desc" ? s.reverse() : s;
+  }, [matches, q, order]);
+
   const avgPF = useMemo(
     () => (teamTotals.games ? (teamTotals.pointsFor / teamTotals.games).toFixed(1) : "0.0"),
     [teamTotals]
@@ -78,8 +96,7 @@ export default function Home() {
     if (!teamTotals.games || !teamTotals.pointsAgainst) return "—";
     const d = teamTotals.pointsFor / teamTotals.games - teamTotals.pointsAgainst / teamTotals.games;
     return (d >= 0 ? "+" : "") + d.toFixed(1);
-    }, [teamTotals]
-  );
+  }, [teamTotals]);
 
   return (
     <section className="space-y-4">
@@ -131,11 +148,35 @@ export default function Home() {
 
       {/* Lista de partidos */}
       <h3 className="mt-6" style={{fontSize:'18px', fontWeight:700, color:'var(--color-gold)'}}>Partidos</h3>
+
+      {/* Controles de búsqueda/orden */}
+      {!loading && (
+        <div className="flex gap-2 mb-3" style={{marginBottom: 16}}>
+          <input
+            className="input flex-1"
+            placeholder="Buscar por oponente…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <select
+            className="input"
+            value={order}
+            onChange={(e) => setOrder(e.target.value)}
+            title="Orden por fecha"
+          >
+            <option value="desc">Fecha ↓ (recientes primero)</option>
+            <option value="asc">Fecha ↑ (antiguos primero)</option>
+          </select>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-dim">Cargando…</div>
+      ) : filteredMatches.length === 0 ? (
+        <div className="card card--p text-center opacity-70">Sin resultados</div>
       ) : (
         <div className="grid grid--2">
-          {matches.map(m => (
+          {filteredMatches.map(m => (
             <Link
               key={m.id}
               to={`/partido/${m.id}`}

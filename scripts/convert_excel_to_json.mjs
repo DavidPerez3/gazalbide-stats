@@ -24,8 +24,18 @@ const titleCase = (s) =>
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
     .join(" ");
 
+/** Normaliza cabeceras preservando casos especiales como “+/-” → plus_minus */
 function normalizeHeader(header) {
-  return String(header || "")
+  const raw = String(header || "");
+
+  // Casos especiales ANTES de normalizar genéricamente
+  const rawFlat = raw.replace(/\s+/g, "").toLowerCase();
+  if (rawFlat === "+/-" || rawFlat === "±" || /plus\/?minus/i.test(raw)) {
+    return "plus_minus";
+  }
+
+  // Normalización genérica
+  return raw
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -57,6 +67,51 @@ function cellToNumberStrict(v) {
   if (!/^\-?\d+(\.\d+)?$/.test(cleaned)) return null;
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
+}
+
+/** Parsea MIN desde MM:SS, H:MM:SS o fracción de día Excel → { min, min_str } */
+function parseMinutesCell(v) {
+  if (v == null) return { min: 0, min_str: "00:00" };
+
+  // Si ya es número "razonable" (ej: 25.5 minutos o fracción de día Excel)
+  if (typeof v === "number" && Number.isFinite(v)) {
+    if (v > 0 && v < 1) {
+      // Excel guarda tiempos como fracción de día -> minutos = v * 1440
+      const mins = Math.round(v * 1440);
+      const mm = String(mins % 60).padStart(2, "0");
+      const hh = Math.floor(mins / 60);
+      return { min: mins, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+    }
+    const mins = Math.round(v);
+    const mm = String(mins % 60).padStart(2, "0");
+    const hh = Math.floor(mins / 60);
+    return { min: mins, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+  }
+
+  const s = String(v).trim();
+
+  // MM:SS o H:MM:SS
+  const hms = s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+  if (hms) {
+    const h = parseInt(hms[1], 10);
+    const m = parseInt(hms[2], 10);
+    const sec = hms[3] ? parseInt(hms[3], 10) : 0;
+    const totalMin = h * 60 + m + Math.round(sec / 60);
+    const mm = String(totalMin % 60).padStart(2, "0");
+    const hh = Math.floor(totalMin / 60);
+    return { min: totalMin, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+  }
+
+  // Número en string (ej: "27")
+  const num = Number(s.replace(",", "."));
+  if (Number.isFinite(num)) {
+    const mins = Math.round(num);
+    const mm = String(mins % 60).padStart(2, "0");
+    const hh = Math.floor(mins / 60);
+    return { min: mins, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+  }
+
+  return { min: 0, min_str: "00:00" };
 }
 
 /* ========= PARSEO DEL NOMBRE DEL ARCHIVO =========
@@ -272,33 +327,37 @@ async function main() {
     });
 
     // 6) Guardar JSON del partido (stats por jugador)
-    const playersClean = gazalRows.map((p) => ({
-      number: p.n || p.no || p.num || p.dorsal || null,
-      name: p.jugador || p.player || "",
-      min: p.min || 0,
-      min_str: p.min_str || null,
-      pts: p.pts || 0,
-      two_pm: p["2pm"] || 0,
-      two_pa: p["2pa"] || 0,
-      three_pm: p["3pm"] || 0,
-      three_pa: p["3pa"] || 0,
-      fgm: p.fgm || 0,
-      fga: p.fga || 0,
-      ftm: p.ftm || 0,
-      fta: p.fta || 0,
-      oreb: p.oreb || 0,
-      dreb: p.dreb || 0,
-      reb: p.reb || 0,
-      ast: p.ast || 0,
-      tov: p.tov || 0,
-      stl: p.stl || 0,
-      blk: p.blk || 0,
-      pf: p.pf || 0,
-      pfd: p.pfd || 0,
-      pir: p.pir || 0,
-      eff: p.eff || 0,
-      plus_minus: p["+/-"] ?? p.plus_minus ?? p.__1 ?? 0,
-    }));
+    const playersClean = gazalRows.map((p) => {
+      const { min, min_str } = parseMinutesCell(p.min ?? p.minutes ?? p.tiempo);
+
+      return {
+        number: p.n || p.no || p.num || p.dorsal || null,
+        name: p.jugador || p.player || "",
+        min,                 // numérico (minutos totales)
+        min_str,             // "HH:MM" para mostrar
+        pts: p.pts || 0,
+        two_pm: p["2pm"] || p._2pm || 0,
+        two_pa: p["2pa"] || p._2pa || 0,
+        three_pm: p["3pm"] || p._3pm || 0,
+        three_pa: p["3pa"] || p._3pa || 0,
+        fgm: p.fgm || 0,
+        fga: p.fga || 0,
+        ftm: p.ftm || 0,
+        fta: p.fta || 0,
+        oreb: p.oreb || 0,
+        dreb: p.dreb || 0,
+        reb: p.reb || 0,
+        ast: p.ast || 0,
+        tov: p.tov || 0,
+        stl: p.stl || 0,
+        blk: p.blk || 0,
+        pf: p.pf || 0,
+        pfd: p.pfd || 0,
+        pir: p.pir || 0,
+        eff: p.eff || 0,
+        plus_minus: p.plus_minus ?? 0, // gracias a normalizeHeader ya existe
+      };
+    });
 
     fs.writeFileSync(
       path.join(outputStatsDir, `${matchId}.json`),
