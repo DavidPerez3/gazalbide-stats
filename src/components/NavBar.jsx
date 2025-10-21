@@ -28,6 +28,9 @@ export default function Navbar() {
           <NavLink to="/ranking" className={link}>
             Ranking
           </NavLink>
+          <NavLink to="/compare" className={link}>
+            Comparar
+          </NavLink>
         </nav>
       </div>
     </header>

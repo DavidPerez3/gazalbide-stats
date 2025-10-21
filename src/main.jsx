@@ -7,6 +7,7 @@ import Match from "./pages/Match.jsx";
 import Players from "./pages/Players.jsx";
 import Player from "./pages/Player.jsx";
 import Ranking from "./pages/Ranking.jsx";
+import Compare from "./pages/Compare";
 import "./index.css";
 
 const router = createBrowserRouter(
@@ -20,6 +21,7 @@ const router = createBrowserRouter(
         { path: "jugadores", element: <Players /> },
         { path: "jugador/:name", element: <Player /> },
         { path: "ranking", element: <Ranking /> },
+        { path: "compare", element: <Compare /> }
       ],
     },
   ],
