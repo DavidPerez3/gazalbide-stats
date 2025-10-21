@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMatches, getMatchStats } from "../lib/data";
+import DashboardHighlights from "../components/DashboardHighlights";
 
 // suma segura
 const num = (v) => Number(v || 0);
@@ -106,9 +107,11 @@ export default function Home() {
           Bienvenido a <span style={{color:'var(--color-gold)'}}>Gazalbide Stats</span>
         </h2>
         <p className="text-dim">
-          Consulta resultados, estadísticas de cada partido y ranking por métrica. Los datos se importan desde la planilla tras cada encuentro.
+          Consulta resultados, estadísticas de cada partido y ranking por métrica. Los datos se importan tras cada encuentro.
         </p>
       </div>
+
+      <DashboardHighlights />
 
       {/* Dashboard */}
       <div className="grid grid--3">

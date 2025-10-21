@@ -138,18 +138,18 @@ export default function Compare() {
       </div>
 
       {/* Selectores */}
-      <div className="card" style={{ padding: 12 }}>
+      <div className="card" style={{ padding: 12, marginBottom: 16 }}>
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label className="text-dim">Jugador A</label>
-            <select className="input" value={p1} onChange={(e) => setP1(e.target.value)}>
+            <select className="input" value={p1} onChange={(e) => setP1(e.target.value)} style={{ marginTop: 16 }}>
               <option value="" disabled>Selecciona</option>
               {players.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
           <div>
             <label className="text-dim">Jugador B</label>
-            <select className="input" value={p2} onChange={(e) => setP2(e.target.value)}>
+            <select className="input" value={p2} onChange={(e) => setP2(e.target.value)} style={{ marginTop: 16 }}>
               <option value="" disabled>Selecciona</option>
               {players.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
