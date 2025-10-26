@@ -1,0 +1,59 @@
+name: Excel → JSON
+
+on:
+  push:
+    paths:
+      - "excels/**/*.xlsx"     # cuando subas un Excel desde el móvil
+      - "scripts/convert_excel_to_json.mjs"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+    inputs:
+      excel_path:
+        description: "Ruta del Excel o carpeta (opcional)"
+        required: false
+        default: "excels"
+
+permissions:
+  contents: write   # para commitear los JSON generados
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm i
+          fi
+
+      - name: Convert Excel to JSON
+        run: |
+          mkdir -p public/data
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.excel_path }}" ]; then
+            node scripts/convert_excel_to_json.mjs "${{ github.event.inputs.excel_path }}"
+          else
+            node scripts/convert_excel_to_json.mjs ./excels
+          fi
+
+      - name: Commit JSON back to repo
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(data): actualizar JSON desde Excel [skip ci]"
+          file_pattern: public/data/**
+
+      # (Opcional) Si quieres forzar el deploy después de generar los JSON:
+      # - name: Trigger Pages deploy
+      #   run: echo "JSON actualizados; el workflow de deploy se encargará del despliegue"
