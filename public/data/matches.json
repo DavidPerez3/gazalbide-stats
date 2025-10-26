@@ -22,6 +22,28 @@
     "result": "W"
   },
   {
+    "id": "2025-10-26-vs-eureka",
+    "date": "2025-10-26",
+    "opponent": "Eureka",
+    "file": "stats_gazal_a_vs_eureka_26-10-25.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 54,
+    "opp_pts": 33,
+    "q_pf": [
+      19,
+      14,
+      7,
+      14
+    ],
+    "q_pa": [
+      16,
+      8,
+      5,
+      4
+    ],
+    "result": "W"
+  },
+  {
     "id": "2025-10-19-vs-viajes-olarizu",
     "date": "2025-10-19",
     "opponent": "Viajes Olarizu",
