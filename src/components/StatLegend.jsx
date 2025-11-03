@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const ITEMS = [
   { k: "MIN", desc: "Minutos jugados (mostramos mm:ss). En cálculos usamos segundos." },
@@ -20,26 +20,43 @@ const ITEMS = [
 
 export default function StatLegend({ defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
+  const bodyRef = useRef(null);
+
+  // Actualiza la altura máxima para permitir transición suave
+  useEffect(() => {
+    if (bodyRef.current) {
+      bodyRef.current.style.maxHeight = open
+        ? bodyRef.current.scrollHeight + "px"
+        : "0px";
+    }
+  }, [open]);
 
   return (
     <div className="legend">
-      <button className="legend__toggle" onClick={() => setOpen(v => !v)}>
+      <button className="legend__toggle" onClick={() => setOpen((v) => !v)}>
         {open ? "Ocultar leyenda" : "Mostrar leyenda"}
-        <span style={{opacity:.7}}>¿Qué significa cada estadística?</span>
+        <span style={{ opacity: 0.7, marginLeft: 8 }}>
+          ¿Qué significa cada estadística?
+        </span>
       </button>
 
-      {open && (
-        <div className="legend__body">
-          <div className="legend__grid">
-            {ITEMS.map(({ k, desc }) => (
-              <div key={k} className="legend__item">
-                <div className="legend__key">{k}</div>
-                <div className="legend__desc">{desc}</div>
-              </div>
-            ))}
-          </div>
+      <div
+        ref={bodyRef}
+        className={`legend__body ${open ? "" : "collapsed"}`}
+        style={{
+          opacity: open ? 1 : 0,
+          transition: "max-height 0.3s ease, opacity 0.3s ease",
+        }}
+      >
+        <div className="legend__grid">
+          {ITEMS.map(({ k, desc }) => (
+            <div key={k} className="legend__item">
+              <div className="legend__key">{k}</div>
+              <div className="legend__desc">{desc}</div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

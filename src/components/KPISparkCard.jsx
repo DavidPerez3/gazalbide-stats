@@ -3,12 +3,13 @@ import React from "react";
 
 const GOLD = "var(--color-gold, #d4af37)";
 const WHITE = "#ffffff";
+// Estos colores ya los usábamos para el delta
 const GREEN = "#55ff99";
 const RED   = "#ff6470";
 const GREY  = "#9aa0a6";
 
 // Dibuja sparkline interno (SVG) normalizando data al alto disponible
-function SparkBG({ data = [], color = GOLD, opacity = 0.18 }) {
+function SparkBG({ data = [], color = GOLD }) {
   if (!data || data.length === 0) return null;
   const w = 300; // el SVG se escala por CSS
   const h = 72;
@@ -26,10 +27,15 @@ function SparkBG({ data = [], color = GOLD, opacity = 0.18 }) {
 
   return (
     <svg
+      className="kpi-sparkline-bg"
       viewBox={`0 0 ${w} ${h}`}
       width="100%"
       height="100%"
-      style={{ position: "absolute", inset: 0, opacity, pointerEvents: "none" }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+      }}
     >
       <polyline
         points={points}
@@ -50,16 +56,33 @@ export default function KpiSparkCard({
   series = [],      // números por partido para sparkline
   deltaVal = 0,     // diferencia último - anterior (número)
   deltaText,        // string delta formateada (si lo pasas, se usa tal cual)
-  positiveIsGood = true, // para colorear delta (FG% ↑ es bueno, TOV ↑ no lo sería)
+  positiveIsGood = true, // FG% ↑ es bueno; TOV ↑ no lo es, etc.
 }) {
+  // Flecha basada en el signo REAL de la diferencia
   const sign = deltaVal > 0 ? "↑" : deltaVal < 0 ? "↓" : "•";
+
+  // Tendencia (mejora/empeora) teniendo en cuenta positiveIsGood
+  let trend = "neutral"; // "up" (mejor), "down" (peor), "neutral"
+  if (deltaVal !== 0) {
+    const improvement =
+      (deltaVal > 0 && positiveIsGood) || (deltaVal < 0 && !positiveIsGood);
+    trend = improvement ? "up" : "down";
+  }
+
+  // Color para mantener compatibilidad visual con lo que ya tenías
   const color =
-    deltaVal === 0
-      ? GREY
-      : (positiveIsGood ? (deltaVal > 0 ? GREEN : RED) : (deltaVal > 0 ? RED : GREEN));
+    trend === "neutral" ? GREY : trend === "up" ? GREEN : RED;
+
+  const deltaClass = `kpi-delta ${
+    trend === "up"
+      ? "kpi-delta--up"
+      : trend === "down"
+      ? "kpi-delta--down"
+      : "kpi-delta--neutral"
+  }`;
 
   return (
-    <div className="card card--p" style={{ position: "relative", overflow: "hidden" }}>
+    <div className="card card--p kpi-card">
       {/* Sparkline de fondo */}
       <SparkBG data={series} />
 
@@ -70,8 +93,10 @@ export default function KpiSparkCard({
 
       {/* Valor principal + delta */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>{mainValue}</div>
-        <div style={{ fontSize: 12, fontWeight: 700, color }}>
+        <div className="kpi-value" style={{ color: WHITE }}>
+          {mainValue}
+        </div>
+        <div className={deltaClass} style={{ color }}>
           {deltaText ?? `${sign} ${Math.abs(deltaVal).toString()}`}
         </div>
       </div>

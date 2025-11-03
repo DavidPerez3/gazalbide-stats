@@ -36,6 +36,11 @@ export default function Player() {
   const [rows, setRows] = useState([]);
   const [mode, setMode] = useState("media"); // "media" | "total"
 
+  // Filtro rápido para la tabla de partidos
+  const [matchQuery, setMatchQuery] = useState("");
+  const [matchSortDir, setMatchSortDir] = useState("desc"); // "asc" | "desc"
+
+
   // Cargar todos los partidos del jugador
   useEffect(() => {
     (async () => {
@@ -191,6 +196,31 @@ export default function Player() {
     ft_pct:   { pct: pct(aggregates.ftm,      aggregates.fta),      made: aggregates.ftm,      att: aggregates.fta },
   };
 
+  // Filtrado y ordenación de la tabla de partidos
+  const filteredRows = useMemo(() => {
+    const q = matchQuery.toLowerCase().trim();
+
+    // 1) filtro por rival o fecha
+    const base = rows.filter((r) => {
+      if (!q) return true;
+      const opp = (r.opponent || "").toLowerCase();
+      const dateStr = (r.date || "").toLowerCase();
+      return opp.includes(q) || dateStr.includes(q);
+    });
+
+    // 2) orden por fecha (string YYYY-MM-DD → sirve orden lexicográfico)
+    const factor = matchSortDir === "asc" ? 1 : -1;
+    const sorted = [...base].sort((a, b) => {
+      const da = a.date || "";
+      const db = b.date || "";
+      if (da === db) return 0;
+      return da < db ? -1 * factor : 1 * factor;
+    });
+
+    return sorted;
+  }, [rows, matchQuery, matchSortDir]);
+
+
   return (
     <section>
       {/* Header */}
@@ -303,48 +333,134 @@ export default function Player() {
 
       {/* Tabla por partido */}
       <div className="card" style={{ padding: 8, overflowX: "auto" }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Partido</th>
-              <th>MIN</th>
-              <th>PTS</th>
-              <th>REB</th>
-              <th>AST</th>
-              <th>FG%</th>
-              <th>2P%</th>
-              <th>3P%</th>
-              <th>FT%</th>
-              <th>+/-</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => {
-              const fg = r.fga ? ((r.fgm / r.fga) * 100).toFixed(1) : "0.0";
-              const p2 = r.two_pa ? ((r.two_pm / r.two_pa) * 100).toFixed(1) : "0.0";
-              const p3 = r.three_pa ? ((r.three_pm / r.three_pa) * 100).toFixed(1) : "0.0";
-              const ft = r.fta ? ((r.ftm / r.fta) * 100).toFixed(1) : "0.0";
-              return (
-                <tr key={i}>
-                  <td>{r.date || "—"}</td>
-                  <td>{r.opponent}</td>
-                  <td>{r.min_str ?? ""}</td>
-                  <td>{r.pts}</td>
-                  <td>{r.reb}</td>
-                  <td>{r.ast}</td>
-                  <td>{fg}%</td>
-                  <td>{p2}%</td>
-                  <td>{p3}%</td>
-                  <td>{ft}%</td>
-                  <td>{r.plus_minus}</td>
+        {/* === NUEVO SISTEMA DE ORDENACIÓN COMO EN Match.jsx === */}
+        {(() => {
+          // Helpers internos
+          const pctNum = (m, a) => (Number(a) > 0 ? (Number(m) / Number(a)) * 100 : 0);
+          const pctTxt = (m, a) => pctNum(m, a).toFixed(1) + "%";
+          const mmssToSecs = (v) => {
+            if (v == null) return 0;
+            if (typeof v === "number" && Number.isFinite(v)) return v;
+            const s = String(v).trim();
+            const m = s.match(/^(\d{1,2}):(\d{2})$/);
+            if (!m) return Number(s) || 0;
+            return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+          };
+          const secsToMMSS = (secs) => {
+            const s = Math.max(0, Math.round(Number(secs) || 0));
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+          };
+          const getMinSecs = (row) => {
+            if (row.min != null) return mmssToSecs(row.min);
+            if (row.min_str != null) return mmssToSecs(row.min_str);
+            return 0;
+          };
+          const getMinTxt = (row) => {
+            if (row.min_str) return row.min_str;
+            return secsToMMSS(getMinSecs(row));
+          };
+        
+          // Estado interno de orden
+          const [sortKey, setSortKey] = useState("date");
+          const [sortDir, setSortDir] = useState("desc");
+        
+          // Columnas con render y función de orden
+          const columns = [
+            { key: "date", title: "Fecha", getSort: (r) => r.date ?? "", render: (r) => r.date ?? "—" },
+            { key: "opponent", title: "Partido", getSort: (r) => String(r.opponent || "").toLowerCase(), render: (r) => r.opponent ?? "—" },
+            { key: "min", title: "MIN", getSort: (r) => getMinSecs(r), render: (r) => getMinTxt(r) },
+          
+            // Métricas
+            { key: "pts", title: "PTS", getSort: (r) => Number(r.pts) || 0, render: (r) => r.pts ?? 0 },
+            { key: "reb", title: "REB", getSort: (r) => Number(r.reb) || 0, render: (r) => r.reb ?? 0 },
+            { key: "oreb", title: "OREB", getSort: (r) => Number(r.oreb) || 0, render: (r) => r.oreb ?? 0 },
+            { key: "dreb", title: "DREB", getSort: (r) => Number(r.dreb) || 0, render: (r) => r.dreb ?? 0 },
+            { key: "ast", title: "AST", getSort: (r) => Number(r.ast) || 0, render: (r) => r.ast ?? 0 },
+            { key: "stl", title: "ROB", getSort: (r) => Number(r.stl) || 0, render: (r) => r.stl ?? 0 },
+            { key: "blk", title: "BLK", getSort: (r) => Number(r.blk) || 0, render: (r) => r.blk ?? 0 },
+            { key: "tov", title: "TOV", getSort: (r) => Number(r.tov) || 0, render: (r) => r.tov ?? 0 },
+            { key: "pf", title: "PF", getSort: (r) => Number(r.pf) || 0, render: (r) => r.pf ?? 0 },
+            { key: "pfd", title: "PFD", getSort: (r) => Number(r.pfd) || 0, render: (r) => r.pfd ?? 0 },
+          
+            // Porcentajes
+            { key: "fg_pct", title: "FG%", getSort: (r) => pctNum(r.fgm, r.fga), render: (r) => pctTxt(r.fgm, r.fga) },
+            { key: "two_pct", title: "2P%", getSort: (r) => pctNum(r.two_pm, r.two_pa), render: (r) => pctTxt(r.two_pm, r.two_pa) },
+            { key: "three_pct", title: "3P%", getSort: (r) => pctNum(r.three_pm, r.three_pa), render: (r) => pctTxt(r.three_pm, r.three_pa) },
+            { key: "ft_pct", title: "FT%", getSort: (r) => pctNum(r.ftm, r.fta), render: (r) => pctTxt(r.ftm, r.fta) },
+          
+            // Índices
+            { key: "pir", title: "PIR", getSort: (r) => Number(r.pir) || 0, render: (r) => r.pir ?? 0 },
+            { key: "eff", title: "EFF", getSort: (r) => Number(r.eff) || 0, render: (r) => r.eff ?? 0 },
+            { key: "plus_minus", title: "+/-", getSort: (r) => Number(r.plus_minus) || 0, render: (r) => r.plus_minus ?? 0 },
+          ];
+        
+          const activeCol = columns.find((c) => c.key === sortKey) || columns[0];
+        
+          // Ordenar filas sin afectar cálculos de delta
+          const sortedRows = useMemo(() => {
+            const arr = [...rows];
+            const getter = activeCol.getSort;
+            arr.sort((a, b) => {
+              const va = getter(a);
+              const vb = getter(b);
+              if (typeof va === "string" || typeof vb === "string") {
+                const cmp = String(va).localeCompare(String(vb), "es", { sensitivity: "base" });
+                return sortDir === "asc" ? cmp : -cmp;
+              }
+              const na = Number.isFinite(va) ? va : -Infinity;
+              const nb = Number.isFinite(vb) ? vb : -Infinity;
+              const cmp = na - nb;
+              return sortDir === "asc" ? cmp : -cmp;
+            });
+            return arr;
+          }, [rows, activeCol, sortDir]);
+        
+          const onClickHeader = (key) => {
+            if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+            else {
+              setSortKey(key);
+              setSortDir("asc");
+            }
+          };
+        
+          const Indicator = ({ colKey }) =>
+            colKey === sortKey ? (
+              <span className="sort-ind">{sortDir === "asc" ? "▲" : "▼"}</span>
+            ) : null;
+          
+          return (
+            <table className="table border-separate w-full">
+              <thead>
+                <tr>
+                  {columns.map((c) => (
+                    <th key={c.key}>
+                      <button
+                        type="button"
+                        className="th-btn"
+                        onClick={() => onClickHeader(c.key)}
+                      >
+                        {c.title}
+                        <Indicator colKey={c.key} />
+                      </button>
+                    </th>
+                  ))}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {sortedRows.map((r, i) => (
+                  <tr key={i}>
+                    {columns.map((c) => (
+                      <td key={c.key}>{c.render(r)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        })()}
       </div>
-
       <StatLegend defaultOpen={false} />
     </section>
   );

@@ -348,3 +348,262 @@ a:hover { color: var(--color-gold-2); }
 /* El contenedor también con fondo sólido */
 .table-wrap { background: var(--color-bg-soft); }
 
+/* === ANIMACIONES SUAVES === */
+
+/* NAVBAR: aparece con un pequeño fade al cargar */
+.navbar {
+  animation: fadeDown 0.4s ease both;
+}
+
+/* Enlaces del menú con sutil movimiento y color */
+.nav__link {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.nav__link:hover {
+  color: var(--color-gold-2);
+  transform: translateY(-2px);
+}
+
+/* Tarjetas con flotado suave */
+.card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  border-color: var(--color-gold);
+}
+
+/* Badges con “latido” suave al pasar el ratón */
+.badge {
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.badge:hover {
+  transform: scale(1.05);
+  background: rgba(212,175,55,0.15);
+}
+
+/* Botones de la tabla (th-btn) */
+.th-btn {
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.th-btn:hover {
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+  transform: translateY(-2px);
+}
+
+/* Filas de la tabla con fade suave al hacer hover */
+.table tbody tr {
+  transition: background 0.2s ease;
+}
+.table tbody tr:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+/* Inputs con animación al focus */
+.input {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.input:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.15);
+}
+
+/* Leyenda: despliegue con fade/slide suave */
+.legend__body {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+  opacity: 1;
+}
+.legend__body.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* === KEYFRAMES === */
+
+/* Navbar fade-in */
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === ANIMACIONES EXTRA SUAVES === */
+
+/* Scroll suave al hacer clic en anchors (#...) */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Contenido principal con un pequeño fade/slide al cargar */
+.main {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+/* Logo: micro-giro al pasar el ratón (muy sutil) */
+.brand__logo {
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+.brand__logo:hover {
+  transform: translateY(-1px) rotate(-3deg) scale(1.03);
+  filter: drop-shadow(0 0 6px rgba(212,175,55,0.4));
+}
+
+/* Quarters: que parezcan clicables, flotan un pelín */
+.quarter {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  border-radius: 10px;
+  border: 1px solid rgba(212,175,55,0.18);
+  background: rgba(20,20,20,0.9);
+}
+.quarter:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  border-color: var(--color-gold);
+  background: rgba(25,25,25,0.95);
+}
+
+/* Keyframes para la entrada del contenido principal */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === ANIMACIONES CONTEXTUALES PARA KPI === */
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  animation: kpiFadeIn 0.3s ease-out both;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+/* Valor principal: hace un pequeño "pop" cuando se re-renderiza */
+.kpi-value {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
+  animation: kpiValuePop 0.2s ease-out;
+}
+
+/* Delta: texto contextual */
+.kpi-delta {
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* Mejora → verde + glow suave */
+.kpi-delta--up {
+  color: #55ff99;
+  animation: statUpGlow 0.7s ease-out;
+}
+
+/* Empeora → rojo + glow suave */
+.kpi-delta--down {
+  color: #ff6470;
+  animation: statDownGlow 0.7s ease-out;
+}
+
+/* Sin cambio relevante */
+.kpi-delta--neutral {
+  color: var(--color-ink-dim);
+}
+
+/* Sparkline de fondo: un poco más visible al hover */
+.kpi-sparkline-bg {
+  opacity: 0.18;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.kpi-card:hover .kpi-sparkline-bg {
+  opacity: 0.3;
+  transform: translateY(-1px);
+}
+
+/* === KEYFRAMES === */
+
+@keyframes kpiFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kpiValuePop {
+  from {
+    transform: scale(0.9);
+    opacity: 0.3;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Glow suave verde cuando mejora */
+@keyframes statUpGlow {
+  0%   { text-shadow: 0 0 0 rgba(85,255,153,0); }
+  40%  { text-shadow: 0 0 10px rgba(85,255,153,0.8); }
+  100% { text-shadow: 0 0 0 rgba(85,255,153,0); }
+}
+
+/* Glow suave rojo cuando empeora */
+@keyframes statDownGlow {
+  0%   { text-shadow: 0 0 0 rgba(255,100,112,0); }
+  40%  { text-shadow: 0 0 10px rgba(255,100,112,0.8); }
+  100% { text-shadow: 0 0 0 rgba(255,100,112,0); }
+}
+
+.player-match-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.player-match-filters__search {
+  flex: 1 1 220px;
+}
+
+.player-match-filters__dir-btn {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: var(--color-bg-soft);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.player-match-filters__dir-btn:hover {
+  background: rgba(212, 175, 55, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
