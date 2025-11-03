@@ -116,8 +116,8 @@ export default function Home() {
       {/* Dashboard */}
       <div className="grid grid--3">
         <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Partidos</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>{teamTotals.games}</div>
+          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Nº de veces que se le ha salido el hombro a Imanol</div>
+          <div style={{fontSize:'22px', fontWeight:800}}>4</div>
         </div>
         <div className="card card--p">
           <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Récord</div>

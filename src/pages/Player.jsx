@@ -21,7 +21,6 @@ const COUNT_METRICS = [
   { key: "plus_minus", label: "+/-" },
 ];
 
-// helpers
 const pct = (m, a) => (a > 0 ? ((m / a) * 100).toFixed(1) : "0.0");
 const fmt = (secs) => {
   const s = Math.round(Number(secs) || 0);
@@ -48,13 +47,23 @@ export default function Player() {
           if (r.name === dn) {
             all.push({
               matchId: m.id,
-              date: m.date,
+              date: m.date,          // "2025-10-12"
               opponent: m.opponent,
               ...r,
             });
           }
         }
       }
+
+      // 🔹 Ordenar por fecha ascendente (más antiguo → más reciente)
+      // Como las fechas son YYYY-MM-DD, el string.localeCompare ya sirve.
+      all.sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return -1;
+        if (!b.date) return 1;
+        return a.date.localeCompare(b.date);
+      });
+
       setRows(all);
     })();
   }, [dn]);
@@ -86,15 +95,13 @@ export default function Player() {
     return agg;
   }, [rows]);
 
-  // Series por partido para tendencias y delta (orden de rows)
+  // Series por partido para tendencias y delta (en orden cronológico)
   const series = useMemo(() => {
     const out = {
       min: rows.map(r => Number(r.min ?? 0)),
-      // métricas de conteo
       ...Object.fromEntries(
         COUNT_METRICS.map(({ key }) => [key, rows.map(r => Number(r[key] ?? 0))])
       ),
-      // porcentajes por partido
       fg_pct: rows.map(r => {
         const a = Number(r.fga ?? 0), m = Number(r.fgm ?? 0);
         return a > 0 ? (m / a) * 100 : 0;
@@ -115,18 +122,16 @@ export default function Player() {
     return out;
   }, [rows]);
 
-  // === Nueva lógica de deltas y textos ===
   const isPctKey = (k) => ["fg_pct","two_pct","three_pct","ft_pct"].includes(k);
 
   const seasonPctValue = (k) => {
-    if (k === "fg_pct")   return Number(pct(aggregates.fgm,      aggregates.fga));
-    if (k === "two_pct")  return Number(pct(aggregates.two_pm,   aggregates.two_pa));
-    if (k === "three_pct")return Number(pct(aggregates.three_pm, aggregates.three_pa));
-    if (k === "ft_pct")   return Number(pct(aggregates.ftm,      aggregates.fta));
+    if (k === "fg_pct")    return Number(pct(aggregates.fgm,      aggregates.fga));
+    if (k === "two_pct")   return Number(pct(aggregates.two_pm,   aggregates.two_pa));
+    if (k === "three_pct") return Number(pct(aggregates.three_pm, aggregates.three_pa));
+    if (k === "ft_pct")    return Number(pct(aggregates.ftm,      aggregates.fta));
     return 0;
   };
 
-  // Delta contra media (o total en %)
   const deltaVsMean = (key) => {
     const arr = series[key];
     if (!arr?.length || aggregates.games === 0) return 0;
@@ -137,15 +142,13 @@ export default function Player() {
       return last - meanSecs;
     }
     if (isPctKey(key)) {
-      const seasonPct = seasonPctValue(key); // referencia fija para %
+      const seasonPct = seasonPctValue(key);
       return last - seasonPct;
     }
-    // conteos normales
     const mean = aggregates[key] / aggregates.games;
     return last - mean;
   };
 
-  // Delta contra partido anterior
   const deltaVsPrev = (key) => {
     const arr = series[key];
     if (!arr?.length) return 0;
@@ -164,7 +167,6 @@ export default function Player() {
     return `${sign} ${abs.toFixed(2)}`;
   };
 
-  // Valor principal para conteos (media vs total)
   const valueForCount = (key) => {
     const total = aggregates[key] || 0;
     if (mode === "media") {
@@ -174,7 +176,6 @@ export default function Player() {
     return { text: String(total), val: total };
   };
 
-  // Minutos principal
   const valueForMin = () => {
     const secs = mode === "media"
       ? (aggregates.games ? aggregates.min_secs / aggregates.games : 0)
@@ -183,7 +184,6 @@ export default function Player() {
     return { text: fmt(secs), deltaVal: d, deltaText: deltaTextFor("min", d) };
   };
 
-  // Porcentajes totales (se muestran SIEMPRE como total)
   const totals = {
     fg_pct:   { pct: pct(aggregates.fgm,      aggregates.fga),      made: aggregates.fgm,      att: aggregates.fga },
     two_pct:  { pct: pct(aggregates.two_pm,   aggregates.two_pa),   made: aggregates.two_pm,   att: aggregates.two_pa },
@@ -230,7 +230,7 @@ export default function Player() {
             userSelect: "none"
           }}
         >
-          <span style={{ fontWeight: 700, margin: 16}}>ℹ️</span>
+          <span style={{ fontWeight: 700 }}>ℹ️</span>
           {mode === "media"
             ? "Incrementos respecto a la media (en %: respecto al total de temporada)."
             : "Incrementos respecto al partido anterior."}
@@ -278,7 +278,7 @@ export default function Player() {
           <div style={{ fontSize: 20, fontWeight: 700 }}>{aggregates.games}</div>
         </div>
 
-        {/* % TOTALES tiro — SIEMPRE total (no depende del modo) */}
+        {/* % TOTALES tiro */}
         {[
           ["fg_pct", "FGPCT% — Total"],
           ["two_pct","TWOPCT% — Total"],
