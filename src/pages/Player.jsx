@@ -1,3 +1,4 @@
+// src/pages/Player.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getMatches, getMatchStats } from "../lib/data";
@@ -12,7 +13,7 @@ const COUNT_METRICS = [
   { key: "ast",        label: "AST" },
   { key: "stl",        label: "ROB" },
   { key: "blk",        label: "BLK" },
-  { key: "tov",        label: "TOV", positiveIsGood: false }, // subir TOV no es bueno
+  { key: "tov",        label: "TOV", positiveIsGood: false },
   { key: "pf",         label: "PF",  positiveIsGood: false },
   { key: "pfd",        label: "PFD" },
   { key: "pir",        label: "PIR" },
@@ -85,7 +86,7 @@ export default function Player() {
     return agg;
   }, [rows]);
 
-  // Series por partido para tendencias y delta (orden actual de rows)
+  // Series por partido para tendencias y delta (orden de rows)
   const series = useMemo(() => {
     const out = {
       min: rows.map(r => Number(r.min ?? 0)),
@@ -114,12 +115,53 @@ export default function Player() {
     return out;
   }, [rows]);
 
-  // Utilidades de delta (último - anterior)
-  const lastDelta = (arr) => {
-    if (!arr || arr.length === 0) return 0;
-    const last = arr[arr.length - 1] ?? 0;
-    const prev = arr.length > 1 ? arr[arr.length - 2] ?? 0 : last;
+  // === Nueva lógica de deltas y textos ===
+  const isPctKey = (k) => ["fg_pct","two_pct","three_pct","ft_pct"].includes(k);
+
+  const seasonPctValue = (k) => {
+    if (k === "fg_pct")   return Number(pct(aggregates.fgm,      aggregates.fga));
+    if (k === "two_pct")  return Number(pct(aggregates.two_pm,   aggregates.two_pa));
+    if (k === "three_pct")return Number(pct(aggregates.three_pm, aggregates.three_pa));
+    if (k === "ft_pct")   return Number(pct(aggregates.ftm,      aggregates.fta));
+    return 0;
+  };
+
+  // Delta contra media (o total en %)
+  const deltaVsMean = (key) => {
+    const arr = series[key];
+    if (!arr?.length || aggregates.games === 0) return 0;
+    const last = arr[arr.length - 1];
+
+    if (key === "min") {
+      const meanSecs = aggregates.min_secs / aggregates.games;
+      return last - meanSecs;
+    }
+    if (isPctKey(key)) {
+      const seasonPct = seasonPctValue(key); // referencia fija para %
+      return last - seasonPct;
+    }
+    // conteos normales
+    const mean = aggregates[key] / aggregates.games;
+    return last - mean;
+  };
+
+  // Delta contra partido anterior
+  const deltaVsPrev = (key) => {
+    const arr = series[key];
+    if (!arr?.length) return 0;
+    const last = arr[arr.length - 1];
+    const prev = arr.length > 1 ? arr[arr.length - 2] : last;
     return last - prev;
+  };
+
+  const getDelta = (key) => (mode === "media" ? deltaVsMean(key) : deltaVsPrev(key));
+
+  const deltaTextFor = (key, d) => {
+    const sign = d > 0 ? "↑" : d < 0 ? "↓" : "•";
+    const abs = Math.abs(d);
+    if (key === "min") return `${sign} ${fmt(abs)}`;
+    if (isPctKey(key)) return `${sign} ${abs.toFixed(1)} pts`;
+    return `${sign} ${abs.toFixed(2)}`;
   };
 
   // Valor principal para conteos (media vs total)
@@ -137,26 +179,22 @@ export default function Player() {
     const secs = mode === "media"
       ? (aggregates.games ? aggregates.min_secs / aggregates.games : 0)
       : aggregates.min_secs;
-    return { text: fmt(secs), deltaText: (() => {
-      const d = lastDelta(series.min);
-      const sign = d > 0 ? "↑" : d < 0 ? "↓" : "•";
-      const mm = fmt(Math.abs(d));
-      return `${sign} ${mm}`;
-    })()};
+    const d = getDelta("min");
+    return { text: fmt(secs), deltaVal: d, deltaText: deltaTextFor("min", d) };
   };
 
-  // Porcentajes totales
+  // Porcentajes totales (se muestran SIEMPRE como total)
   const totals = {
-    fg_pct: { pct: pct(aggregates.fgm, aggregates.fga), made: aggregates.fgm, att: aggregates.fga },
-    two_pct:{ pct: pct(aggregates.two_pm, aggregates.two_pa), made: aggregates.two_pm, att: aggregates.two_pa },
+    fg_pct:   { pct: pct(aggregates.fgm,      aggregates.fga),      made: aggregates.fgm,      att: aggregates.fga },
+    two_pct:  { pct: pct(aggregates.two_pm,   aggregates.two_pa),   made: aggregates.two_pm,   att: aggregates.two_pa },
     three_pct:{ pct: pct(aggregates.three_pm, aggregates.three_pa), made: aggregates.three_pm, att: aggregates.three_pa },
-    ft_pct: { pct: pct(aggregates.ftm, aggregates.fta), made: aggregates.ftm, att: aggregates.fta },
+    ft_pct:   { pct: pct(aggregates.ftm,      aggregates.fta),      made: aggregates.ftm,      att: aggregates.fta },
   };
 
   return (
     <section>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-2">
         <h2 style={{ fontSize: 22, fontWeight: 700 }}>
           <span style={{ color: "var(--color-gold)" }}>Jugador:</span> {dn}
         </h2>
@@ -175,6 +213,30 @@ export default function Player() {
         </div>
       </div>
 
+      {/* Info con icono */}
+      <div className="text-dim mb-3" style={{ fontSize: 13 }}>
+        <span
+          title={
+            mode === "media"
+              ? "Deltas: último partido vs media de la temporada. En porcentajes, vs total de temporada."
+              : "Deltas: último partido vs partido anterior."
+          }
+          aria-label="Información"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            cursor: "help",
+            userSelect: "none"
+          }}
+        >
+          <span style={{ fontWeight: 700, margin: 16}}>ℹ️</span>
+          {mode === "media"
+            ? "Incrementos respecto a la media (en %: respecto al total de temporada)."
+            : "Incrementos respecto al partido anterior."}
+        </span>
+      </div>
+
       {/* Tarjetas fusionadas */}
       <div
         className="mb-4"
@@ -188,66 +250,55 @@ export default function Player() {
         <KpiSparkCard
           title="MIN"
           mainValue={valueForMin().text}
-          deltaVal={lastDelta(series.min)}
+          deltaVal={valueForMin().deltaVal}
           deltaText={valueForMin().deltaText}
           series={series.min}
         />
 
-        {/* Métricas de conteo (todas) */}
+        {/* Conteos */}
         {COUNT_METRICS.map(({ key, label, positiveIsGood = true }) => {
           const main = valueForCount(key);
-          const d = lastDelta(series[key]);
+          const d = getDelta(key);
           return (
             <KpiSparkCard
               key={key}
               title={label}
               mainValue={main.text}
               deltaVal={d}
+              deltaText={deltaTextFor(key, d)}
               series={series[key]}
               positiveIsGood={positiveIsGood}
             />
           );
         })}
 
-        {/* Partidos (simple) */}
+        {/* Partidos */}
         <div className="card card--p">
           <div className="text-dim" style={{ fontSize: 12, marginBottom: 6 }}>Partidos</div>
           <div style={{ fontSize: 20, fontWeight: 700 }}>{aggregates.games}</div>
         </div>
 
-        {/* % TOTALES tiro (con m/a y delta vs partido anterior en puntos porcentuales) */}
-        <KpiSparkCard
-          title="FG% — Total"
-          mainValue={`${totals.fg_pct.pct}%`}
-          subLabel={`${totals.fg_pct.made}/${totals.fg_pct.att}`}
-          deltaVal={lastDelta(series.fg_pct)}
-          deltaText={`${lastDelta(series.fg_pct) > 0 ? "↑" : lastDelta(series.fg_pct) < 0 ? "↓" : "•"} ${Math.abs(lastDelta(series.fg_pct)).toFixed(1)} pts`}
-          series={series.fg_pct}
-        />
-        <KpiSparkCard
-          title="2P% — Total"
-          mainValue={`${totals.two_pct.pct}%`}
-          subLabel={`${totals.two_pct.made}/${totals.two_pct.att}`}
-          deltaVal={lastDelta(series.two_pct)}
-          deltaText={`${lastDelta(series.two_pct) > 0 ? "↑" : lastDelta(series.two_pct) < 0 ? "↓" : "•"} ${Math.abs(lastDelta(series.two_pct)).toFixed(1)} pts`}
-          series={series.two_pct}
-        />
-        <KpiSparkCard
-          title="3P% — Total"
-          mainValue={`${totals.three_pct.pct}%`}
-          subLabel={`${totals.three_pct.made}/${totals.three_pct.att}`}
-          deltaVal={lastDelta(series.three_pct)}
-          deltaText={`${lastDelta(series.three_pct) > 0 ? "↑" : lastDelta(series.three_pct) < 0 ? "↓" : "•"} ${Math.abs(lastDelta(series.three_pct)).toFixed(1)} pts`}
-          series={series.three_pct}
-        />
-        <KpiSparkCard
-          title="FT% — Total"
-          mainValue={`${totals.ft_pct.pct}%`}
-          subLabel={`${totals.ft_pct.made}/${totals.ft_pct.att}`}
-          deltaVal={lastDelta(series.ft_pct)}
-          deltaText={`${lastDelta(series.ft_pct) > 0 ? "↑" : lastDelta(series.ft_pct) < 0 ? "↓" : "•"} ${Math.abs(lastDelta(series.ft_pct)).toFixed(1)} pts`}
-          series={series.ft_pct}
-        />
+        {/* % TOTALES tiro — SIEMPRE total (no depende del modo) */}
+        {[
+          ["fg_pct", "FGPCT% — Total"],
+          ["two_pct","TWOPCT% — Total"],
+          ["three_pct","THREEPCT% — Total"],
+          ["ft_pct","FTPCT% — Total"],
+        ].map(([key, title]) => {
+          const d = getDelta(key);
+          const { pct: pctVal, made, att } = totals[key];
+          return (
+            <KpiSparkCard
+              key={key}
+              title={title}
+              mainValue={`${pctVal}%`}
+              subLabel={`${made}/${att}`}
+              deltaVal={d}
+              deltaText={deltaTextFor(key, d)}
+              series={series[key]}
+            />
+          );
+        })}
       </div>
 
       {/* Tabla por partido */}
