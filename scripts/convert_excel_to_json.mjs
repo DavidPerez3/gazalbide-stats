@@ -8,6 +8,9 @@ const outputMatches = "./public/data/matches.json";
 const outputPlayers = "./public/data/players.json";
 const outputStatsDir = "./public/data/player_stats";
 
+// NUEVO: salidas para la Fantasy
+const outputFantasyPlayers = "./public/data/fantasy_players.json";
+
 if (!fs.existsSync(outputStatsDir)) fs.mkdirSync(outputStatsDir, { recursive: true });
 
 /* ========= HELPERS GENERALES ========= */
@@ -265,6 +268,9 @@ async function main() {
   const matches = [];
   const playersMap = new Map();
 
+  // NUEVO: acumulador para la Fantasy (PIR medio y precio)
+  const fantasyAgg = new Map(); // key: dorsal si existe; si no, nombre en minúsculas
+
   for (const file of files) {
     const fullPath = path.join(inputDir, file);
 
@@ -372,6 +378,29 @@ async function main() {
         playersMap.set(key, { number: p.number, name: p.name });
       }
     }
+
+    // 8) NUEVO: acumular datos para Fantasy (PIR medio)
+    for (const p of playersClean) {
+      if (!p.name) continue;
+      const key =
+        p.number != null && p.number !== ""
+          ? String(p.number)
+          : p.name.toLowerCase();
+
+      let agg = fantasyAgg.get(key);
+      if (!agg) {
+        agg = {
+          number: p.number,
+          name: p.name,
+          gamesPlayed: 0,
+          pirSum: 0,
+        };
+      }
+
+      agg.gamesPlayed += 1;
+      agg.pirSum += Number(p.pir) || 0;
+      fantasyAgg.set(key, agg);
+    }
   }
 
   // matches.json
@@ -389,10 +418,40 @@ async function main() {
     )
   );
 
+  // ========= NUEVO: fantasy_players.json =========
+  const fantasyPlayers = Array.from(fantasyAgg.values())
+    .map((p) => {
+      const pirAvg = p.gamesPlayed > 0 ? p.pirSum / p.gamesPlayed : 0;
+      const pirForPrice = Math.max(pirAvg, 0); // nunca usamos PIR negativo para precio
+
+      const BASE = 8;       // puedes tunear estos valores
+      const FACTOR = 1.2;   // impacto del PIR medio en el precio
+      const MIN_PRICE = 8;  // precio mínimo
+
+      const rawPrice = BASE + pirForPrice * FACTOR;
+      const price = Math.max(MIN_PRICE, Math.round(rawPrice));
+
+      return {
+        number: p.number,
+        name: p.name,
+        gamesPlayed: p.gamesPlayed,
+        pirAvg: Number(pirAvg.toFixed(2)),
+        price,
+      };
+    })
+    .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+
+  fs.writeFileSync(
+    outputFantasyPlayers,
+    JSON.stringify(fantasyPlayers, null, 2)
+  );
+
+
   console.log(`✅ OK: ${files.length} archivo(s) procesados.`);
   console.log("- " + outputMatches);
   console.log("- " + outputPlayers);
   console.log("- " + outputStatsDir + "/*.json");
+  console.log("- " + outputFantasyPlayers);
 }
 
 /* ========= RUN ========= */
