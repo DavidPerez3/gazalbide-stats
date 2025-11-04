@@ -1,0 +1,93 @@
+[
+  {
+    "number": "00",
+    "name": "Iker",
+    "gamesPlayed": 3,
+    "pirAvg": 4.33,
+    "price": 13
+  },
+  {
+    "number": "1",
+    "name": "Josu",
+    "gamesPlayed": 3,
+    "pirAvg": 21.67,
+    "price": 34
+  },
+  {
+    "number": "3",
+    "name": "Ibon",
+    "gamesPlayed": 1,
+    "pirAvg": -2,
+    "price": 8
+  },
+  {
+    "number": "6",
+    "name": "Lucho",
+    "gamesPlayed": 3,
+    "pirAvg": 2.33,
+    "price": 11
+  },
+  {
+    "number": "8",
+    "name": "Aimar",
+    "gamesPlayed": 3,
+    "pirAvg": 3.67,
+    "price": 12
+  },
+  {
+    "number": "10",
+    "name": "Oier",
+    "gamesPlayed": 3,
+    "pirAvg": 19.33,
+    "price": 31
+  },
+  {
+    "number": "11",
+    "name": "Jorge",
+    "gamesPlayed": 3,
+    "pirAvg": 11.33,
+    "price": 22
+  },
+  {
+    "number": "13",
+    "name": "Aguirre",
+    "gamesPlayed": 1,
+    "pirAvg": 2,
+    "price": 10
+  },
+  {
+    "number": "14",
+    "name": "Iñaki",
+    "gamesPlayed": 3,
+    "pirAvg": 5.33,
+    "price": 14
+  },
+  {
+    "number": "15",
+    "name": "Kusky",
+    "gamesPlayed": 2,
+    "pirAvg": 2.5,
+    "price": 11
+  },
+  {
+    "number": "17",
+    "name": "Covela",
+    "gamesPlayed": 2,
+    "pirAvg": -4,
+    "price": 8
+  },
+  {
+    "number": "21",
+    "name": "Julen",
+    "gamesPlayed": 2,
+    "pirAvg": 4.5,
+    "price": 13
+  },
+  {
+    "number": "25",
+    "name": "Imanol",
+    "gamesPlayed": 2,
+    "pirAvg": 2.5,
+    "price": 11
+  }
+]
