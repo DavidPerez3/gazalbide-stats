@@ -64,27 +64,5 @@
       4
     ],
     "result": "W"
-  },
-  {
-    "id": "2025-11-09-vs-pozo-i-moicar",
-    "date": "2025-11-09",
-    "opponent": "Pozo I Moicar",
-    "file": "stats_gazal_a_vs_pozo_i_moicar_09_00_09-11-25.xls",
-    "sheet": "Gazal A Stats",
-    "gazal_pts": 80,
-    "opp_pts": 46,
-    "q_pf": [
-      25,
-      21,
-      14,
-      20
-    ],
-    "q_pa": [
-      9,
-      16,
-      10,
-      11
-    ],
-    "result": "W"
   }
 ]
