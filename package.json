@@ -10,6 +10,7 @@
     "data": "node scripts/convert_excel_to_json.mjs ./excels"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.78.0",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "fast-glob": "^3.3.3",

@@ -1,0 +1,25 @@
+# Archivos de entorno
+.env
+.env.*.local
+!.env.example
+
+# Dependencias
+node_modules/
+venv/
+.venv/
+
+# Builds
+dist/
+build/
+__pycache__/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/

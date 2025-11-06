@@ -3,17 +3,25 @@ import path from "path";
 import xlsx from "xlsx";
 
 /* ========= RUTAS Y PREPARACIÓN ========= */
+
+// Carpeta con los Excel
 const inputDir = process.argv[2] || "./excels";
+
+// Salidas EXACTAMENTE como las tenías
 const outputMatches = "./public/data/matches.json";
 const outputPlayers = "./public/data/players.json";
 const outputStatsDir = "./public/data/player_stats";
-
-// NUEVO: salidas para la Fantasy
 const outputFantasyPlayers = "./public/data/fantasy_players.json";
 
-if (!fs.existsSync(outputStatsDir)) fs.mkdirSync(outputStatsDir, { recursive: true });
+if (!fs.existsSync("./public/data")) {
+  fs.mkdirSync("./public/data", { recursive: true });
+}
+if (!fs.existsSync(outputStatsDir)) {
+  fs.mkdirSync(outputStatsDir, { recursive: true });
+}
 
 /* ========= HELPERS GENERALES ========= */
+
 const toAscii = (s) =>
   String(s || "")
     .normalize("NFD")
@@ -22,96 +30,68 @@ const toAscii = (s) =>
 
 const titleCase = (s) =>
   String(s || "")
-    .toLowerCase()
-    .split(/\s+/)
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+    .split(/[\s_]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
     .join(" ");
 
-/** Normaliza cabeceras preservando casos especiales como “+/-” → plus_minus */
-function normalizeHeader(header) {
-  const raw = String(header || "");
+const normalizeHeader = (h) => {
+  const raw = String(h || "").trim();
+  const lower = raw.toLowerCase();
 
-  // Casos especiales ANTES de normalizar genéricamente
-  const rawFlat = raw.replace(/\s+/g, "").toLowerCase();
-  if (rawFlat === "+/-" || rawFlat === "±" || /plus\/?minus/i.test(raw)) {
+  // 👇 Caso especial: la columna "+/-" del Excel
+  if (lower.includes("+/-")) {
     return "plus_minus";
   }
 
-  // Normalización genérica
-  return raw
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_|_$/g, "");
-}
+  return lower.replace(/\s+/g, "_").replace(/[^\w_]/g, "");
+};
 
-/** Lee una hoja “estilo jugadores” y normaliza cabeceras */
-function readSheetAsObjects(file, sheetName) {
-  const wb = xlsx.readFile(file);
-  const ws = wb.Sheets[sheetName];
-  if (!ws) return [];
-  const rows = xlsx.utils.sheet_to_json(ws, { defval: null });
-  return rows.map((row) => {
-    const out = {};
-    for (const k in row) out[normalizeHeader(k)] = row[k];
-    return out;
-  });
-}
+/**
+ * Convierte minutos del Excel a:
+ *  - min: segundos totales (como en tus JSON)
+ *  - min_str: "MM:SS"
+ */
+function parseMinutes(v) {
+  if (v == null || v === "") {
+    return { min: 0, min_str: "00:00" };
+  }
 
-/** Convierte celdas a número solo si son numéricas puras (ignora “17:01”, texto, etc.) */
-function cellToNumberStrict(v) {
-  if (v == null) return null;
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  const raw = String(v).trim();
-  if (/^\d{1,2}:\d{2}$/.test(raw)) return null; // hora tipo 17:01
-  const cleaned = raw.replace(",", ".").replace(/[^0-9.\-]/g, "");
-  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
-  if (!/^\-?\d+(\.\d+)?$/.test(cleaned)) return null;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : null;
-}
-
-/** Parsea MIN desde MM:SS, H:MM:SS o fracción de día Excel → { min, min_str } */
-function parseMinutesCell(v) {
-  if (v == null) return { min: 0, min_str: "00:00" };
-
-  // Si ya es número "razonable" (ej: 25.5 minutos o fracción de día Excel)
   if (typeof v === "number" && Number.isFinite(v)) {
-    if (v > 0 && v < 1) {
-      // Excel guarda tiempos como fracción de día -> minutos = v * 1440
-      const mins = Math.round(v * 1440);
-      const mm = String(mins % 60).padStart(2, "0");
-      const hh = Math.floor(mins / 60);
-      return { min: mins, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
-    }
-    const mins = Math.round(v);
-    const mm = String(mins % 60).padStart(2, "0");
-    const hh = Math.floor(mins / 60);
-    return { min: mins, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+    // Si es muy grande, asumimos que ya son segundos
+    const secs = v > 360 ? Math.round(v) : Math.round(v * 60);
+    const mm = Math.floor(secs / 60);
+    const ss = secs % 60;
+    return {
+      min: secs,
+      min_str: `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`,
+    };
   }
 
-  const s = String(v).trim();
+  const raw = String(v).trim();
 
-  // MM:SS o H:MM:SS
-  const hms = s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
-  if (hms) {
-    const h = parseInt(hms[1], 10);
-    const m = parseInt(hms[2], 10);
-    const sec = hms[3] ? parseInt(hms[3], 10) : 0;
-    const totalMin = h * 60 + m + Math.round(sec / 60);
-    const mm = String(totalMin % 60).padStart(2, "0");
-    const hh = Math.floor(totalMin / 60);
-    return { min: totalMin, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+  // Formato "MM:SS" o "HH:MM"
+  const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) {
+    const mm = Number(m[1]);
+    const ss = Number(m[2]);
+    const secs = mm * 60 + ss;
+    return {
+      min: secs,
+      min_str: `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`,
+    };
   }
 
-  // Número en string (ej: "27")
-  const num = Number(s.replace(",", "."));
+  // Número parseable
+  const num = Number(raw.replace(",", "."));
   if (Number.isFinite(num)) {
-    const mins = Math.round(num);
-    const mm = String(mins % 60).padStart(2, "0");
-    const hh = Math.floor(mins / 60);
-    return { min: mins, min_str: `${String(hh).padStart(2, "0")}:${mm}` };
+    const secs = num > 360 ? Math.round(num) : Math.round(num * 60);
+    const mm = Math.floor(secs / 60);
+    const ss = secs % 60;
+    return {
+      min: secs,
+      min_str: `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`,
+    };
   }
 
   return { min: 0, min_str: "00:00" };
@@ -124,15 +104,16 @@ function parseMinutesCell(v) {
 */
 function parseFilenameMeta(filename) {
   const base = path.basename(filename, path.extname(filename)); // sin .xls/.xlsx
-  const ascii = toAscii(base);
+  const asciiBase = toAscii(base);
 
   // 1) fecha dd-mm-yy en cualquier parte
-  const mDate = ascii.match(/(\d{2})-(\d{2})-(\d{2})/);
+  const mDate = asciiBase.match(/(\d{2})-(\d{2})-(\d{2})/);
   const dateISO = mDate ? `20${mDate[3]}-${mDate[2]}-${mDate[1]}` : null;
 
   // 2) separar por “vs”
   const split = base.split(/[_-]vs[_-]?/i);
-  let left = null, right = null;
+  let left = null;
+  let right = null;
   if (split.length >= 2) {
     left = split[0].replace(/^stats[_-]?/i, "").trim();
     right = split[1].trim();
@@ -143,74 +124,131 @@ function parseFilenameMeta(filename) {
     if (!s) return "";
     return s
       .replace(/_\d{1,2}_\d{2}_\d{2}-\d{2}-\d{2}$/i, "") // _hh_mm_dd-mm-yy
-      .replace(/_\d{2}-\d{2}-\d{2}$/i, "")               // _dd-mm-yy
-      .replace(/[-_]+/g, " ")
-      .replace(/\s{2,}/g, " ")
-      .trim();
+      .replace(/_\d{2}-\d{2}-\d{2}$/i, "") // _dd-mm-yy
+      .replace(/^\s+|\s+$/g, "");
   };
 
   left = cleanTeamSlug(left);
   right = cleanTeamSlug(right);
 
   // 4) decide nuestro equipo vs rival (nuestro contiene “gazal”)
-  const isGazal = (s) => /gazal/.test(toAscii(s));
-  let opp = null;
+  const isGazal = (s) => /gazal/.test(toAscii(s || ""));
+  let oppSlug = null;
 
   if (isGazal(left) && !isGazal(right)) {
-    opp = right;
+    oppSlug = right;
   } else if (!isGazal(left) && isGazal(right)) {
-    opp = left;
+    oppSlug = left;
   } else if (isGazal(left) && isGazal(right)) {
-    opp = right; // raro, pero nos quedamos con el de la derecha como rival
+    oppSlug = right; // raro, pero nos quedamos con el de la derecha como rival
   } else {
-    // ninguno contiene “gazal”: por defecto el rival es el lado derecho
-    opp = right || left || "Desconocido";
+    // ninguno contiene “gazal”: por defecto rival = lado derecho
+    oppSlug = right || left || "desconocido";
   }
 
-  const opponent = opp ? titleCase(opp) : "Desconocido";
+  const opponent = titleCase(oppSlug || "Desconocido");
 
   // 5) id del partido
   const slugOpp = opponent.toLowerCase().replace(/\s+/g, "-");
   const matchId = dateISO
     ? `${dateISO}-vs-${slugOpp || "desconocido"}`
-    : base.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    : base
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 
   return { dateISO, opponent, matchId };
 }
 
-/* ========= LECTURA “TEAM STATS” (PF/PA + parciales) =========
-   - Localiza la fila de cabecera con Q1..Q4..Total
-   - Selecciona las PRIMERAS dos filas con 5 números válidos (Q1-4 + Total)
-   - De esas dos, si una contiene “gazal” → esa es nuestra; la otra, rival
-   - Ignora celdas con formato hora y números fuera de rango razonable
-*/
-function readTeamStats(file) {
-  const wb = xlsx.readFile(file);
+/* ========= UTILIDADES DE LECTURA ========= */
+
+function readSheetAsObjects(filePath, sheetName) {
+  const wb = xlsx.readFile(filePath);
+  let name = sheetName;
+  if (!wb.Sheets[name]) {
+    // fallback: buscar por nombre parecido
+    const found = wb.SheetNames.find(
+      (n) => toAscii(n).replace(/\s+/g, "") === toAscii(sheetName).replace(/\s+/g, "")
+    );
+    if (found) name = found;
+  }
+  const ws = wb.Sheets[name];
+  if (!ws) return { rows: [], sheetName: null };
+
+  const rawRows = xlsx.utils.sheet_to_json(ws, { defval: null });
+  const rows = rawRows.map((row) => {
+    const out = {};
+    for (const k in row) {
+      out[normalizeHeader(k)] = row[k];
+    }
+    return out;
+  });
+
+  return { rows, sheetName: name };
+}
+
+/**
+ * Lee la hoja "Team Stats" para PF/PA y parciales por cuarto.
+ */
+function readTeamStats(filePath) {
+  const wb = xlsx.readFile(filePath);
+
   let sheetName =
     wb.SheetNames.find((n) => toAscii(n).trim() === "team stats") ||
-    wb.SheetNames.find((n) => toAscii(n).replace(/\s+/g, "").includes("teamstats"));
+    wb.SheetNames.find((n) =>
+      toAscii(n).replace(/\s+/g, "").includes("teamstats")
+    );
+
   if (!sheetName) return null;
 
   const ws = wb.Sheets[sheetName];
-  const table = xlsx.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  const table = xlsx.utils.sheet_to_json(ws, {
+    header: 1,
+    defval: null,
+    raw: true,
+  });
 
   const validQuarter = (n) => typeof n === "number" && n >= 0 && n <= 60;
   const validTotal = (n) => typeof n === "number" && n >= 0 && n <= 200;
 
   // 1) localizar cabecera con Q1..Q4..Total
-  let headerRowIdx = -1, idxQ1=-1, idxQ2=-1, idxQ3=-1, idxQ4=-1, idxTot=-1;
+  let headerRowIdx = -1;
+  let idxQ1 = -1,
+    idxQ2 = -1,
+    idxQ3 = -1,
+    idxQ4 = -1,
+    idxTot = -1;
+
   for (let i = 0; i < Math.min(table.length, 15); i++) {
-    const labels = (table[i] || []).map((c) => toAscii(String(c || "")).replace(/\s+/g, ""));
-    const iQ1 = labels.indexOf("q1"), iQ2 = labels.indexOf("q2"),
-          iQ3 = labels.indexOf("q3"), iQ4 = labels.indexOf("q4"),
-          iTot = labels.indexOf("total");
+    const labels = (table[i] || []).map((c) =>
+      toAscii(String(c || "")).replace(/\s+/g, "")
+    );
+    const iQ1 = labels.indexOf("q1");
+    const iQ2 = labels.indexOf("q2");
+    const iQ3 = labels.indexOf("q3");
+    const iQ4 = labels.indexOf("q4");
+    const iTot = labels.indexOf("total");
     if (iQ1 !== -1 && iQ2 !== -1 && iQ3 !== -1 && iQ4 !== -1 && iTot !== -1) {
       headerRowIdx = i;
-      idxQ1=iQ1; idxQ2=iQ2; idxQ3=iQ3; idxQ4=iQ4; idxTot=iTot;
+      idxQ1 = iQ1;
+      idxQ2 = iQ2;
+      idxQ3 = iQ3;
+      idxQ4 = iQ4;
+      idxTot = iTot;
       break;
     }
   }
+
   if (headerRowIdx === -1) return null;
+
+  const cellToNumberStrict = (v) => {
+    if (v == null) return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    const raw = String(v).trim();
+    if (/^\d{1,2}:\d{2}$/.test(raw)) return null;
+    const num = Number(raw.replace(",", "."));
+    return Number.isFinite(num) ? num : null;
+  };
 
   // 2) recolectar candidatos (primeras dos filas numéricas válidas)
   const candidates = [];
@@ -225,23 +263,24 @@ function readTeamStats(file) {
     const q4 = cellToNumberStrict(row[idxQ4]);
     const tot = cellToNumberStrict(row[idxTot]);
 
-    const ok = [q1, q2, q3, q4].every(validQuarter) && validTotal(tot);
+    const ok =
+      [q1, q2, q3, q4].every(validQuarter) && validTotal(tot);
     if (!ok) continue;
 
     candidates.push({ name, q: [q1, q2, q3, q4], tot });
-    if (candidates.length >= 2) break; // nos bastan dos filas (nuestro + rival)
+    if (candidates.length >= 2) break;
   }
 
   if (candidates.length === 0) return null;
 
   // 3) decidir quién es quién
   const gazalIdx = candidates.findIndex((c) => c.name.includes("gazal"));
-  let our = null, opp = null;
+  let our = null,
+    opp = null;
   if (gazalIdx !== -1) {
     our = candidates[gazalIdx];
     opp = candidates.find((c, i) => i !== gazalIdx) || null;
   } else {
-    // si ninguna contiene “gazal”: tomamos la 1ª como nuestra y la 2ª como rival
     our = candidates[0];
     opp = candidates[1] || null;
   }
@@ -255,6 +294,7 @@ function readTeamStats(file) {
 }
 
 /* ========= PROCESO PRINCIPAL ========= */
+
 async function main() {
   const files = fs
     .readdirSync(inputDir)
@@ -265,63 +305,145 @@ async function main() {
     return;
   }
 
+  // Ordenamos por fecha para que pirs vayan cronológicos
+  const fileEntries = files
+    .map((file) => ({ file, ...parseFilenameMeta(file) }))
+    .sort((a, b) => {
+      if (a.dateISO && b.dateISO) return a.dateISO.localeCompare(b.dateISO);
+      if (a.dateISO) return -1;
+      if (b.dateISO) return 1;
+      return a.file.localeCompare(b.file);
+    });
+
   const matches = [];
-  const playersMap = new Map();
+  const playersMap = new Map(); // name (lower) -> { number, name }
+  const fantasyAgg = new Map(); // key -> { number, name, pirSum, gamesPlayed, pirs: [] }
 
-  // NUEVO: acumulador para la Fantasy (PIR medio y precio)
-  const fantasyAgg = new Map(); // key: dorsal si existe; si no, nombre en minúsculas
-
-  for (const file of files) {
+  for (const { file, dateISO, opponent, matchId } of fileEntries) {
     const fullPath = path.join(inputDir, file);
 
-    // 1) Hoja de jugadores (suele ser “Gazal A Stats”; dejamos fallback flexible)
-    let gazalSheetName = "Gazal A Stats";
-    let gazalRows = readSheetAsObjects(fullPath, gazalSheetName);
-    if (!gazalRows.length) {
-      // fallback: busca una hoja que contenga “gazal” y “stats”
-      const wb = xlsx.readFile(fullPath);
-      const guess = wb.SheetNames.find((n) => {
+    // 1) Hoja de jugadores (Gazal A)
+    const wb = xlsx.readFile(fullPath);
+    let gazalSheetName = wb.SheetNames.find(
+      (n) => toAscii(n).trim() === "gazal a stats"
+    );
+    if (!gazalSheetName) {
+      gazalSheetName = wb.SheetNames.find((n) => {
         const s = toAscii(n);
         return s.includes("gazal") && s.includes("stats");
       });
-      if (guess) {
-        gazalSheetName = guess;
-        gazalRows = readSheetAsObjects(fullPath, gazalSheetName);
-      }
     }
-    if (!gazalRows.length) continue;
+    if (!gazalSheetName) {
+      gazalSheetName = wb.SheetNames[0];
+    }
 
-    // 2) Meta desde el nombre de archivo (fecha + rival + id)
-    const { dateISO, opponent, matchId } = parseFilenameMeta(file);
+    const { rows } = readSheetAsObjects(fullPath, gazalSheetName);
 
-    // 3) PF fallback (sumando PTS por jugador)
-    const pfFallback = gazalRows.reduce((acc, r) => acc + (Number(r.pts) || 0), 0);
+    // 2) Parsear filas de jugadores
+    const playersClean = rows
+      .map((row) => {
+        const p = row;
 
-    // 4) Leer Team Stats: PF/PA + Q1..Q4 (si existen)
-    let pf = pfFallback;
-    let pa = undefined;
-    let q_pf = [null, null, null, null];
-    let q_pa = [null, null, null, null];
+        const numberRaw =
+          p.n || p.no || p.num || p.dorsal || p.numero || null;
+        const name =
+          p.jugador || p.player || p.name || p.nombre || "";
+
+        const minsCell =
+          p.minutos || p.min || p.mins || p.min_tot || p.mintot || null;
+        const { min, min_str } = parseMinutes(minsCell);
+
+        const pts = Number(p.pts || p.puntos || 0) || 0;
+
+        const two_pm =
+          Number(p["2pm"] ?? p._2pm ?? p.d2m ?? 0) || 0;
+        const two_pa =
+          Number(p["2pa"] ?? p._2pa ?? p.d2a ?? 0) || 0;
+        const three_pm =
+          Number(p["3pm"] ?? p._3pm ?? p.t3m ?? 0) || 0;
+        const three_pa =
+          Number(p["3pa"] ?? p._3pa ?? p.t3a ?? 0) || 0;
+
+        const fgm = Number(p.fgm || 0) || 0;
+        const fga = Number(p.fga || 0) || 0;
+        const ftm = Number(p.ftm || 0) || 0;
+        const fta = Number(p.fta || 0) || 0;
+        const oreb = Number(p.oreb || 0) || 0;
+        const dreb = Number(p.dreb || 0) || 0;
+        const reb = Number(p.reb || 0) || 0;
+        const ast = Number(p.ast || 0) || 0;
+        const tov = Number(p.tov || 0) || 0;
+        const stl = Number(p.stl || 0) || 0;
+        const blk = Number(p.blk || 0) || 0;
+        const pf = Number(p.pf || 0) || 0;
+        const pfd = Number(p.pfd || 0) || 0;
+        const pir = Number(p.pir || 0) || 0;
+        const eff = Number(p.eff || 0) || 0;
+        const plus_minus = Number(p.plus_minus || 0) || 0;
+
+        return {
+          number: numberRaw != null ? String(numberRaw) : null,
+          name,
+          min,
+          min_str,
+          pts,
+          two_pm,
+          two_pa,
+          three_pm,
+          three_pa,
+          fgm,
+          fga,
+          ftm,
+          fta,
+          oreb,
+          dreb,
+          reb,
+          ast,
+          tov,
+          stl,
+          blk,
+          pf,
+          pfd,
+          pir,
+          eff,
+          plus_minus,
+        };
+      })
+      .filter((p) => p.name && (p.min > 0 || p.pts !== 0 || p.pir !== 0));
+
+    // 3) Guardar per-partido en public/data/player_stats/<id>.json
+    const statsOutPath = path.join(outputStatsDir, `${matchId}.json`);
+    fs.writeFileSync(statsOutPath, JSON.stringify(playersClean, null, 2));
+
+    // 4) PF/PA y parciales
+    let pf = playersClean.reduce((sum, p) => sum + (p.pts || 0), 0);
+    let pa = null;
+    let q_pf = [];
+    let q_pa = [];
 
     const ts = readTeamStats(fullPath);
     if (ts) {
       if (typeof ts.pf === "number" && ts.pf > 0) pf = ts.pf;
       if (typeof ts.pa === "number" && ts.pa > 0) pa = ts.pa;
-      if (Array.isArray(ts.q_pf) && ts.q_pf.some((n) => Number(n) > 0)) q_pf = ts.q_pf;
-      if (Array.isArray(ts.q_pa) && ts.q_pa.some((n) => Number(n) > 0)) q_pa = ts.q_pa;
+      if (Array.isArray(ts.q_pf) && ts.q_pf.some((n) => Number(n) > 0)) {
+        q_pf = ts.q_pf;
+      }
+      if (Array.isArray(ts.q_pa) && ts.q_pa.some((n) => Number(n) > 0)) {
+        q_pa = ts.q_pa;
+      }
     }
 
-    // 5) Guardar metadata del partido
+    // 5) matches.json
     matches.push({
       id: matchId,
-      date: dateISO || "Desconocida",
+      date: dateISO,
       opponent,
       file: path.basename(file),
       sheet: gazalSheetName,
       gazal_pts: pf,
-      opp_pts: typeof pa === "number" ? pa : undefined,
-      q_pf: Array.isArray(q_pf) ? q_pf : undefined,
-      q_pa: Array.isArray(q_pa) ? q_pa : undefined,
+      opp_pts: pa,
+      q_pf,
+      q_pa,
       result:
         typeof pa === "number"
           ? pf > pa
@@ -329,125 +451,114 @@ async function main() {
             : pf < pa
             ? "L"
             : "D"
-          : undefined,
+          : null,
     });
 
-    // 6) Guardar JSON del partido (stats por jugador)
-    const playersClean = gazalRows.map((p) => {
-      const { min, min_str } = parseMinutesCell(p.min ?? p.minutes ?? p.tiempo);
-
-      return {
-        number: p.n || p.no || p.num || p.dorsal || null,
-        name: p.jugador || p.player || "",
-        min,                 // numérico (minutos totales)
-        min_str,             // "HH:MM" para mostrar
-        pts: p.pts || 0,
-        two_pm: p["2pm"] || p._2pm || 0,
-        two_pa: p["2pa"] || p._2pa || 0,
-        three_pm: p["3pm"] || p._3pm || 0,
-        three_pa: p["3pa"] || p._3pa || 0,
-        fgm: p.fgm || 0,
-        fga: p.fga || 0,
-        ftm: p.ftm || 0,
-        fta: p.fta || 0,
-        oreb: p.oreb || 0,
-        dreb: p.dreb || 0,
-        reb: p.reb || 0,
-        ast: p.ast || 0,
-        tov: p.tov || 0,
-        stl: p.stl || 0,
-        blk: p.blk || 0,
-        pf: p.pf || 0,
-        pfd: p.pfd || 0,
-        pir: p.pir || 0,
-        eff: p.eff || 0,
-        plus_minus: p.plus_minus ?? 0, // gracias a normalizeHeader ya existe
-      };
-    });
-
-    fs.writeFileSync(
-      path.join(outputStatsDir, `${matchId}.json`),
-      JSON.stringify(playersClean, null, 2)
-    );
-
-    // 7) Acumular listado global de jugadores (clave por nombre)
+    // 6) players.json (solo número/nombre)
     for (const p of playersClean) {
-      if (!p.name) continue;
       const key = p.name.toLowerCase();
       if (!playersMap.has(key)) {
-        playersMap.set(key, { number: p.number, name: p.name });
+        playersMap.set(key, {
+          number: p.number != null ? String(p.number) : "",
+          name: p.name,
+        });
       }
     }
 
-    // 8) NUEVO: acumular datos para Fantasy (PIR medio)
+    // 7) fantasy_agg (para fantasy_players.json)
     for (const p of playersClean) {
       if (!p.name) continue;
       const key =
         p.number != null && p.number !== ""
-          ? String(p.number)
-          : p.name.toLowerCase();
+          ? `num_${String(p.number)}`
+          : `name_${p.name.toLowerCase()}`;
 
       let agg = fantasyAgg.get(key);
       if (!agg) {
         agg = {
-          number: p.number,
+          number: p.number != null ? String(p.number) : "",
           name: p.name,
           gamesPlayed: 0,
           pirSum: 0,
+          pirs: [],
         };
       }
 
+      const pirVal = Number(p.pir) || 0;
       agg.gamesPlayed += 1;
-      agg.pirSum += Number(p.pir) || 0;
+      agg.pirSum += pirVal;
+      agg.pirs.push(pirVal);
+
       fantasyAgg.set(key, agg);
     }
   }
 
-  // matches.json
+  // === matches.json ===
   fs.writeFileSync(outputMatches, JSON.stringify(matches, null, 2));
 
-  // players.json (ordenado por dorsal si existe)
-  fs.writeFileSync(
-    outputPlayers,
-    JSON.stringify(
-      Array.from(playersMap.values()).sort(
-        (a, b) => (a.number ?? 0) - (b.number ?? 0)
-      ),
-      null,
-      2
-    )
-  );
+  // === players.json === (igual formato que el tuyo)
+  const playersArr = Array.from(playersMap.values()).sort((a, b) => {
+    const na = a.number === "" ? 999 : Number(a.number);
+    const nb = b.number === "" ? 999 : Number(b.number);
+    return na - nb;
+  });
 
-  // ========= NUEVO: fantasy_players.json =========
+  fs.writeFileSync(outputPlayers, JSON.stringify(playersArr, null, 2));
+
+  // === fantasy_players.json ===
   const fantasyPlayers = Array.from(fantasyAgg.values())
     .map((p) => {
-      const pirAvg = p.gamesPlayed > 0 ? p.pirSum / p.gamesPlayed : 0;
+      const pirAvg =
+        p.gamesPlayed > 0 ? p.pirSum / p.gamesPlayed : 0;
       const pirForPrice = Math.max(pirAvg, 0); // nunca usamos PIR negativo para precio
 
-      const BASE = 8;       // puedes tunear estos valores
-      const FACTOR = 1.2;   // impacto del PIR medio en el precio
-      const MIN_PRICE = 8;  // precio mínimo
+      // Fórmula de precio (cervezas)
+      const BASE = 8;
+      const FACTOR = 1.2;
+      const MIN_PRICE = 8;
 
       const rawPrice = BASE + pirForPrice * FACTOR;
       const price = Math.max(MIN_PRICE, Math.round(rawPrice));
+
+      const last3_pir = (p.pirs || []).slice(-3);
+
+      // 👇 AÑADIMOS RUTA DE IMAGEN SIEMPRE EN BASE A DORSAL + NOMBRE
+      let image = null;
+      if (p.number) {
+        const rawNum = String(p.number).trim();
+        // dorsal "0" → "00", resto igual pero relleno a 2 cifras por seguridad
+        const numForFile =
+          rawNum === "0" ? "00" : rawNum.padStart(2, "0");
+
+        const safeName = String(p.name || "")
+          .trim()
+          .replace(/\s+/g, "_");
+
+        image = `/images/players/${numForFile}_${safeName}.png`;
+      }
 
       return {
         number: p.number,
         name: p.name,
         gamesPlayed: p.gamesPlayed,
-        pirAvg: Number(pirAvg.toFixed(2)),
+        pir_avg: Number(pirAvg.toFixed(2)),
+        last3_pir,
         price,
+        image,
       };
     })
-    .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+    .sort((a, b) => {
+      const na = a.number === "" ? 999 : Number(a.number);
+      const nb = b.number === "" ? 999 : Number(b.number);
+      return na - nb;
+    });
 
   fs.writeFileSync(
     outputFantasyPlayers,
     JSON.stringify(fantasyPlayers, null, 2)
   );
 
-
-  console.log(`✅ OK: ${files.length} archivo(s) procesados.`);
+  console.log(`✅ OK: ${fileEntries.length} archivo(s) procesados.`);
   console.log("- " + outputMatches);
   console.log("- " + outputPlayers);
   console.log("- " + outputStatsDir + "/*.json");
@@ -455,4 +566,5 @@ async function main() {
 }
 
 /* ========= RUN ========= */
+
 main().catch((err) => console.error("❌ Error:", err));
