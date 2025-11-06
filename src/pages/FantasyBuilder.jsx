@@ -348,16 +348,21 @@ function getBarVisual(value) {
                     }
                   >
                     <div className="fantasy-builder__item-main">
-                        {p.image && (
+                      {p.image && (() => {
+                        const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(/^\/+/, "")}`;
+                        return (
                           <img
-                            src={p.image}
+                            src={imgSrc}
                             alt={p.name}
                             className="fantasy-builder__player-photo"
                           />
-                        )}
+                        );
+                      })()}
+                    
                       <div className="fantasy-builder__item-name">
                         #{displayNumber(rawNumber)} · {p.name}
                       </div>
+                    
                       <div className="fantasy-builder__item-sub">
                         PIR medio:{" "}
                         <strong>

@@ -159,13 +159,16 @@ export default function FantasyHistory() {
 
   const renderPlayerCard = (p) => (
     <div key={p.number} className="fantasy__player-card">
-      {p.image && (
-        <img
-          src={p.image}
-          alt={p.name}
-          className="fantasy__player-photo"
-        />
-      )}
+      {p.image && (() => {
+        const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(/^\/+/, "")}`;
+        return (
+          <img
+            src={imgSrc}
+            alt={p.name}
+            className="fantasy-builder__player-photo"
+          />
+        );
+      })()}
       <div className="fantasy__player-info">
         <h3>
           #{p.number} {p.name}
