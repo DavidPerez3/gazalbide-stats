@@ -735,4 +735,1111 @@ html {
   }
 }
 
+/* ============= AUTH (login / registro) ============= */
 
+.auth {
+  padding: 3rem 0;
+}
+
+.auth__card {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #111;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.auth__title {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #f9f9f9;
+}
+
+.auth__tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth__tab {
+  flex: 1;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid #444;
+  background: transparent;
+  color: #ccc;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.auth__tab--active {
+  background: #f2c14f;
+  border-color: #f2c14f;
+  color: #111;
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth__label {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.25rem;
+}
+
+.auth__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1b1b1b;
+  color: #f9f9f9;
+  font-size: 0.95rem;
+}
+
+.auth__input:focus {
+  outline: none;
+  border-color: #f2c14f;
+  box-shadow: 0 0 0 1px rgba(242, 193, 79, 0.4);
+}
+
+.auth__button {
+  margin-top: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: #f2c14f;
+  color: #111;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.auth__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth__message {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.auth__message--error {
+  color: #ff6b6b;
+}
+
+.auth__message--success {
+  color: #37d67a;
+}
+
+/* un poco de margen abajo en móviles para que no quede todo pegado */
+@media (max-width: 600px) {
+  .auth {
+    padding: 2rem 0;
+  }
+
+  .auth__card {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+/* ============= BOTÓN SALIR EN NAVBAR ============= */
+
+.nav__link--button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #f2c14f;
+  padding: 0.35rem 0.9rem;
+  background: transparent;
+  color: #f2c14f;
+  cursor: pointer;
+  font: inherit;
+  margin-left: 0.5rem;
+}
+
+.nav__link--button:hover {
+  background: rgba(242, 193, 79, 0.16);
+}
+
+.nav__link--button:focus-visible {
+  outline: 2px solid #f2c14f;
+  outline-offset: 2px;
+}
+
+/* En móvil, que ocupe todo el ancho como los links */
+@media (max-width: 768px) {
+  .nav__link--button {
+    width: 100%;
+    margin: 0.25rem 0 0;
+    text-align: left;
+    justify-content: flex-start;
+  }
+}
+
+/* ============= FANTASY HOME ============= */
+
+.fantasy {
+  padding: 3rem 0;
+}
+
+.fantasy__card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: #111;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.fantasy__header {
+  margin-bottom: 1.5rem;
+}
+
+.fantasy__title {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+  color: #f9f9f9;
+}
+
+.fantasy__subtitle {
+  color: #ccc;
+  font-size: 0.95rem;
+}
+
+.fantasy__section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #333;
+}
+
+.fantasy__section--muted {
+  border-top-color: #222;
+}
+
+.fantasy__section-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #f2c14f;
+}
+
+.fantasy__team-name,
+.fantasy__team-cervezas,
+.fantasy__text {
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
+.fantasy__label {
+  font-weight: 600;
+  color: #f2c14f;
+}
+
+.fantasy__actions {
+  margin-top: 1rem;
+}
+
+.fantasy__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.fantasy__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.fantasy__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1b1b1b;
+  color: #f9f9f9;
+  font-size: 0.95rem;
+}
+
+.fantasy__input:focus {
+  outline: none;
+  border-color: #f2c14f;
+  box-shadow: 0 0 0 1px rgba(242, 193, 79, 0.4);
+}
+
+.fantasy__button {
+  align-self: flex-start;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  background: #f2c14f;
+  color: #111;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.fantasy__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.fantasy__button--secondary {
+  background: transparent;
+  color: #f2c14f;
+  border: 1px solid #f2c14f;
+}
+
+.fantasy__button--secondary:disabled {
+  opacity: 0.7;
+}
+
+.fantasy__message {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.fantasy__message--error {
+  color: #ff6b6b;
+}
+
+.fantasy__hint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* Ajustes en móvil */
+@media (max-width: 600px) {
+  .fantasy {
+    padding: 2rem 0;
+  }
+
+  .fantasy__card {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+/* ============= PANEL ADMIN (gameweeks) ============= */
+
+.admin {
+  padding: 3rem 0;
+}
+
+.admin__card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #111;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.admin__header {
+  margin-bottom: 1.5rem;
+}
+
+.admin__title {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+  color: #f9f9f9;
+}
+
+.admin__subtitle {
+  color: #ccc;
+  font-size: 0.95rem;
+}
+
+.admin__section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #333;
+}
+
+.admin__section-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #f2c14f;
+}
+
+.admin__text {
+  font-size: 0.9rem;
+  color: #ddd;
+}
+
+.admin__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.admin__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin__field--inline {
+  display: flex;
+  gap: 1rem;
+}
+
+.admin__label {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.25rem;
+}
+
+.admin__label--inline {
+  flex: 1;
+}
+
+.admin__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1b1b1b;
+  color: #f9f9f9;
+  font-size: 0.9rem;
+}
+
+.admin__input:focus {
+  outline: none;
+  border-color: #f2c14f;
+  box-shadow: 0 0 0 1px rgba(242, 193, 79, 0.4);
+}
+
+.admin__button {
+  align-self: flex-start;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  background: #f2c14f;
+  color: #111;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.admin__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.admin__message {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.admin__message--error {
+  color: #ff6b6b;
+}
+
+.admin__message--success {
+  color: #37d67a;
+}
+
+/* lista de jornadas */
+
+.admin__list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.admin__list-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #222;
+}
+
+.admin__list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin__gw-name {
+  font-weight: 600;
+  color: #f9f9f9;
+}
+
+.admin__gw-sub {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.admin__gw-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #bbb;
+}
+
+.admin__gw-deadline {
+  opacity: 0.85;
+}
+
+.admin__gw-match {
+  opacity: 0.75;
+}
+
+.admin__tag {
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin__tag--status {
+  background: rgba(242, 193, 79, 0.16);
+  color: #f2c14f;
+}
+
+/* móvil */
+
+@media (max-width: 700px) {
+  .admin {
+    padding: 2rem 0;
+  }
+
+  .admin__card {
+    padding: 1.5rem 1.75rem;
+  }
+
+  .admin__field--inline {
+    flex-direction: column;
+  }
+}
+
+/* Próxima jornada en Fantasy */
+
+.fantasy__gw-box {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #151515;
+  border: 1px solid #333;
+}
+
+.fantasy__gw-main {
+  margin-bottom: 0.35rem;
+}
+
+.fantasy__gw-title {
+  font-weight: 600;
+  color: #f9f9f9;
+}
+
+.fantasy__gw-sub {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.fantasy__gw-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+.fantasy__gw-deadline {
+  opacity: 0.9;
+}
+
+.fantasy__gw-match {
+  opacity: 0.75;
+}
+
+.fantasy__tag {
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(242, 193, 79, 0.16);
+  color: #f2c14f;
+}
+
+/* en móvil que no se apelmace demasiado */
+@media (max-width: 600px) {
+  .fantasy__gw-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
+/* Header del equipo + badge de cervezas */
+
+.fantasy__team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.fantasy__team-name-main {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #f9f9f9;
+}
+
+.fantasy__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #f2c14f;
+  background: #1b1b1b;
+  color: #f2c14f;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.fantasy__badge-emoji {
+  font-size: 1rem;
+}
+
+/* En móviles que no se corte el nombre del equipo feo */
+@media (max-width: 600px) {
+  .fantasy__team-header {
+    flex-direction: row;
+  }
+
+  .fantasy__team-name-main {
+    font-size: 1rem;
+  }
+}
+
+/* ============= FANTASY BUILDER (mercado) ============= */
+
+.fantasy-builder {
+  padding: 3rem 0;
+}
+
+.fantasy-builder__card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #111;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.fantasy-builder__header {
+  margin-bottom: 1rem;
+}
+
+.fantasy-builder__back {
+  border: none;
+  background: transparent;
+  color: #f2c14f;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+}
+
+.fantasy-builder__title {
+  font-size: 1.6rem;
+  margin-bottom: 0.1rem;
+  color: #f9f9f9;
+}
+
+.fantasy-builder__subtitle {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.fantasy-builder__summary {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0.5rem;
+  flex-wrap: wrap;
+}
+
+.fantasy-builder__badge {
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  background: #1b1b1b;
+  border: 1px solid #444;
+  font-size: 0.85rem;
+  color: #ddd;
+}
+
+.fantasy-builder__message {
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+.fantasy-builder__message--error {
+  color: #ff6b6b;
+}
+
+.fantasy-builder__message--success {
+  color: #37d67a;
+}
+
+.fantasy-builder__section {
+  margin-top: 1rem;
+  border-top: 1px solid #333;
+  padding-top: 1rem;
+}
+
+.fantasy-builder__section-title {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #f2c14f;
+}
+
+.fantasy-builder__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fantasy-builder__item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #222;
+}
+
+.fantasy-builder__item--selected {
+  background: rgba(242, 193, 79, 0.05);
+}
+
+.fantasy-builder__item-main {
+  flex: 1.4;
+}
+
+.fantasy-builder__item-name {
+  font-size: 0.95rem;
+  color: #f9f9f9;
+  font-weight: 500;
+}
+
+.fantasy-builder__item-sub {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.fantasy-builder__item-middle {
+  flex: 1.4;
+}
+
+.fantasy-builder__last3 {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.fantasy-builder__last3-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.fantasy-builder__last3-bar {
+  width: 10px;
+  height: 22px;
+  border-radius: 3px;
+  background: #1f7a3a; /* verde rollo stats */
+}
+
+.fantasy-builder__last3-value {
+  font-size: 0.7rem;
+  color: #ddd;
+}
+
+.fantasy-builder__last3-empty {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.fantasy-builder__item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.fantasy-builder__price {
+  font-size: 0.85rem;
+  color: #f2c14f;
+  font-weight: 600;
+}
+
+.fantasy-builder__btn {
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid #f2c14f;
+  background: transparent;
+  color: #f2c14f;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.fantasy-builder__btn--remove {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.fantasy-builder__footer {
+  margin-top: 1.25rem;
+  border-top: 1px solid #333;
+  padding-top: 0.75rem;
+}
+
+.fantasy-builder__confirm {
+  padding: 0.55rem 1.4rem;
+  border-radius: 999px;
+  background: #f2c14f;
+  color: #111;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.fantasy-builder__confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.fantasy-builder__hint {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+@media (max-width: 700px) {
+  .fantasy-builder {
+    padding: 2rem 0;
+  }
+
+  .fantasy-builder__card {
+    padding: 1.5rem 1.75rem;
+  }
+
+  .fantasy-builder__item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fantasy-builder__item-right {
+    align-items: flex-start;
+  }
+}
+
+
+.fantasy__team-badges {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.fantasy__badge--beer-left {
+  border-color: #7dd87d;
+  color: #7dd87d;
+}
+
+/* Contenedor de la alineación en formato tarjetas */
+.fantasy__lineup-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* Grid genérico (cuando no hay 5) */
+.fantasy__lineup-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* Disposición 3 arriba + 2 abajo */
+.fantasy__lineup-pyramid {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fantasy__lineup-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Fila de arriba con 3 tarjetas */
+.fantasy__lineup-row--top {
+  flex-wrap: wrap;
+}
+
+/* Fila de abajo con 2 tarjetas, centradas */
+.fantasy__lineup-row--bottom {
+  flex-wrap: wrap;
+}
+
+/* Tarjetas (las que ya tenías) */
+.fantasy__player-card {
+  background: #141414;
+  border-radius: 0.9rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #333;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 150px;
+}
+
+/* Cabecera: dorsal grande + nombre */
+.fantasy__player-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.fantasy__player-number {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #facc15; /* amarillo dorado */
+}
+
+.fantasy__player-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Meta: precio + PIR medio */
+.fantasy__player-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #c4c4c4;
+}
+
+.fantasy__player-price {
+  font-weight: 600;
+}
+
+.fantasy__player-pir strong {
+  color: #facc15;
+}
+
+/* Puntos jornada (de momento “–”) */
+.fantasy__player-score {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  color: #a3a3a3;
+}
+
+.fantasy__player-score span {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.fantasy__ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.fantasy__ranking-table th,
+.fantasy__ranking-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.fantasy__ranking-table thead tr {
+  border-bottom: 1px solid #444;
+}
+
+.fantasy__ranking-table tbody tr:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Contenedor de las 3 barras (todas desde abajo) */
+.fantasy__market-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  height: 60px; /* alto máximo de las barras */
+  min-width: 90px;
+}
+
+/* Cada barra */
+.fantasy__market-bar {
+  width: 22px;                    /* más anchas */
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2px;
+  box-sizing: border-box;
+  font-size: 0.7rem;
+  color: #ffffff;
+}
+
+/* Número dentro de la barra, abajo del todo */
+.fantasy__market-bar-number {
+  line-height: 1;
+  font-weight: 500;
+}
+
+/* Texto cuando no hay datos */
+.fantasy-builder__last3-empty {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.fantasy__market-bar-number {
+  line-height: 1;
+  font-weight: 750;
+  color: #111;          /* 🔹 Negro suave (mejor contraste) */
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.2); /* sutil brillo */
+}
+
+.fantasy-builder__player-photo,
+.fantasy-player-photo {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: #1b1b1b;
+  border: 2px solid #f5c518;
+  margin-right: 12px;
+}
+
+.fantasy-player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #111;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.fantasy-player-photo {
+  width: 90px;
+  height: 90px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  border: 2px solid #f5c518;
+  object-fit: cover;
+}
+
+
+.fantasy__lineup-pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fantasy__lineup-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.fantasy__player-card {
+  background: #111;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 140px;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.fantasy__player-card:hover {
+  transform: translateY(-4px);
+}
+
+.fantasy__player-photo {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid #f5c518;
+  object-fit: cover;
+  margin-bottom: 8px;
+}
+
+.fantasy__player-info h3 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.fantasy__player-number {
+  color: #f5c518;
+  font-weight: 700;
+}
+
+.fantasy__player-meta {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.fantasy__player-points {
+  font-size: 0.9rem;
+  color: #ddd;
+}
+
+.fantasy-builder__btn--captain {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.fantasy-builder__btn--captain-active {
+  border: 1px solid gold;
+}
+
+.fantasy-builder__item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.fantasy-builder__btn--captain {
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  opacity: 0.9;
+}
