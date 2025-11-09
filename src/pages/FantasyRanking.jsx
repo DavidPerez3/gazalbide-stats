@@ -245,24 +245,6 @@ export default function FantasyRanking() {
                               : undefined
                           }
                         >
-                          <td>
-                            {idx + 1}
-                            {isMe && (
-                              <span
-                                style={{
-                                  marginLeft: 8,
-                                  fontSize: 11,
-                                  padding: "2px 6px",
-                                  borderRadius: 999,
-                                  background: "var(--color-gold)",
-                                  color: "#000",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                Tu equipo
-                              </span>
-                            )}
-                          </td>
                           <td>{r.teamName}</td>
                           <td>{r.ownerName}</td>
                           <td>{r.jornadas}</td>

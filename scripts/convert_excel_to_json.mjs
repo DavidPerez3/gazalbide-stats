@@ -101,14 +101,21 @@ function parseMinutes(v) {
    Soporta:
    - stats_gazal_a_vs_oponente_hh_mm_dd-mm-yy.xls
    - stats_oponente_vs_gazal_a_dd-mm-yy.xls
+   - y variantes con día de 1 dígito (9-11-25, etc.)
 */
 function parseFilenameMeta(filename) {
   const base = path.basename(filename, path.extname(filename)); // sin .xls/.xlsx
   const asciiBase = toAscii(base);
 
-  // 1) fecha dd-mm-yy en cualquier parte
-  const mDate = asciiBase.match(/(\d{2})-(\d{2})-(\d{2})/);
-  const dateISO = mDate ? `20${mDate[3]}-${mDate[2]}-${mDate[1]}` : null;
+  // 1) fecha d/m-yy o dd-mm-yy en cualquier parte (permitimos 1 o 2 dígitos de día/mes)
+  const mDate = asciiBase.match(/(\d{1,2})-(\d{1,2})-(\d{2})/);
+  let dateISO = null;
+  if (mDate) {
+    const dd = mDate[1].padStart(2, "0"); // 9 -> 09
+    const mm = mDate[2].padStart(2, "0"); // 3 -> 03
+    const yy = mDate[3];                  // 25
+    dateISO = `20${yy}-${mm}-${dd}`;      // 2025-11-09
+  }
 
   // 2) separar por “vs”
   const split = base.split(/[_-]vs[_-]?/i);
@@ -119,13 +126,15 @@ function parseFilenameMeta(filename) {
     right = split[1].trim();
   }
 
-  // 3) limpiar sufijos de hora/fecha del lado derecho
+  // 3) limpiar sufijos de fecha/hora del lado derecho (por si acaso)
   const cleanTeamSlug = (s) => {
     if (!s) return "";
     return s
-      .replace(/_\d{1,2}_\d{2}_\d{2}-\d{2}-\d{2}$/i, "") // _hh_mm_dd-mm-yy
-      .replace(/_\d{2}-\d{2}-\d{2}$/i, "") // _dd-mm-yy
-      .replace(/^\s+|\s+$/g, "");
+      // _hh_mm_dd-mm-yy
+      .replace(/_\d{1,2}_\d{2}_\d{2}-\d{2}-\d{2}$/i, "")
+      // _dd-mm-yy o -dd-mm-yy (permitir día 1 o 2 dígitos)
+      .replace(/[_-]\d{1,2}-\d{2}-\d{2}$/i, "")
+      .trim();
   };
 
   left = cleanTeamSlug(left);
@@ -148,7 +157,7 @@ function parseFilenameMeta(filename) {
 
   const opponent = titleCase(oppSlug || "Desconocido");
 
-  // 5) id del partido
+  // 5) id del partido con el formato estándar
   const slugOpp = opponent.toLowerCase().replace(/\s+/g, "-");
   const matchId = dateISO
     ? `${dateISO}-vs-${slugOpp || "desconocido"}`
