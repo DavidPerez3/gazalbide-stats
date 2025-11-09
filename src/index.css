@@ -1843,3 +1843,36 @@ html {
   padding: 2px 10px;
   opacity: 0.9;
 }
+
+.fantasy__link-button {
+  background: none;
+  border: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.fantasy__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.fantasy__filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fantasy__filter-label select {
+  background: #111;
+  border-radius: 999px;
+  border: 1px solid #555;
+  padding: 4px 10px;
+  color: #fff;
+  font-size: 0.9rem;
+}

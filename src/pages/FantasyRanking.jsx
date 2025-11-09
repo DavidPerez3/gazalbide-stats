@@ -171,6 +171,17 @@ export default function FantasyRanking() {
   const myPosition = myTeam
     ? sortedRows.findIndex((r) => r.userId === myUserId) + 1
     : null;
+  
+  const handleOpenTeamHistory = (row) => {
+    navigate(`/fantasy/team/${row.teamId}`, {
+      state: {
+        teamId: row.teamId,
+        teamName: row.teamName,
+        ownerName: row.ownerName,
+        userId: row.userId,
+      },
+    });
+  };
 
   return (
     <div className="fantasy">
@@ -245,8 +256,19 @@ export default function FantasyRanking() {
                               : undefined
                           }
                         >
+                          <td>
+                            {idx + 1}
+                          </td>
                           <td>{r.teamName}</td>
-                          <td>{r.ownerName}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="fantasy__link-button"
+                              onClick={() => handleOpenTeamHistory(r)}
+                            >
+                              {r.ownerName}
+                            </button>
+                          </td>
                           <td>{r.jornadas}</td>
                           <td>{r.totalPoints}</td>
                           <td>{avg}</td>

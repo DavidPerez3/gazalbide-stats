@@ -1,54 +1,48 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient.js";
-import { useAuth } from "../context/AuthContext.jsx";
 
-export default function FantasyHistory() {
-  const { user } = useAuth();
+export default function FantasyTeamHistory() {
+  const { teamId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+
   const BASE = import.meta.env.BASE_URL || "/";
 
-  const [entries, setEntries] = useState([]); // cada entry = una jornada con su quinteto
+  const passedState = location.state || {};
+  const fallbackTeamName = passedState.teamName || "Equipo sin nombre";
+  const fallbackOwnerName = passedState.ownerName || "Manager";
+
+  const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   const [selectedGwId, setSelectedGwId] = useState("all");
-  const [teamName, setTeamName] = useState(null);
+  const [teamName, setTeamName] = useState(fallbackTeamName);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      setErrorMsg("Debes iniciar sesión para ver tu historial.");
-      return;
-    }
+    if (!teamId) return;
 
     async function loadHistory() {
       setLoading(true);
       setErrorMsg(null);
 
       try {
-        // 1) Buscar equipos fantasy del usuario
-        const { data: teams, error: teamsError } = await supabase
+        // 0) Intentamos cargar el nombre del equipo desde la BD (por si no viene en state)
+        const { data: teamData, error: teamError } = await supabase
           .from("fantasy_teams")
-          .select("*")
-          .eq("user_id", user.id);
+          .select("id, name")
+          .eq("id", teamId)
+          .maybeSingle();
 
-        if (teamsError) throw teamsError;
-        if (!teams || teams.length === 0) {
-          setEntries([]);
-          setTeamName(null);
-          setLoading(false);
-          return;
+        if (!teamError && teamData && teamData.name) {
+          setTeamName(teamData.name);
         }
 
-        // Por simplicidad cogemos el primer equipo
-        const team = teams[0];
-        setTeamName(team.name || "Equipo sin nombre");
-
-        // 2) Lineups de ese equipo
+        // 1) Lineups de este equipo
         const { data: lineups, error: lineupError } = await supabase
           .from("fantasy_lineups")
           .select("*")
-          .eq("fantasy_team_id", team.id);
+          .eq("fantasy_team_id", teamId);
 
         if (lineupError) throw lineupError;
         if (!lineups || lineups.length === 0) {
@@ -57,7 +51,7 @@ export default function FantasyHistory() {
           return;
         }
 
-        // 3) Cargar gameweeks de esos lineups
+        // 2) Gameweeks asociados
         const gwIds = [
           ...new Set(
             lineups
@@ -75,7 +69,7 @@ export default function FantasyHistory() {
 
         const gwMap = new Map((gameweeks || []).map((g) => [g.id, g]));
 
-        // 4) Cargar stats JSON por jornada
+        // 3) Stats de cada jornada
         const statsByGw = new Map();
 
         for (const gw of gameweeks || []) {
@@ -97,7 +91,7 @@ export default function FantasyHistory() {
             for (const row of json) {
               const num = Number(row.number);
               if (!Number.isNaN(num)) {
-                map.set(num, row); // fila entera (name, pir, etc.)
+                map.set(num, row);
               }
             }
             statsByGw.set(gw.id, map);
@@ -106,7 +100,7 @@ export default function FantasyHistory() {
           }
         }
 
-        // 5) Construir entries: una por jornada del equipo
+        // 4) Construir entries
         const newEntries = [];
 
         for (const lineup of lineups) {
@@ -143,7 +137,6 @@ export default function FantasyHistory() {
           });
         }
 
-        // Ordenar por fecha o nombre
         newEntries.sort((a, b) => {
           if (a.gameweekDate && b.gameweekDate) {
             return new Date(a.gameweekDate) - new Date(b.gameweekDate);
@@ -153,17 +146,16 @@ export default function FantasyHistory() {
 
         setEntries(newEntries);
       } catch (err) {
-        console.error("Error cargando historial:", err);
-        setErrorMsg("No se ha podido cargar tu historial.");
+        console.error("Error cargando historial del equipo:", err);
+        setErrorMsg("No se ha podido cargar el historial de este equipo.");
       } finally {
         setLoading(false);
       }
     }
 
     loadHistory();
-  }, [user, BASE]);
+  }, [teamId, BASE]);
 
-  // Opciones de jornada para el dropdown
   const gameweekOptions = useMemo(() => {
     const map = new Map();
     for (const e of entries) {
@@ -177,11 +169,12 @@ export default function FantasyHistory() {
     return Array.from(map.values());
   }, [entries]);
 
-  // Filtrado por jornada
   const filteredEntries =
     selectedGwId === "all"
       ? entries
       : entries.filter((e) => String(e.gameweekId) === String(selectedGwId));
+
+  const ownerName = fallbackOwnerName;
 
   return (
     <div className="fantasy">
@@ -191,17 +184,16 @@ export default function FantasyHistory() {
             <button
               type="button"
               className="fantasy-builder__back"
-              onClick={() => navigate("/fantasy")}
+              onClick={() => navigate(-1)}
             >
               ← Volver
             </button>
 
-            <h1 className="fantasy__title">Tu historial Fantasy</h1>
-            {teamName && (
-              <p className="fantasy__subtitle">
-                Equipo: <strong>{teamName}</strong>
-              </p>
-            )}
+            <h1 className="fantasy__title">Historial de equipo</h1>
+            <p className="fantasy__subtitle">
+              <strong>{teamName}</strong> · Manager:{" "}
+              <strong>{ownerName}</strong>
+            </p>
           </header>
 
           {loading ? (
@@ -212,7 +204,7 @@ export default function FantasyHistory() {
             </p>
           ) : entries.length === 0 ? (
             <p className="fantasy__text">
-              Todavía no tienes quintetos registrados en Fantasy.
+              Este equipo todavía no tiene quintetos registrados.
             </p>
           ) : (
             <section className="fantasy__section">

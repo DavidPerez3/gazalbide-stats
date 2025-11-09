@@ -16,6 +16,7 @@ import AdminPage from "./pages/AdminPage.jsx";
 import FantasyBuilder from "./pages/FantasyBuilder.jsx";
 import FantasyHistory from "./pages/FantasyHistory.jsx";
 import FantasyRanking from "./pages/FantasyRanking.jsx";
+import FantasyTeamHistory from "./pages/FantasyTeamHistory.jsx";
 
 import { AuthProvider } from "./context/AuthContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -65,6 +66,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute>
             <FantasyRanking />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "fantasy/team/:teamId",
+        element: (
+          <PrivateRoute>
+            <FantasyTeamHistory />
           </PrivateRoute>
         ),
       },
