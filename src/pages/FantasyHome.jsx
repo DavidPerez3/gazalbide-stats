@@ -2,6 +2,56 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
+import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
+
+// ==== helpers de rasgos / entrenadores (igual que en el builder) ====
+
+function normalizeName(name) {
+  return name
+    ?.toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+const PLAYER_TRAITS = {
+  iker: ["J", "S"],
+  josu: ["S", "L"],
+  imanol: ["S", "L"],
+  kusky: ["S", "A"],
+  ibon: ["A", "V"],
+  lucho: ["A", "J"],
+  aimar: ["S", "A"],
+  aingeru: ["V", "P"],
+  julen: ["V", "P"],
+  aguirre: ["V", "A"],
+  covela: ["C", "A"],
+  inaki: ["V", "L"],
+  jorge: ["A", "V"],
+  oier: ["J", "A"],
+};
+
+const COACH_TRAITS = {
+  david: ["S", "A"],
+  gorka: ["V", "C"],
+  unai: ["J", "L"],
+};
+
+const COACH_LABELS = {
+  david: "David",
+  gorka: "Gorka",
+  unai: "Unai",
+};
+
+function getPlayerTraits(name) {
+  return PLAYER_TRAITS[normalizeName(name)] || [];
+}
+
+function getCoachTraits(code) {
+  return COACH_TRAITS[code] || [];
+}
 
 export default function FantasyHome() {
   const { user, profile } = useAuth();
@@ -19,9 +69,10 @@ export default function FantasyHome() {
   // Último lineup guardado (cualquier jornada)
   const [lineupNumbers, setLineupNumbers] = useState([]); // dorsales numéricos
   const [lineupGameweek, setLineupGameweek] = useState(null); // info de esa jornada
+  const [captainNumber, setCaptainNumber] = useState(null); // ← CAPITÁN
+  const [coachCode, setCoachCode] = useState(null); // ← ENTRENADOR
   const [loadingLineup, setLoadingLineup] = useState(false);
   const [lineupError, setLineupError] = useState(null);
-  
 
   // Stats del partido de esa jornada (para puntos)
   const [statsByNumber, setStatsByNumber] = useState(null);
@@ -125,6 +176,21 @@ export default function FantasyHome() {
               .filter((n) => !Number.isNaN(n))
           );
 
+          // Capitán guardado en esta jornada
+          if (lineupRow.captain_number != null) {
+            const cap = Number(lineupRow.captain_number);
+            setCaptainNumber(Number.isNaN(cap) ? null : cap);
+          } else {
+            setCaptainNumber(null);
+          }
+
+          // Entrenador guardado
+          if (lineupRow.coach_code) {
+            setCoachCode(lineupRow.coach_code);
+          } else {
+            setCoachCode(null);
+          }
+
           // Info de la gameweek de ese lineup (incluye stats_file)
           if (lineupRow.gameweek_id != null) {
             const { data: gw, error: gwError } = await supabase
@@ -144,6 +210,8 @@ export default function FantasyHome() {
         } else {
           setLineupNumbers([]);
           setLineupGameweek(null);
+          setCaptainNumber(null);
+          setCoachCode(null);
         }
 
         // Jugadores fantasy
@@ -292,36 +360,70 @@ export default function FantasyHome() {
     });
   }, [fantasyPlayers, lineupNumbers]);
 
-    // Puntos fantasy por jugador (basados en statsByNumber.pir de esa jornada)
-    const playersWithPoints = useMemo(() => {
-      if (!selectedPlayers.length) return [];
-    
+  // Breakdown fantasy (capitán + entrenador + rasgos + primos)
+  const breakdown = useMemo(() => {
+    if (!lineupNumbers.length || !statsByNumber) return null;
+    try {
+      return computeLineupBreakdown({
+        playersNums: lineupNumbers,
+        statsMap: statsByNumber,
+        captainNumber,
+        coachCode,
+      });
+    } catch (e) {
+      console.error("Error calculando breakdown en FantasyHome:", e);
+      return null;
+    }
+  }, [lineupNumbers, statsByNumber, captainNumber, coachCode]);
+
+  // Puntos fantasy por jugador (con rasgos) basados en breakdown
+  const playersWithPoints = useMemo(() => {
+    if (!selectedPlayers.length) return [];
+
+    // si no hay breakdown (sin stats), dejamos comportamiento anterior (sin puntos) pero ya con rasgos
+    if (!breakdown) {
       return selectedPlayers.map((p) => {
         const raw = p.number ?? p.dorsal;
         const num = Number(raw);
-        let points = null;
-      
-        if (statsByNumber && !Number.isNaN(num)) {
-          const row = statsByNumber.get(num);
-        
-          if (row && row.pir != null) {
-            // Asegurarnos de convertir a número aunque venga como string
-            const pirParsed = typeof row.pir === "number"
-              ? row.pir
-              : Number(String(row.pir).replace(",", "."));
-          
-            if (!Number.isNaN(pirParsed)) {
-              points = pirParsed;
-            }
-          }
-        }
-      
-        return { ...p, fantasyPoints: points };
+        const isCaptain =
+          captainNumber != null && !Number.isNaN(num) && num === captainNumber;
+        return {
+          ...p,
+          isCaptain,
+          fantasyPoints: null,
+          traits: getPlayerTraits(p.name),
+          synergies: [],
+        };
       });
-    }, [selectedPlayers, statsByNumber]);
+    }
 
+    const breakdownMap = new Map(
+      breakdown.players.map((pl) => [Number(pl.number), pl])
+    );
+
+    return selectedPlayers.map((p) => {
+      const raw = p.number ?? p.dorsal;
+      const num = Number(raw);
+      const bd = breakdownMap.get(num);
+      const isCaptain =
+        bd?.isCaptain ||
+        (captainNumber != null && !Number.isNaN(num) && num === captainNumber);
+
+      return {
+        ...p,
+        isCaptain,
+        fantasyPoints:
+          typeof bd?.finalScore === "number" ? bd.finalScore : null,
+        traits: getPlayerTraits(p.name),
+        synergies: bd?.synergies || [],
+      };
+    });
+  }, [selectedPlayers, breakdown, captainNumber]);
 
   const totalFantasyPoints = useMemo(() => {
+    if (breakdown) {
+      return breakdown.totalPoints;
+    }
     if (!playersWithPoints.length) return null;
     let sum = 0;
     let hasAny = false;
@@ -334,7 +436,7 @@ export default function FantasyHome() {
     }
 
     return hasAny ? sum : null;
-  }, [playersWithPoints]);
+  }, [breakdown, playersWithPoints]);
 
   const usedBeers = playersWithPoints.reduce(
     (sum, p) => sum + (p.price || 0),
@@ -347,35 +449,7 @@ export default function FantasyHome() {
     return n === 0 ? "00" : String(raw);
   };
 
-  const renderPlayerCard = (p, index) => (
-    <div key={p.number ?? index} className="fantasy__player-card">
-      <div className="fantasy__player-card-header">
-        <span className="fantasy__player-number">
-          #{displayNumber(p.number ?? p.dorsal)}
-        </span>
-        <span className="fantasy__player-name">{p.name}</span>
-      </div>
-
-      <div className="fantasy__player-meta">
-        <span className="fantasy__player-price">{p.price} 🍺</span>
-        {p.pir_avg != null && (
-          <span className="fantasy__player-pir">
-            PIR medio{" "}
-            <strong>
-              {p.pir_avg.toFixed ? p.pir_avg.toFixed(1) : p.pir_avg}
-            </strong>
-          </span>
-        )}
-      </div>
-
-      <div className="fantasy__player-score">
-        Puntos jornada:{" "}
-        <span>
-          {typeof p.fantasyPoints === "number" ? p.fantasyPoints : "–"}
-        </span>
-      </div>
-    </div>
-  );
+  const usernameLabel = username;
 
   return (
     <div className="fantasy">
@@ -388,8 +462,8 @@ export default function FantasyHome() {
               <div className="fantasy__header">
                 <h1 className="fantasy__title">Fantasy Gazalbide</h1>
                 <p className="fantasy__subtitle">
-                  Hola <strong>{username}</strong>, prepárate para dejarte las{" "}
-                  <strong>cervezas</strong> en fichajes.
+                  Hola <strong>{usernameLabel}</strong>, prepárate para dejarte
+                  las <strong>cervezas</strong> en fichajes.
                 </p>
               </div>
 
@@ -399,7 +473,7 @@ export default function FantasyHome() {
                 </p>
               )}
 
-              {/* Próxima jornada futura (puede no existir) */}
+              {/* Próxima jornada futura */}
               <section className="fantasy__section">
                 <h2 className="fantasy__section-title">
                   Próxima jornada Fantasy
@@ -444,8 +518,9 @@ export default function FantasyHome() {
                 <section className="fantasy__section">
                   <h2 className="fantasy__section-title">Crea tu equipo</h2>
                   <p className="fantasy__text">
-                    Empiezas con <strong>{totalBudget || 0} cervezas</strong> para
-                    fichar jugadores. Elige un nombre para tu equipo:
+                    Empiezas con{" "}
+                    <strong>{totalBudget || 0} cervezas</strong> para fichar
+                    jugadores. Elige un nombre para tu equipo:
                   </p>
 
                   <form className="fantasy__form" onSubmit={handleCreateTeam}>
@@ -493,6 +568,40 @@ export default function FantasyHome() {
                     </div>
                   </div>
 
+                  {/* Tarjeta de entrenador */}
+                  {coachCode && (
+                    <div
+                      className="fantasy__coach-card"
+                      style={{ marginTop: "0.75rem" }}
+                    >
+                      <h3 className="fantasy__section-subtitle">Entrenador</h3>
+                      <div className="fantasy-builder__coach-traits">
+                        <div className="fantasy-builder__coach-avatar">
+                          <img
+                            src={`${import.meta.env.BASE_URL}images/coaches/${coachCode}.png`}
+                            alt={COACH_LABELS[coachCode] || coachCode}
+                            className="fantasy-builder__coach-photo"
+                          />
+                        </div>
+                        <div className="fantasy-builder__coach-info">
+                          <span className="fantasy-builder__coach-name">
+                            {COACH_LABELS[coachCode] || coachCode}
+                          </span>
+                          <div className="fantasy-builder__traits">
+                            {getCoachTraits(coachCode).map((t) => (
+                              <span
+                                key={t}
+                                className="fantasy-builder__trait-chip"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {lineupGameweek && (
                     <p className="fantasy__text" style={{ marginTop: "0.3rem" }}>
                       Quinteto guardado para:{" "}
@@ -501,6 +610,13 @@ export default function FantasyHome() {
                           `Gameweek #${lineupGameweek.id}`}
                       </strong>
                       {lineupGameweek.date && ` · ${lineupGameweek.date}`}
+                    </p>
+                  )}
+
+                  {captainNumber != null && (
+                    <p className="fantasy__text" style={{ marginTop: "0.2rem" }}>
+                      Capitán de la jornada:{" "}
+                      <strong>#{displayNumber(captainNumber)}</strong>
                     </p>
                   )}
 
@@ -519,68 +635,128 @@ export default function FantasyHome() {
                         {lineupError}
                       </p>
                     ) : playersWithPoints.length === 0 ? (
-                      <p className="fantasy__text">Aún no has elegido tu quinteto.</p>
+                      <p className="fantasy__text">
+                        Aún no has elegido tu quinteto.
+                      </p>
                     ) : (
                       <div className="fantasy__lineup-pyramid">
                         {/* Fila superior (3 jugadores) */}
                         <div className="fantasy__lineup-row fantasy__lineup-row--top">
                           {playersWithPoints.slice(0, 3).map((p) => (
-                            <div key={p.number} className="fantasy__player-card">
-                              {p.image && (() => {
-                                const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(/^\/+/, "")}`;
-                                return (
-                                  <img
-                                    src={imgSrc}
-                                    alt={p.name}
-                                    className="fantasy-builder__player-photo"
-                                  />
-                                );
-                              })()}
+                            <div
+                              key={p.number}
+                              className="fantasy__player-card"
+                            >
+                              {p.image &&
+                                (() => {
+                                  const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
+                                    /^\/+/,
+                                    ""
+                                  )}`;
+                                  return (
+                                    <img
+                                      src={imgSrc}
+                                      alt={p.name}
+                                      className="fantasy-builder__player-photo"
+                                    />
+                                  );
+                                })()}
                               <div className="fantasy__player-info">
                                 <h3>
-                                  <span className="fantasy__player-number">#{p.number}</span>{" "}
+                                  <span className="fantasy__player-number">
+                                    #{displayNumber(p.number)}
+                                  </span>{" "}
                                   {p.name}
+                                  {p.isCaptain && (
+                                    <span className="fantasy-builder__captain-badge">
+                                      CAP
+                                    </span>
+                                  )}
                                 </h3>
                                 <p className="fantasy__player-meta">
-                                  {p.price} 🍺 · PIR medio {p.pir_avg.toFixed(1)}
+                                  {p.price} 🍺 · PIR medio{" "}
+                                  {p.pir_avg?.toFixed
+                                    ? p.pir_avg.toFixed(1)
+                                    : p.pir_avg}
                                 </p>
+                                {p.traits && p.traits.length > 0 && (
+                                  <div className="fantasy-builder__item-traits" style={{ justifyContent: "center" }}>
+                                    {p.traits.map((t) => (
+                                      <span
+                                        key={t}
+                                        className="fantasy-builder__trait-chip"
+                                      >
+                                        {t}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 <p className="fantasy__player-points">
-                                  Puntos jornada:{" "}
+                                  Puntos Fantasy:{" "}
                                   {typeof p.fantasyPoints === "number"
-                                    ? p.fantasyPoints
+                                    ? p.fantasyPoints.toFixed(1)
                                     : "–"}
                                 </p>
                               </div>
                             </div>
                           ))}
                         </div>
-                        
+
                         {/* Fila inferior (2 jugadores) */}
                         <div className="fantasy__lineup-row fantasy__lineup-row--bottom">
                           {playersWithPoints.slice(3, 5).map((p) => (
-                            <div key={p.number} className="fantasy__player-card">
-                              {p.image && (() => {
-                                const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(/^\/+/, "")}`;
-                                return (
-                                  <img
-                                    src={imgSrc}
-                                    alt={p.name}
-                                    className="fantasy-builder__player-photo"
-                                  />
-                                );
-                              })()}
+                            <div
+                              key={p.number}
+                              className="fantasy__player-card"
+                            >
+                              {p.image &&
+                                (() => {
+                                  const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
+                                    /^\/+/,
+                                    ""
+                                  )}`;
+                                  return (
+                                    <img
+                                      src={imgSrc}
+                                      alt={p.name}
+                                      className="fantasy-builder__player-photo"
+                                    />
+                                  );
+                                })()}
                               <div className="fantasy__player-info">
                                 <h3>
-                                  <span className="fantasy__player-number">#{p.number}</span>{" "}
+                                  <span className="fantasy__player-number">
+                                    #{displayNumber(p.number)}
+                                  </span>{" "}
                                   {p.name}
+                                  {p.isCaptain && (
+                                    <span className="fantasy-builder__captain-badge">
+                                      CAP
+                                    </span>
+                                  )}
                                 </h3>
                                 <p className="fantasy__player-meta">
-                                  {p.price} 🍺 · PIR medio {p.pir_avg.toFixed(1)}
+                                  {p.price} 🍺 · PIR medio{" "}
+                                  {p.pir_avg?.toFixed
+                                    ? p.pir_avg.toFixed(1)
+                                    : p.pir_avg}
                                 </p>
+                                {p.traits && p.traits.length > 0 && (
+                                  <div className="fantasy-builder__item-traits" style={{ justifyContent: "center" }}>
+                                    {p.traits.map((t) => (
+                                      <span
+                                        key={t}
+                                        className="fantasy-builder__trait-chip"
+                                      >
+                                        {t}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 <p className="fantasy__player-points">
-                                  Puntos jornada:{" "}
+                                  Puntos Fantasy:{" "}
                                   {typeof p.fantasyPoints === "number"
-                                    ? p.fantasyPoints
+                                    ? p.fantasyPoints.toFixed(1)
                                     : "–"}
                                 </p>
                               </div>
@@ -599,7 +775,7 @@ export default function FantasyHome() {
                   ) : totalFantasyPoints != null ? (
                     <p className="fantasy__text" style={{ marginTop: "0.5rem" }}>
                       Puntos totales de la jornada:{" "}
-                      <strong>{totalFantasyPoints}</strong>
+                      <strong>{totalFantasyPoints.toFixed(1)}</strong>
                     </p>
                   ) : (
                     <p className="fantasy__text" style={{ margin: 16 }}>
@@ -607,7 +783,7 @@ export default function FantasyHome() {
                     </p>
                   )}
 
-                  {/* Botón de edición */}
+                  {/* Botones */}
                   <div className="fantasy__actions">
                     <button
                       type="button"

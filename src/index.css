@@ -1876,3 +1876,247 @@ html {
   color: #fff;
   font-size: 0.9rem;
 }
+
+/* --- Botón secundario de capitán --- */
+.fantasy-builder__btn-secondary {
+  display: inline-block;
+  margin-top: 0.3rem;
+  border: 1px solid #ffcc00;
+  color: #ffcc00;
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.fantasy-builder__btn-secondary:hover:not(:disabled) {
+  background: #ffcc00;
+  color: #000;
+}
+
+/* Estado de deshabilitado */
+.fantasy-builder__btn-secondary:disabled {
+  opacity: 0.4;
+  border-color: #666;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Cuando ya es capitán */
+.fantasy-builder__btn-secondary.is-captain {
+  background: #ffcc00;
+  color: #000;
+  border-color: #ffcc00;
+  cursor: default;
+}
+
+/* --- Badge de capitán (CAP) --- */
+.fantasy-builder__captain-badge {
+  margin-left: 0.4rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #ffcc00;
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.fantasy-builder__item-traits,
+.fantasy-builder__coach-traits {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.fantasy-builder__trait-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.fantasy-builder__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fantasy-builder__legend-item {
+  font-size: 0.8rem;
+}
+
+.fantasy-builder__coach-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fantasy-builder__coach-name {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+/* ===========================
+   BLOQUE ENTRENADOR BUILDER
+   =========================== */
+.fantasy-builder__coach-selector {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.fantasy-builder__coach-selector .fantasy-builder__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Estilo del selector (modo oscuro compatible) */
+.fantasy-builder__coach-selector select {
+  background-color: rgba(30, 30, 30, 0.9);
+  color: #fefefe;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  max-width: 260px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none; /* quitar estilo nativo */
+}
+
+.fantasy-builder__coach-selector select:hover,
+.fantasy-builder__coach-selector select:focus {
+  border-color: #facc15; /* dorado */
+  outline: none;
+  background-color: rgba(45, 45, 45, 0.95);
+}
+
+/* Hack visual para modo oscuro del menú (algunos navegadores lo respetan) */
+.fantasy-builder__coach-selector option {
+  background-color: #1e1e1e;
+  color: #fefefe;
+}
+
+/* En Safari y Edge el borde amarillo persistente */
+.fantasy-builder__coach-selector select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #facc15;
+}
+
+.fantasy-builder__coach-traits {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.5rem;
+}
+
+.fantasy-builder__coach-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #facc15; /* dorado */
+  letter-spacing: 0.5px;
+}
+
+.fantasy-builder__traits {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.fantasy-builder__trait-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+/* Opcional: hover en chips */
+.fantasy-builder__trait-chip:hover {
+  background: #facc15;
+  color: #000;
+  border-color: #facc15;
+  transition: 0.15s;
+}
+
+/* Ajuste del texto de explicación */
+.fantasy-builder__text {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* ===========================
+   ENTRENADOR CON AVATAR
+   =========================== */
+.fantasy-builder__coach-traits {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.75rem;
+}
+
+.fantasy-builder__coach-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #facc15;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fantasy-builder__coach-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fantasy-builder__coach-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.fantasy-builder__coach-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #facc15;
+  letter-spacing: 0.5px;
+}
+

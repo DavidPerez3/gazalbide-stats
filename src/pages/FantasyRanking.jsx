@@ -2,13 +2,19 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { useNavigate } from "react-router-dom";
+import { computeLineupPoints } from "../lib/fantasyScoring.js";
 
 export default function FantasyRanking() {
   const { user } = useAuth();
-  const [rows, setRows] = useState([]);
+  const navigate = useNavigate();
+
+  const [rowsAll, setRowsAll] = useState([]); // ranking total
+  const [rowsByGw, setRowsByGw] = useState({}); // ranking por jornada { gwId: [rows] }
+  const [gameweekOptions, setGameweekOptions] = useState([]);
+  const [selectedGwId, setSelectedGwId] = useState("all");
+
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
-  const navigate = useNavigate();
 
   const BASE = import.meta.env.BASE_URL || "/";
 
@@ -27,7 +33,9 @@ export default function FantasyRanking() {
 
         if (teamError) throw teamError;
         if (!teams || teams.length === 0) {
-          setRows([]);
+          setRowsAll([]);
+          setRowsByGw({});
+          setGameweekOptions([]);
           setLoading(false);
           return;
         }
@@ -54,7 +62,9 @@ export default function FantasyRanking() {
 
         if (lineupError) throw lineupError;
         if (!lineups || lineups.length === 0) {
-          setRows([]);
+          setRowsAll([]);
+          setRowsByGw({});
+          setGameweekOptions([]);
           setLoading(false);
           return;
         }
@@ -79,7 +89,22 @@ export default function FantasyRanking() {
 
         const gwMap = new Map(gameweeks.map((g) => [g.id, g]));
 
-        // 5) Cargar stats
+        // opciones de jornada para el dropdown
+        const gwOptions = gameweeks
+          .slice()
+          .sort((a, b) => {
+            if (a.date && b.date) {
+              return new Date(a.date) - new Date(b.date);
+            }
+            return (a.name || "").localeCompare(b.name || "");
+          })
+          .map((g) => ({
+            id: g.id,
+            label: g.name || `Jornada ${g.id}`,
+          }));
+        setGameweekOptions(gwOptions);
+
+        // 5) Cargar stats (guardamos la fila entera por jugador)
         const statsByGw = new Map();
         for (const gw of gameweeks) {
           if (!gw.stats_file) continue;
@@ -94,7 +119,7 @@ export default function FantasyRanking() {
             for (const row of stats) {
               const n = Number(row.number);
               if (!Number.isNaN(n) && typeof row.pir === "number") {
-                map.set(n, row.pir);
+                map.set(n, row); // fila completa: { number, name, pir, ... }
               }
             }
             statsByGw.set(gw.id, map);
@@ -103,24 +128,33 @@ export default function FantasyRanking() {
           }
         }
 
-        // 6) Acumular puntos por equipo
-        const teamRowMap = new Map();
+        // 6) Mapa base de equipos (nombre, dueño...)
+        const baseTeamInfo = new Map();
+        const teamRowMapTotal = new Map();
+
         for (const team of teams) {
           const owner = userMap.get(team.user_id) || null;
-          teamRowMap.set(team.id, {
+          const base = {
             teamId: team.id,
             teamName: team.name || "Equipo sin nombre",
             ownerName:
               owner?.username || owner?.email?.split("@")[0] || "Anónimo",
+            userId: team.user_id,
+          };
+          baseTeamInfo.set(team.id, base);
+          teamRowMapTotal.set(team.id, {
+            ...base,
             totalPoints: 0,
             jornadas: 0,
-            userId: team.user_id,
           });
         }
 
+        // 7) Ranking por jornada: gwId -> Map(teamId -> row)
+        const rowsByGwMap = new Map(); // gwId -> Map(teamId -> row)
+
         for (const lineup of lineups) {
-          const row = teamRowMap.get(lineup.fantasy_team_id);
-          if (!row) continue;
+          const baseInfo = baseTeamInfo.get(lineup.fantasy_team_id);
+          if (!baseInfo) continue;
 
           const gw = gwMap.get(lineup.gameweek_id);
           if (!gw) continue;
@@ -133,18 +167,53 @@ export default function FantasyRanking() {
             .filter((n) => !Number.isNaN(n));
           if (nums.length === 0) continue;
 
-          let points = 0;
-          for (const num of nums) {
-            const pir = statsMap.get(num);
-            if (typeof pir === "number") points += pir;
+          const captainNumber =
+            lineup.captain_number != null
+              ? Number(lineup.captain_number)
+              : null;
+          const coachCode = lineup.coach_code || null;
+
+          const points = computeLineupPoints({
+            playersNums: nums,
+            statsMap,
+            captainNumber,
+            coachCode,
+          });
+
+          // Acumulado total
+          const totalRow = teamRowMapTotal.get(lineup.fantasy_team_id);
+          if (totalRow) {
+            totalRow.totalPoints += points;
+            totalRow.jornadas += 1;
           }
 
-          row.totalPoints += points;
-          row.jornadas += 1;
+          // Ranking de esa jornada concreta
+          if (!rowsByGwMap.has(gw.id)) {
+            rowsByGwMap.set(gw.id, new Map());
+          }
+          const gwMapRows = rowsByGwMap.get(gw.id);
+          let gwRow = gwMapRows.get(lineup.fantasy_team_id);
+          if (!gwRow) {
+            gwRow = {
+              ...baseInfo,
+              totalPoints: 0,
+              jornadas: 0,
+            };
+            gwMapRows.set(lineup.fantasy_team_id, gwRow);
+          }
+          gwRow.totalPoints += points;
+          gwRow.jornadas += 1;
         }
 
-        const rowsArr = Array.from(teamRowMap.values());
-        setRows(rowsArr);
+        const rowsAllArr = Array.from(teamRowMapTotal.values());
+
+        const rowsByGwObj = {};
+        for (const [gwId, map] of rowsByGwMap.entries()) {
+          rowsByGwObj[gwId] = Array.from(map.values());
+        }
+
+        setRowsAll(rowsAllArr);
+        setRowsByGw(rowsByGwObj);
       } catch (err) {
         console.error("Error cargando ranking Fantasy:", err);
         setErrorMsg("No se ha podido cargar el ranking de Fantasy.");
@@ -155,6 +224,13 @@ export default function FantasyRanking() {
 
     loadRanking();
   }, [user, BASE]);
+
+  // Filtrado por jornada
+  const rows = useMemo(() => {
+    if (selectedGwId === "all") return rowsAll;
+    const gwRows = rowsByGw[selectedGwId];
+    return Array.isArray(gwRows) ? gwRows : [];
+  }, [rowsAll, rowsByGw, selectedGwId]);
 
   const sortedRows = useMemo(() => {
     return [...rows].sort((a, b) => {
@@ -171,7 +247,7 @@ export default function FantasyRanking() {
   const myPosition = myTeam
     ? sortedRows.findIndex((r) => r.userId === myUserId) + 1
     : null;
-  
+
   const handleOpenTeamHistory = (row) => {
     navigate(`/fantasy/team/${row.teamId}`, {
       state: {
@@ -182,6 +258,12 @@ export default function FantasyRanking() {
       },
     });
   };
+
+  const currentFilterLabel =
+    selectedGwId === "all"
+      ? "todas las jornadas"
+      : gameweekOptions.find((gw) => String(gw.id) === String(selectedGwId))
+          ?.label || "jornada";
 
   return (
     <div className="fantasy">
@@ -200,11 +282,13 @@ export default function FantasyRanking() {
               <p className="fantasy__subtitle">
                 Tu equipo <strong>{myTeam.teamName}</strong> está en posición{" "}
                 <strong>#{myPosition}</strong> de{" "}
-                <strong>{sortedRows.length}</strong>.
+                <strong>{sortedRows.length}</strong> en{" "}
+                <strong>{currentFilterLabel}</strong>.
               </p>
             ) : (
               <p className="fantasy__subtitle">
-                Clasificación acumulada por puntos de todas las jornadas.
+                Clasificación por puntos de{" "}
+                <strong>{currentFilterLabel}</strong>.
               </p>
             )}
           </header>
@@ -215,69 +299,91 @@ export default function FantasyRanking() {
             <p className="fantasy__message fantasy__message--error">
               {errorMsg}
             </p>
-          ) : sortedRows.length === 0 ? (
-            <p className="fantasy__text">
-              Todavía no hay puntos registrados en Fantasy.
-            </p>
           ) : (
             <section className="fantasy__section">
-              <h2 className="fantasy__section-title">
-                Clasificación ({sortedRows.length} equipos)
-              </h2>
-
-              <div className="fantasy__ranking">
-                <table className="fantasy__ranking-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Equipo</th>
-                      <th>Manager</th>
-                      <th>Jornadas</th>
-                      <th>Puntos totales</th>
-                      <th>Media / jornada</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedRows.map((r, idx) => {
-                      const avg =
-                        r.jornadas > 0
-                          ? (r.totalPoints / r.jornadas).toFixed(1)
-                          : "-";
-                      const isMe = r.userId === myUserId;
-                      return (
-                        <tr
-                          key={r.teamId}
-                          style={
-                            isMe
-                              ? {
-                                  backgroundColor: "rgba(250, 204, 21, 0.12)",
-                                  fontWeight: "600",
-                                }
-                              : undefined
-                          }
-                        >
-                          <td>
-                            {idx + 1}
-                          </td>
-                          <td>{r.teamName}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="fantasy__link-button"
-                              onClick={() => handleOpenTeamHistory(r)}
-                            >
-                              {r.ownerName}
-                            </button>
-                          </td>
-                          <td>{r.jornadas}</td>
-                          <td>{r.totalPoints}</td>
-                          <td>{avg}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="fantasy__section-header">
+                <h2 className="fantasy__section-title">
+                  Clasificación ({sortedRows.length} equipos)
+                </h2>
+                {gameweekOptions.length > 0 && (
+                  <div className="fantasy__filters">
+                    <label className="fantasy__filter-label">
+                      Jornada:{" "}
+                      <select
+                        value={selectedGwId}
+                        onChange={(e) => setSelectedGwId(e.target.value)}
+                      >
+                        <option value="all">Todas</option>
+                        {gameweekOptions.map((gw) => (
+                          <option key={gw.id} value={gw.id}>
+                            {gw.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
               </div>
+
+              {sortedRows.length === 0 ? (
+                <p className="fantasy__text">
+                  No hay puntos para esta jornada. Prueba con otra jornada o con{" "}
+                  <strong>Todas</strong>.
+                </p>
+              ) : (
+                <div className="fantasy__ranking">
+                  <table className="fantasy__ranking-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Equipo</th>
+                        <th>Manager</th>
+                        <th>Jornadas</th>
+                        <th>Puntos totales</th>
+                        <th>Media / jornada</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRows.map((r, idx) => {
+                        const avg =
+                          r.jornadas > 0
+                            ? (r.totalPoints / r.jornadas).toFixed(1)
+                            : "-";
+                        const isMe = r.userId === myUserId;
+                        return (
+                          <tr
+                            key={r.teamId}
+                            style={
+                              isMe
+                                ? {
+                                    backgroundColor:
+                                      "rgba(250, 204, 21, 0.12)",
+                                    fontWeight: "600",
+                                  }
+                                : undefined
+                            }
+                          >
+                            <td>{idx + 1}</td>
+                            <td>{r.teamName}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="fantasy__link-button"
+                                onClick={() => handleOpenTeamHistory(r)}
+                              >
+                                {r.ownerName}
+                              </button>
+                            </td>
+                            <td>{r.jornadas}</td>
+                            <td>{r.totalPoints}</td>
+                            <td>{avg}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
           )}
         </div>

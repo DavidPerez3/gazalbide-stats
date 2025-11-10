@@ -3,6 +3,69 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 
+// ========================
+// Rasgos / atributos
+// ========================
+
+function normalizeName(name) {
+  return name
+    ?.toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+// Mapeo nombre jugador -> rasgos
+const PLAYER_TRAITS = {
+  iker: ["J", "S"],
+  josu: ["S", "L"],
+  imanol: ["S", "L"],
+  kusky: ["S", "A"],
+  ibon: ["A", "V"],
+  lucho: ["A", "J"],
+  aimar: ["S", "A"],
+  aingeru: ["V", "P"],
+  julen: ["V", "P"],
+  aguirre: ["V", "A"],
+  covela: ["C", "A"],
+  inaki: ["V", "L"],
+  jorge: ["A", "V"],
+  oier: ["J", "A"],
+};
+
+const TRAIT_LABELS = {
+  A: "Alcohólico",
+  L: "Ludópata",
+  S: "Sexólogo",
+  V: "Vieja guardia",
+  J: "Joven promesa",
+  C: "Boost Covela 1.5x",
+  P: "Primos",
+};
+
+const COACH_TRAITS = {
+  david: ["S", "A"], // Sexólogo, Alcohólico
+  gorka: ["V", "C"], // Vieja guardia, Boost Covela
+  unai: ["J", "L"], // Joven promesa, Ludópata
+};
+
+const COACH_LABELS = {
+  david: "David",
+  gorka: "Gorka",
+  unai: "Unai",
+};
+
+function getPlayerTraitsForName(name) {
+  const key = normalizeName(name);
+  return PLAYER_TRAITS[key] || [];
+}
+
+function getCoachTraits(code) {
+  return COACH_TRAITS[code] || [];
+}
+
 export default function FantasyBuilder() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -11,6 +74,8 @@ export default function FantasyBuilder() {
   const [gameweek, setGameweek] = useState(null);
   const [players, setPlayers] = useState([]);
   const [selectedNumbers, setSelectedNumbers] = useState([]);
+  const [captainNumber, setCaptainNumber] = useState(null);
+  const [coachCode, setCoachCode] = useState("david"); // entrenador por defecto
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -82,11 +147,25 @@ export default function FantasyBuilder() {
         }
 
         if (lineupData && Array.isArray(lineupData.players)) {
-          setSelectedNumbers(
-            lineupData.players.map((n) => Number(n)).filter((n) => !Number.isNaN(n))
-          );
+          const nums = lineupData.players
+            .map((n) => Number(n))
+            .filter((n) => !Number.isNaN(n));
+          setSelectedNumbers(nums);
+
+          if (lineupData.captain_number != null) {
+            const cap = Number(lineupData.captain_number);
+            setCaptainNumber(Number.isNaN(cap) ? null : cap);
+          } else {
+            setCaptainNumber(null);
+          }
+
+          if (lineupData.coach_code) {
+            setCoachCode(lineupData.coach_code);
+          }
         } else {
           setSelectedNumbers([]);
+          setCaptainNumber(null);
+          // coachCode se queda en el valor por defecto
         }
       } catch (err) {
         console.error("Error inicializando FantasyBuilder:", err);
@@ -124,7 +203,10 @@ export default function FantasyBuilder() {
   const canConfirm =
     selectedNumbers.length === 5 &&
     costeUsado <= cervezasTotales &&
-    !!gameweek;
+    !!gameweek &&
+    captainNumber != null &&
+    selectedNumbers.includes(captainNumber);
+  // Nota: no obligamos aún a elegir entrenador, pero siempre hay uno seleccionado.
 
   // ========================
   // 3) Seleccionar / quitar jugadores
@@ -136,6 +218,10 @@ export default function FantasyBuilder() {
 
     setSelectedNumbers((prev) => {
       if (prev.includes(num)) {
+        // Si quitamos al capitán, dejamos de tener capitán
+        if (captainNumber === num) {
+          setCaptainNumber(null);
+        }
         return prev.filter((n) => n !== num);
       }
       if (prev.length >= 5) {
@@ -143,6 +229,13 @@ export default function FantasyBuilder() {
       }
       return [...prev, num];
     });
+  }
+
+  function handleSetCaptain(number) {
+    const num = Number(number);
+    if (Number.isNaN(num)) return;
+    if (!selectedNumbers.includes(num)) return; // solo se puede hacer capitán a un seleccionado
+    setCaptainNumber(num);
   }
 
   // ========================
@@ -173,7 +266,11 @@ export default function FantasyBuilder() {
       if (existing) {
         const { error: updError } = await supabase
           .from("fantasy_lineups")
-          .update({ players: playersToSave })
+          .update({
+            players: playersToSave,
+            captain_number: captainNumber,
+            coach_code: coachCode,
+          })
           .eq("id", existing.id);
 
         if (updError) throw updError;
@@ -184,6 +281,8 @@ export default function FantasyBuilder() {
             fantasy_team_id: team.id,
             gameweek_id: gameweek.id,
             players: playersToSave,
+            captain_number: captainNumber,
+            coach_code: coachCode,
           });
 
         if (insError) throw insError;
@@ -206,39 +305,39 @@ export default function FantasyBuilder() {
   // 5) Barras de rendimiento (last3_pir)
   // ========================
 
-const MIN_PIR = -10;
-const MAX_PIR = 30;
-const MIN_HEIGHT = 16; // px
-const MAX_HEIGHT = 56; // px
+  const MIN_PIR = -10;
+  const MAX_PIR = 30;
+  const MIN_HEIGHT = 16; // px
+  const MAX_HEIGHT = 56; // px
 
-function getBarVisual(value) {
-  // Clamp dentro de rango
-  const v = Math.max(MIN_PIR, Math.min(MAX_PIR, value));
-  const absV = Math.abs(v);
-  const t = Math.min(absV / MAX_PIR, 1); // escala 0..1
-  const height = MIN_HEIGHT + t * (MAX_HEIGHT - MIN_HEIGHT);
+  function getBarVisual(value) {
+    // Clamp dentro de rango
+    const v = Math.max(MIN_PIR, Math.min(MAX_PIR, value));
+    const absV = Math.abs(v);
+    const t = Math.min(absV / MAX_PIR, 1); // escala 0..1
+    const height = MIN_HEIGHT + t * (MAX_HEIGHT - MIN_HEIGHT);
 
-  // Colores base
-  const red = [231, 76, 60];    // rojo
-  const yellow = [241, 196, 15]; // amarillo
-  const green = [46, 204, 113]; // verde
+    // Colores base
+    const red = [231, 76, 60]; // rojo
+    const yellow = [241, 196, 15]; // amarillo
+    const green = [46, 204, 113]; // verde
 
-  let color;
+    let color;
 
-  if (v < 0) {
-    // siempre rojo si es negativo
-    color = `rgb(${red[0]}, ${red[1]}, ${red[2]})`;
-  } else {
-    // de 0 a MAX_PIR degradado amarillo → verde
-    const tt = v / MAX_PIR;
-    const r = Math.round(yellow[0] + (green[0] - yellow[0]) * tt);
-    const g = Math.round(yellow[1] + (green[1] - yellow[1]) * tt);
-    const b = Math.round(yellow[2] + (green[2] - yellow[2]) * tt);
-    color = `rgb(${r}, ${g}, ${b})`;
+    if (v < 0) {
+      // siempre rojo si es negativo
+      color = `rgb(${red[0]}, ${red[1]}, ${red[2]})`;
+    } else {
+      // de 0 a MAX_PIR degradado amarillo → verde
+      const tt = v / MAX_PIR;
+      const r = Math.round(yellow[0] + (green[0] - yellow[0]) * tt);
+      const g = Math.round(yellow[1] + (green[1] - yellow[1]) * tt);
+      const b = Math.round(yellow[2] + (green[2] - yellow[2]) * tt);
+      color = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    return { height, color };
   }
-
-  return { height, color };
-}
 
   const displayNumber = (raw) => {
     const num = Number(raw);
@@ -284,6 +383,8 @@ function getBarVisual(value) {
       minute: "2-digit",
     });
 
+  const coachTraits = getCoachTraits(coachCode);
+
   return (
     <div className="fantasy-builder">
       <div className="container">
@@ -312,6 +413,67 @@ function getBarVisual(value) {
             <div className="fantasy-builder__badge">
               Jugadores: <strong>{selectedNumbers.length} / 5</strong>
             </div>
+            <div className="fantasy-builder__badge">
+              Capitán:{" "}
+              <strong>
+                {captainNumber != null
+                  ? `#${displayNumber(captainNumber)}`
+                  : "Sin capitán"}
+              </strong>
+            </div>
+          </section>
+
+          {/* Entrenador */}
+          <section className="fantasy-builder__section">
+            <h2 className="fantasy-builder__section-title">Entrenador</h2>
+            <p className="fantasy-builder__text">
+              El entrenador no cuesta cervezas pero activa los rasgos de los
+              jugadores que compartan atributo. Leyenda al final de la página.
+            </p>
+
+            <div className="fantasy-builder__coach-selector">
+              <label className="fantasy-builder__field">
+                <span className="fantasy-builder__label">Selecciona técnico</span>
+                <select
+                  value={coachCode}
+                  onChange={(e) => setCoachCode(e.target.value)}
+                  className="fantasy-builder__input"
+                >
+                  <option value="david">
+                    David ({COACH_TRAITS.david.join(" · ")})
+                  </option>
+                  <option value="gorka">
+                    Gorka ({COACH_TRAITS.gorka.join(" · ")})
+                  </option>
+                  <option value="unai">
+                    Unai ({COACH_TRAITS.unai.join(" · ")})
+                  </option>
+                </select>
+              </label>
+
+              <div className="fantasy-builder__coach-traits">
+                <div className="fantasy-builder__coach-avatar">
+                  <img
+                    src={`${import.meta.env.BASE_URL}images/coaches/${coachCode}.png`}
+                    alt={COACH_LABELS[coachCode]}
+                    className="fantasy-builder__coach-photo"
+                  />
+                </div>
+
+                <div className="fantasy-builder__coach-info">
+                  <span className="fantasy-builder__coach-name">
+                    {COACH_LABELS[coachCode]}
+                  </span>
+                  <div className="fantasy-builder__traits">
+                    {coachTraits.map((t) => (
+                      <span key={t} className="fantasy-builder__trait-chip">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
           {infoMsg && (
@@ -337,7 +499,10 @@ function getBarVisual(value) {
                 const num = Number(rawNumber);
                 const isSelected =
                   !Number.isNaN(num) && selectedNumbers.includes(num);
+                const isCaptain =
+                  !Number.isNaN(num) && captainNumber === num && isSelected;
                 const last3 = p.last3_pir || [];
+                const traits = getPlayerTraitsForName(p.name);
 
                 return (
                   <li
@@ -348,27 +513,49 @@ function getBarVisual(value) {
                     }
                   >
                     <div className="fantasy-builder__item-main">
-                      {p.image && (() => {
-                        const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(/^\/+/, "")}`;
-                        return (
-                          <img
-                            src={imgSrc}
-                            alt={p.name}
-                            className="fantasy-builder__player-photo"
-                          />
-                        );
-                      })()}
-                    
+                      {p.image &&
+                        (() => {
+                          const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
+                            /^\/+/,
+                            ""
+                          )}`;
+                          return (
+                            <img
+                              src={imgSrc}
+                              alt={p.name}
+                              className="fantasy-builder__player-photo"
+                            />
+                          );
+                        })()}
+
                       <div className="fantasy-builder__item-name">
                         #{displayNumber(rawNumber)} · {p.name}
+                        {isCaptain && (
+                          <span className="fantasy-builder__captain-badge">
+                            CAP
+                          </span>
+                        )}
                       </div>
-                    
+
                       <div className="fantasy-builder__item-sub">
                         PIR medio:{" "}
                         <strong>
                           {p.pir_avg?.toFixed?.(1) ?? p.pir_avg ?? "–"}
                         </strong>
                       </div>
+
+                      {traits.length > 0 && (
+                        <div className="fantasy-builder__item-traits">
+                          {traits.map((t) => (
+                            <span
+                              key={t}
+                              className="fantasy-builder__trait-chip"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Barras de los últimos 3 PIR */}
@@ -416,11 +603,40 @@ function getBarVisual(value) {
                       >
                         {isSelected ? "Quitar" : "Añadir"}
                       </button>
+                      <button
+                        type="button"
+                        className={
+                          "fantasy-builder__btn-secondary" +
+                          (isCaptain ? " is-captain" : "")
+                        }
+                        disabled={!isSelected}
+                        onClick={() => handleSetCaptain(rawNumber)}
+                      >
+                        {isCaptain ? "Capitán ✅" : "Hacer capitán"}
+                      </button>
                     </div>
                   </li>
                 );
               })}
             </ul>
+          </section>
+
+          {/* Leyenda de atributos */}
+          <section className="fantasy-builder__section">
+            <h2 className="fantasy-builder__section-title">Leyenda atributos</h2>
+            <p className="fantasy-builder__text fantasy-builder__legend">
+              {Object.entries(TRAIT_LABELS).map(([letter, desc]) => (
+                <span
+                  key={letter}
+                  className="fantasy-builder__legend-item"
+                >
+                  <span className="fantasy-builder__trait-chip">
+                    {letter}
+                  </span>{" "}
+                  {desc}
+                </span>
+              ))}
+            </p>
           </section>
 
           {/* Footer */}
@@ -433,12 +649,12 @@ function getBarVisual(value) {
             >
               {saving
                 ? "Guardando equipo..."
-                : "Confirmar equipo (5 jugadores)"}
+                : "Confirmar equipo (5 jugadores y capitán)"}
             </button>
             {!canConfirm && (
               <p className="fantasy-builder__hint">
-                Necesitas exactamente 5 jugadores y no pasarte de cervezas para
-                poder confirmar.
+                Necesitas exactamente 5 jugadores, no pasarte de cervezas y
+                elegir un capitán para poder confirmar.
               </p>
             )}
           </section>

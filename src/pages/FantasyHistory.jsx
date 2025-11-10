@@ -2,6 +2,24 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
+
+// Entrenadores (solo para mostrar)
+const COACH_TRAITS = {
+  david: ["S", "A"],
+  gorka: ["V", "C"],
+  unai: ["J", "L"],
+};
+
+const COACH_LABELS = {
+  david: "David",
+  gorka: "Gorka",
+  unai: "Unai",
+};
+
+function getCoachTraits(code) {
+  return COACH_TRAITS[code] || [];
+}
 
 export default function FantasyHistory() {
   const { user } = useAuth();
@@ -114,23 +132,35 @@ export default function FantasyHistory() {
           if (!gw) continue;
 
           const statsMap = statsByGw.get(gw.id);
+          if (!statsMap) continue;
+
           const playersNums = (lineup.players || [])
             .map((n) => Number(n))
             .filter((n) => !Number.isNaN(n));
+          if (playersNums.length === 0) continue;
 
-          const playersDetailed = playersNums.map((num) => {
-            const s = statsMap ? statsMap.get(num) : null;
-            return {
-              number: num,
-              name: s?.name || `#${num}`,
-              pir: typeof s?.pir === "number" ? s.pir : null,
-            };
+          const captainNumber =
+            lineup.captain_number != null
+              ? Number(lineup.captain_number)
+              : null;
+
+          const coachCode = lineup.coach_code || null;
+
+          const breakdown = computeLineupBreakdown({
+            playersNums,
+            statsMap,
+            captainNumber,
+            coachCode,
           });
 
-          const totalPoints = playersDetailed.reduce(
-            (acc, p) => acc + (p.pir || 0),
-            0
-          );
+          const playersDetailed = breakdown.players.map((p) => ({
+            number: p.number,
+            name: p.name,
+            pir: p.pirBase,
+            isCaptain: p.isCaptain,
+            synergies: p.synergies || [],
+            finalScore: p.finalScore,
+          }));
 
           newEntries.push({
             id: lineup.id,
@@ -139,7 +169,10 @@ export default function FantasyHistory() {
             gameweekDate: gw.date || null,
             opponent: gw.opponent || null,
             players: playersDetailed,
-            totalPoints,
+            totalPoints: breakdown.totalPoints,
+            baseTotal: breakdown.baseTotal,
+            bonusTotal: breakdown.bonusTotal,
+            coachCode, // 👈 guardamos entrenador usado en esa jornada
           });
         }
 
@@ -240,44 +273,93 @@ export default function FantasyHistory() {
                 )}
               </div>
 
-              <div className="fantasy__ranking">
-                {filteredEntries.map((e) => (
-                  <div key={e.id} className="fantasy__section-card">
-                    <div className="fantasy__section-card-header">
-                      <h3>
-                        {e.gameweekName}
-                        {e.opponent ? ` · vs ${e.opponent}` : ""}
-                      </h3>
-                      <p className="fantasy__text">
-                        Puntos totales:{" "}
-                        <strong>{e.totalPoints.toFixed(1)}</strong>
-                      </p>
-                    </div>
-                    <table className="fantasy__ranking-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Jugador</th>
-                          <th>PIR</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {e.players.map((p) => (
-                          <tr key={p.number}>
-                            <td>{p.number}</td>
-                            <td>{p.name}</td>
-                            <td>
-                              {p.pir !== null && p.pir !== undefined
-                                ? p.pir
-                                : "-"}
-                            </td>
+              {filteredEntries.length === 0 ? (
+                <p className="fantasy__text">
+                  No tienes quinteto registrado para esta jornada. Prueba con
+                  otra jornada o con <strong>Todas</strong>.
+                </p>
+              ) : (
+                <div className="fantasy__ranking">
+                  {filteredEntries.map((e) => (
+                    <div key={e.id} className="fantasy__section-card">
+                      <div className="fantasy__section-card-header">
+                        <h3>
+                          {e.gameweekName}
+                          {e.opponent ? ` · vs ${e.opponent}` : ""}
+                        </h3>
+                        <p className="fantasy__text">
+                          Puntos totales:{" "}
+                          <strong>{e.totalPoints.toFixed(1)}</strong>{" "}
+                          <span style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+                            (base {e.baseTotal.toFixed(1)}, bonus{" "}
+                            {e.bonusTotal >= 0
+                              ? `+${e.bonusTotal.toFixed(1)}`
+                              : e.bonusTotal.toFixed(1)}
+                            )
+                          </span>
+                        </p>
+                        {e.coachCode && (
+                          <p className="fantasy__text" style={{ marginTop: 4 }}>
+                            Entrenador:{" "}
+                            <strong>
+                              {COACH_LABELS[e.coachCode] || e.coachCode}
+                            </strong>{" "}
+                            <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>
+                              (
+                              {getCoachTraits(e.coachCode).join(" · ") ||
+                                "sin rasgos"}
+                              )
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                      <table className="fantasy__ranking-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Jugador</th>
+                            <th>PIR base</th>
+                            <th>Multiplicadores</th>
+                            <th>Puntos finales</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
+                        </thead>
+                        <tbody>
+                          {e.players.map((p) => (
+                            <tr key={p.number}>
+                              <td>{p.number}</td>
+                              <td>
+                                {p.name}
+                                {p.isCaptain && (
+                                  <span
+                                    style={{
+                                      marginLeft: 6,
+                                      padding: "2px 6px",
+                                      borderRadius: 999,
+                                      background: "gold",
+                                      color: "#000",
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    CAP
+                                  </span>
+                                )}
+                              </td>
+                              <td>{p.pir}</td>
+                              <td>
+                                {p.synergies && p.synergies.length > 0
+                                  ? p.synergies.join(" · ")
+                                  : "–"}
+                              </td>
+                              <td>{p.finalScore.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>
