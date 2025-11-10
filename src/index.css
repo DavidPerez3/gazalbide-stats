@@ -2173,3 +2173,60 @@ html {
     padding-inline: 12px;
   }
 }
+
+.auth__password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Deja un hueco interno a la derecha para el ojo */
+.auth__password-wrapper .auth__input {
+  padding-right: 2.5rem;
+}
+
+/* Botón del ojo dentro del campo */
+.auth__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #555;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+/* Hover / focus */
+.auth__password-toggle:hover {
+  color: #f5c451; /* mismo tono que los botones */
+}
+.auth__password-toggle:active {
+  transform: translateY(-50%) scale(0.9);
+}
+.auth__password-toggle:focus-visible {
+  outline: 2px solid #f5c451;
+  outline-offset: 2px;
+}
+
+/* Tamaño del SVG */
+.auth__password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Ajusta el input para mantener la misma altura que el resto */
+.auth__input {
+  box-sizing: border-box;
+}

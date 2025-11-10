@@ -22,6 +22,8 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 
 import "./index.css";
+import ForgotPassword from "./components/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 
 const router = createHashRouter([
   {
@@ -36,6 +38,8 @@ const router = createHashRouter([
       { path: "compare", element: <Compare /> },
 
       { path: "login", element: <AuthPage /> },
+      { path: "forgot-password", element: <ForgotPassword /> },
+      { path: "reset-password", element: <ResetPassword /> },
 
       {
         path: "fantasy",
