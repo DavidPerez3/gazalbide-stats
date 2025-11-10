@@ -2145,3 +2145,31 @@ html {
   background-color: #fee2e2;
   color: #991b1b;
 }
+
+/* Contenedor scrollable para la tabla del ranking */
+.fantasy__ranking {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* La tabla puede ser más ancha que la pantalla, pero no rompe el layout */
+.fantasy__ranking-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 650px; /* ajusta si quieres menos/más columnas visibles */
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 768px) {
+  .fantasy__ranking-table th,
+  .fantasy__ranking-table td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    white-space: nowrap; /* evita que parta palabras raramente */
+  }
+
+  .fantasy__card {
+    padding-inline: 12px;
+  }
+}

@@ -340,7 +340,6 @@ export default function FantasyRanking() {
                         <th>Manager</th>
                         <th>Jornadas</th>
                         <th>Puntos totales</th>
-                        <th>Media / jornada</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -375,8 +374,7 @@ export default function FantasyRanking() {
                               </button>
                             </td>
                             <td>{r.jornadas}</td>
-                            <td>{r.totalPoints}</td>
-                            <td>{avg}</td>
+                            <td>{r.totalPoints.toFixed(2)}</td>
                           </tr>
                         );
                       })}
