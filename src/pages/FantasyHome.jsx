@@ -45,6 +45,16 @@ const COACH_LABELS = {
   unai: "Unai",
 };
 
+const TRAIT_LABELS = {
+  A: "Alcohólico",
+  L: "Ludópata",
+  S: "Sexólogo",
+  V: "Vieja guardia",
+  J: "Joven promesa",
+  C: "Boost Covela 1.5x",
+  P: "Primos",
+};
+
 function getPlayerTraits(name) {
   return PLAYER_TRAITS[normalizeName(name)] || [];
 }
@@ -52,6 +62,22 @@ function getPlayerTraits(name) {
 function getCoachTraits(code) {
   return COACH_TRAITS[code] || [];
 }
+
+// valor para hueco vacío (en BD se guarda como "-1")
+const EMPTY_SLOT_NUM = -1;
+const EMPTY_SLOT_RAW = "-1";
+
+// Posiciones (en %) de los 5 huecos sobre el campo (3–2)
+const COURT_SLOTS = [
+  // fila superior (3 jugadores)
+  { id: 0, top: "32%", left: "20%" },
+  { id: 1, top: "32%", left: "50%" },
+  { id: 2, top: "32%", left: "80%" },
+
+  // fila inferior (2 jugadores)
+  { id: 3, top: "68%", left: "35%" },
+  { id: 4, top: "68%", left: "65%" },
+];
 
 export default function FantasyHome() {
   const { user, profile } = useAuth();
@@ -67,10 +93,10 @@ export default function FantasyHome() {
   const [nextGwError, setNextGwError] = useState(null);
 
   // Último lineup guardado (cualquier jornada)
-  const [lineupNumbers, setLineupNumbers] = useState([]); // dorsales numéricos
-  const [lineupGameweek, setLineupGameweek] = useState(null); // info de esa jornada
-  const [captainNumber, setCaptainNumber] = useState(null); // ← CAPITÁN
-  const [coachCode, setCoachCode] = useState(null); // ← ENTRENADOR
+  const [lineupNumbers, setLineupNumbers] = useState([]); // array de 5 números por slot
+  const [lineupGameweek, setLineupGameweek] = useState(null);
+  const [captainNumber, setCaptainNumber] = useState(null);
+  const [coachCode, setCoachCode] = useState(null);
   const [loadingLineup, setLoadingLineup] = useState(false);
   const [lineupError, setLineupError] = useState(null);
 
@@ -88,6 +114,7 @@ export default function FantasyHome() {
   const [playerStatuses, setPlayerStatuses] = useState(new Map());
 
   const BASE = import.meta.env.BASE_URL || "/";
+  const courtSrc = `${BASE}images/court.png`;
 
   // 1) Cargar equipo del usuario
   useEffect(() => {
@@ -158,7 +185,6 @@ export default function FantasyHome() {
       setLoadingPlayers(true);
 
       try {
-        // Último lineup por gameweek_id (asumimos que crece con las jornadas)
         const { data: lineupRow, error: lineupError } = await supabase
           .from("fantasy_lineups")
           .select("*")
@@ -172,11 +198,19 @@ export default function FantasyHome() {
         }
 
         if (lineupRow && Array.isArray(lineupRow.players)) {
-          setLineupNumbers(
-            lineupRow.players
-              .map((n) => Number(n))
-              .filter((n) => !Number.isNaN(n))
-          );
+          let raw = [...lineupRow.players];
+
+          // Siempre 5 posiciones, usando "-1" como hueco vacío
+          while (raw.length < 5) raw.push(EMPTY_SLOT_RAW);
+          if (raw.length > 5) raw = raw.slice(0, 5);
+
+          const slots = raw.map((val) => {
+            if (val == null || val === EMPTY_SLOT_RAW) return EMPTY_SLOT_NUM;
+            const n = Number(val);
+            return Number.isNaN(n) ? EMPTY_SLOT_NUM : n;
+          });
+
+          setLineupNumbers(slots);
 
           // Capitán guardado en esta jornada
           if (lineupRow.captain_number != null) {
@@ -236,7 +270,7 @@ export default function FantasyHome() {
     fetchLastLineupAndPlayers();
   }, [team, BASE]);
 
-  // 4) Cargar stats del partido usando gameweeks.stats_file (linkeado a mano)
+  // 4) Cargar stats del partido usando gameweeks.stats_file
   useEffect(() => {
     if (!lineupGameweek || !lineupGameweek.stats_file) {
       setStatsByNumber(null);
@@ -252,8 +286,6 @@ export default function FantasyHome() {
         const statsPath = String(lineupGameweek.stats_file).trim();
         const url = `${BASE}data/player_stats/${statsPath}`;
 
-        console.log("Cargando stats Fantasy desde:", url);
-
         const res = await fetch(url);
         if (!res.ok) {
           throw new Error(`Respuesta ${res.status} al cargar ${url}`);
@@ -266,7 +298,7 @@ export default function FantasyHome() {
           );
         }
 
-        const stats = await res.json(); // array de jugadores con "number", "pir", etc.
+        const stats = await res.json();
         const map = new Map();
         for (const row of stats) {
           const n = Number(row.number);
@@ -275,7 +307,6 @@ export default function FantasyHome() {
           }
         }
 
-        console.log("Stats Fantasy cargadas correctamente desde:", url);
         setStatsByNumber(map);
       } catch (err) {
         console.error("Error cargando stats de la jornada:", err);
@@ -288,18 +319,10 @@ export default function FantasyHome() {
       }
     }
 
-    console.log("🔍 BASE:", BASE);
-    console.log("🔍 lineupGameweek:", lineupGameweek);
-    console.log("🔍 stats_file bruto:", JSON.stringify(lineupGameweek?.stats_file));
-    const cleaned = String(lineupGameweek?.stats_file || "").replace(/\s+/g, "");
-    console.log("🔍 stats_file limpio:", cleaned);
-    const url = `${BASE}data/${cleaned}`;
-    console.log("🔍 URL FINAL (fetch):", url);
-
     fetchStats();
   }, [lineupGameweek, BASE]);
 
-  // NUEVO: cargar estados de jugador desde Supabase
+  // Estados de jugador
   useEffect(() => {
     if (!lineupGameweek || !lineupGameweek.id) {
       setPlayerStatuses(new Map());
@@ -374,37 +397,76 @@ export default function FantasyHome() {
     canEditLineup =
       nextGameweek.status === "scheduled" && nowIso < nextGameweek.deadline;
 
-    nextDeadlineText = new Date(nextGameweek.deadline).toLocaleString(
-      "es-ES",
-      {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
+    nextDeadlineText = new Date(nextGameweek.deadline).toLocaleString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
-  // Jugadores seleccionados del ÚLTIMO lineup
-  const selectedPlayers = useMemo(() => {
+  // Jugador por slot (0..4)
+  const playersBySlot = useMemo(() => {
     if (!lineupNumbers.length || !fantasyPlayers.length) return [];
-    const setNums = new Set(lineupNumbers);
 
-    return fantasyPlayers.filter((p) => {
-      const raw = p.number ?? p.dorsal;
-      if (raw == null) return false;
-      const num = Number(raw);
-      if (Number.isNaN(num)) return false;
-      return setNums.has(num);
+    return lineupNumbers.map((num) => {
+      if (
+        num == null ||
+        num === EMPTY_SLOT_NUM ||
+        Number.isNaN(num) ||
+        num < 0
+      ) {
+        return null;
+      }
+      return (
+        fantasyPlayers.find((p) => {
+          const raw = p.number ?? p.dorsal;
+          const n = Number(raw);
+          return !Number.isNaN(n) && n === num;
+        }) || null
+      );
     });
   }, [fantasyPlayers, lineupNumbers]);
 
-  // Breakdown fantasy (capitán + entrenador + rasgos + primos)
+  // nº de slots llenos y cervezas usadas
+  const filledSlots = useMemo(
+    () =>
+      lineupNumbers.filter(
+        (n) => n != null && n !== EMPTY_SLOT_NUM && !Number.isNaN(n)
+      ).length,
+    [lineupNumbers]
+  );
+
+  const usedBeers = useMemo(
+    () =>
+      playersBySlot.reduce(
+        (sum, p) => (p ? sum + (p.price || 0) : sum),
+        0
+      ),
+    [playersBySlot]
+  );
+
+  const remainingBeers = Math.max(totalBudget - usedBeers, 0);
+
+  const hasCoach = !!coachCode;
+  const hasCaptain =
+    captainNumber != null && !Number.isNaN(captainNumber) && captainNumber >= 0;
+
+  const isValidLineup =
+    filledSlots === 5 && hasCoach && hasCaptain && usedBeers <= totalBudget;
+
+  // Breakdown fantasy (solo si equipo válido)
   const breakdown = useMemo(() => {
-    if (!lineupNumbers.length || !statsByNumber) return null;
+    if (!statsByNumber || !lineupNumbers.length || !isValidLineup) return null;
+
+    const playersNums = lineupNumbers.filter(
+      (n) => n != null && n !== EMPTY_SLOT_NUM && !Number.isNaN(n)
+    );
+    if (!playersNums.length) return null;
+
     try {
       return computeLineupBreakdown({
-        playersNums: lineupNumbers,
+        playersNums,
         statsMap: statsByNumber,
         captainNumber,
         coachCode,
@@ -413,58 +475,40 @@ export default function FantasyHome() {
       console.error("Error calculando breakdown en FantasyHome:", e);
       return null;
     }
-  }, [lineupNumbers, statsByNumber, captainNumber, coachCode]);
+  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, isValidLineup]);
 
-  // Puntos fantasy por jugador (con rasgos) basados en breakdown
+  // Puntos fantasy por jugador por slot
   const playersWithPoints = useMemo(() => {
-    if (!selectedPlayers.length) return [];
+    if (!playersBySlot.length) return [];
 
-    // Sin breakdown: rasgos + estado, pero sin puntos
-    if (!breakdown) {
-      return selectedPlayers.map((p) => {
-        const raw = p.number ?? p.dorsal;
-        const num = Number(raw);
-        const isCaptain =
-          captainNumber != null && !Number.isNaN(num) && num === captainNumber;
+    const breakdownMap =
+      breakdown && breakdown.players
+        ? new Map(breakdown.players.map((pl) => [Number(pl.number), pl]))
+        : null;
 
-        let status = "available";
-        let statusNote = "";
+    return playersBySlot.map((p) => {
+      if (!p) return null;
 
-        if (playerStatuses && playerStatuses.size && !Number.isNaN(num)) {
-          const st = playerStatuses.get(num);
-          if (st) {
-            status = st.status || "available";
-            statusNote = st.note || "";
-          }
-        }
-
-        return {
-          ...p,
-          isCaptain,
-          fantasyPoints: null,
-          traits: getPlayerTraits(p.name),
-          synergies: [],
-          status,
-          statusNote,
-        };
-      });
-    }
-
-    const breakdownMap = new Map(
-      breakdown.players.map((pl) => [Number(pl.number), pl])
-    );
-
-    return selectedPlayers.map((p) => {
       const raw = p.number ?? p.dorsal;
       const num = Number(raw);
-      const bd = breakdownMap.get(num);
-      const isCaptain =
-        bd?.isCaptain ||
-        (captainNumber != null && !Number.isNaN(num) && num === captainNumber);
+
+      let isCaptain =
+        captainNumber != null && !Number.isNaN(num) && num === captainNumber;
+      let fantasyPoints = null;
+      let synergies = [];
+
+      if (breakdownMap && !Number.isNaN(num)) {
+        const bd = breakdownMap.get(num);
+        if (bd) {
+          fantasyPoints =
+            typeof bd.finalScore === "number" ? bd.finalScore : null;
+          synergies = bd.synergies || [];
+          if (bd.isCaptain) isCaptain = true;
+        }
+      }
 
       let status = "available";
       let statusNote = "";
-
       if (playerStatuses && playerStatuses.size && !Number.isNaN(num)) {
         const st = playerStatuses.get(num);
         if (st) {
@@ -476,26 +520,24 @@ export default function FantasyHome() {
       return {
         ...p,
         isCaptain,
-        fantasyPoints:
-          typeof bd?.finalScore === "number" ? bd.finalScore : null,
+        fantasyPoints,
         traits: getPlayerTraits(p.name),
-        synergies: bd?.synergies || [],
+        synergies,
         status,
         statusNote,
       };
     });
-  }, [selectedPlayers, breakdown, captainNumber, playerStatuses]);
+  }, [playersBySlot, breakdown, captainNumber, playerStatuses]);
 
   const totalFantasyPoints = useMemo(() => {
-    if (breakdown) {
-      return breakdown.totalPoints;
-    }
+    if (breakdown) return breakdown.totalPoints;
     if (!playersWithPoints.length) return null;
+
     let sum = 0;
     let hasAny = false;
 
     for (const p of playersWithPoints) {
-      if (typeof p.fantasyPoints === "number") {
+      if (p && typeof p.fantasyPoints === "number") {
         hasAny = true;
         sum += p.fantasyPoints;
       }
@@ -504,18 +546,247 @@ export default function FantasyHome() {
     return hasAny ? sum : null;
   }, [breakdown, playersWithPoints]);
 
-  const usedBeers = playersWithPoints.reduce(
-    (sum, p) => sum + (p.price || 0),
-    0
-  );
-  const remainingBeers = Math.max(totalBudget - usedBeers, 0);
-
   const displayNumber = (raw) => {
     const n = Number(raw);
     return n === 0 ? "00" : String(raw);
   };
 
   const usernameLabel = username;
+
+  // navegación al builder desde un hueco del campo
+  const goToBuilderFromField = (slotIndex) => {
+    if (!canEditLineup) return;
+    navigate(`/fantasy/crear-equipo?slot=${slotIndex}`);
+  };
+
+  // mini-tarjeta de jugador para los huecos del campo
+  const renderPlayerSlotCard = (p) => {
+    // HUECO VACÍO
+    if (!p) {
+      return (
+        <div
+          className="fantasy__court-slot-card"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "10px 8px",
+            background: "rgba(24,24,27,0.95)",
+            borderRadius: "12px",
+            border: "1px solid rgba(250,204,21,0.4)",
+            boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
+            overflow: "hidden",
+            fontSize: "0.75rem",
+            lineHeight: 1.2,
+          }}
+        >
+          <span
+            className="fantasy__court-slot-title"
+            style={{ fontWeight: 600, color: "#E5E7EB" }}
+          >
+            Hueco libre
+          </span>
+          <span
+            className="fantasy__court-slot-sub"
+            style={{ color: "#9CA3AF", marginTop: 2, textAlign: "center" }}
+          >
+            Toca para fichar jugador
+          </span>
+        </div>
+      );
+    }
+
+    // HAY JUGADOR
+    return (
+      <div
+        className="fantasy__court-slot-card"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "8px 6px",
+          background: "rgba(24,24,27,0.96)",
+          borderRadius: "12px",
+          border: "1px solid rgba(250,204,21,0.6)",
+          boxShadow: "0 8px 18px rgba(0,0,0,0.6)",
+          overflow: "hidden",
+          fontSize: "0.7rem",
+          lineHeight: 1.15,
+        }}
+      >
+        {/* 1. Foto */}
+        {p.image && (() => {
+          const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
+            /^\/+/,
+            ""
+          )}`;
+          return (
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "999px",
+                overflow: "hidden",
+                border: "2px solid #FACC15",
+                marginBottom: 4,
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={imgSrc}
+                alt={p.name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            </div>
+          );
+        })()}
+
+        {/* 2. Dorsal + nombre */}
+        <div
+          className="fantasy__court-slot-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            marginBottom: 2,
+          }}
+        >
+          <span
+            className="fantasy__player-number"
+            style={{ fontWeight: 700, color: "#FACC15", fontSize: "0.85rem" }}
+          >
+            #{displayNumber(p.number)}
+          </span>
+          <span
+            className="fantasy__court-slot-name"
+            style={{
+              fontWeight: 600,
+              color: "#F9FAFB",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "90px",
+              fontSize: "0.8rem",
+            }}
+          >
+            {p.name}
+          </span>
+          {p.isCaptain && (
+            <span
+              className="fantasy-builder__captain-badge"
+              style={{
+                marginLeft: 4,
+                fontSize: "0.6rem",
+                padding: "2px 6px",
+                borderRadius: "999px",
+                background: "#FACC15",
+                color: "#111827",
+                fontWeight: 700,
+              }}
+            >
+              CAP
+            </span>
+          )}
+        </div>
+
+        {/* 3. Status */}
+        {p.status && (
+          <div
+            className={`fantasy__player-status fantasy__player-status--${p.status}`}
+            title={p.statusNote || ""}
+            style={{
+              fontSize: "0.62rem",
+              marginBottom: 2,
+              fontWeight: 600,
+              padding: "2px 6px",
+              borderRadius: "6px",
+              background:
+                p.status === "injured"
+                  ? "rgba(239,68,68,0.2)"
+                  : p.status === "doubtful"
+                  ? "rgba(250,204,21,0.2)"
+                  : "rgba(16,185,129,0.25)",
+              color:
+                p.status === "injured"
+                  ? "#FCA5A5"
+                  : p.status === "doubtful"
+                  ? "#FBBF24"
+                  : "#34D399",
+            }}
+          >
+            {p.status === "injured"
+              ? "Lesionado"
+              : p.status === "doubtful"
+              ? "Dudoso"
+              : "Disponible"}
+          </div>
+        )}
+
+        {/* 4. Precio + PIR */}
+        <div
+          className="fantasy__court-slot-meta"
+          style={{
+            fontSize: "0.65rem",
+            color: "#D1D5DB",
+            marginBottom: 2,
+          }}
+        >
+          {p.price} 🍺 · PIR{" "}
+          {p.pir_avg?.toFixed ? p.pir_avg.toFixed(1) : p.pir_avg}
+        </div>
+
+        {/* 5. Rasgos */}
+        {p.traits && p.traits.length > 0 && (
+          <div
+            className="fantasy-builder__item-traits"
+            style={{
+              display: "flex",
+              gap: 4,
+              flexWrap: "wrap",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}
+          >
+            {p.traits.map((t) => (
+              <span
+                key={t}
+                className="fantasy-builder__trait-chip"
+                style={{
+                  fontSize: "0.55rem",
+                  padding: "1px 5px",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(250,204,21,0.7)",
+                }}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* 6. Puntos fantasy */}
+        <div
+          className="fantasy__court-slot-points"
+          style={{
+            marginTop: 1,
+            fontSize: "0.62rem",
+            color: "#E5E7EB",
+          }}
+        >
+          Puntos:{" "}
+          {typeof p.fantasyPoints === "number"
+            ? p.fantasyPoints.toFixed(1)
+            : "–"}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="fantasy">
@@ -638,7 +909,10 @@ export default function FantasyHome() {
                   {coachCode && (
                     <div
                       className="fantasy__coach-card"
-                      style={{ marginTop: "0.75rem" }}
+                      style={{ marginTop: "0.75rem", cursor: canEditLineup ? "pointer" : "default" }}
+                      onClick={() => {
+                        if (canEditLineup) navigate("/fantasy/crear-equipo?coach=1");
+                      }}
                     >
                       <h3 className="fantasy__section-subtitle">Entrenador</h3>
                       <div className="fantasy-builder__coach-traits">
@@ -692,7 +966,16 @@ export default function FantasyHome() {
                     </p>
                   )}
 
-                  {/* Alineación del ÚLTIMO lineup */}
+                  {/* aviso de validez del equipo */}
+                  {!isValidLineup && (
+                    <p className="fantasy__message fantasy__message--warning">
+                      Tu equipo no puntuará esta jornada hasta que tengas 5
+                      jugadores, un capitán y un entrenador, y no te pases de
+                      cervezas.
+                    </p>
+                  )}
+
+                  {/* Alineación sobre el campo */}
                   <div className="fantasy__lineup">
                     {loadingLineup || loadingPlayers ? (
                       <p className="fantasy__text">Cargando alineación...</p>
@@ -700,161 +983,62 @@ export default function FantasyHome() {
                       <p className="fantasy__message fantasy__message--error">
                         {lineupError}
                       </p>
-                    ) : playersWithPoints.length === 0 ? (
+                    ) : filledSlots === 0 ? (
                       <p className="fantasy__text">
                         Aún no has elegido tu quinteto.
                       </p>
                     ) : (
-                      <div className="fantasy__lineup-pyramid">
-                        {/* Fila superior (3 jugadores) */}
-                        <div className="fantasy__lineup-row fantasy__lineup-row--top">
-                          {playersWithPoints.slice(0, 3).map((p) => (
-                            <div
-                              key={p.number}
-                              className="fantasy__player-card"
-                            >
-                              {p.image &&
-                                (() => {
-                                  const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
-                                    /^\/+/,
-                                    ""
-                                  )}`;
-                                  return (
-                                    <img
-                                      src={imgSrc}
-                                      alt={p.name}
-                                      className="fantasy-builder__player-photo"
-                                    />
-                                  );
-                                })()}
-                              <div className="fantasy__player-info">
-                                <h3>
-                                  <span className="fantasy__player-number">
-                                    #{displayNumber(p.number)}
-                                  </span>{" "}
-                                  {p.name}
-                                  {p.isCaptain && (
-                                    <span className="fantasy-builder__captain-badge">
-                                      CAP
-                                    </span>
-                                  )}
-                                  {/* NUEVO: estado del jugador */}
-                                  {p.status && (
-                                    <div
-                                      className={`fantasy__player-status fantasy__player-status--${p.status}`}
-                                      title={p.statusNote || ""}
-                                    >
-                                      {p.status === "injured"
-                                        ? "Lesionado"
-                                        : p.status === "doubtful"
-                                        ? "Dudoso"
-                                        : "Disponible"}
-                                    </div>
-                                  )}
-                                </h3>
-                                <p className="fantasy__player-meta">
-                                  {p.price} 🍺 · PIR medio{" "}
-                                  {p.pir_avg?.toFixed
-                                    ? p.pir_avg.toFixed(1)
-                                    : p.pir_avg}
-                                </p>
-                                {p.traits && p.traits.length > 0 && (
-                                  <div className="fantasy-builder__item-traits" style={{ justifyContent: "center" }}>
-                                    {p.traits.map((t) => (
-                                      <span
-                                        key={t}
-                                        className="fantasy-builder__trait-chip"
-                                      >
-                                        {t}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                <p className="fantasy__player-points">
-                                  Puntos Fantasy:{" "}
-                                  {typeof p.fantasyPoints === "number"
-                                    ? p.fantasyPoints.toFixed(1)
-                                    : "–"}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                      <div
+                        className="fantasy__court-wrapper"
+                        style={{ display: "flex", justifyContent: "center" }}
+                      >
+                        <div
+                          className="fantasy__court"
+                          style={{
+                            position: "relative",
+                            width: "100%",
+                            maxWidth: "400px",
+                            margin: "0 auto",
+                            height: "550px",
+                            backgroundImage: `url(${courtSrc})`,
+                            backgroundSize: "100% 100%",
+                            backgroundRepeat: "no-repeat",
+                            backgroundPosition: "center",
+                          }}
+                        >
+                          {COURT_SLOTS.map((slot, index) => {
+                            const player = playersWithPoints[index] || null;
+                            return (
+                              <button
+                                key={slot.id}
+                                type="button"
+                                className="fantasy__court-slot"
+                                style={{
+                                  position: "absolute",
+                                  top: slot.top,
+                                  left: slot.left,
+                                  transform: "translate(-50%, -50%)",
+                                  background: "transparent",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: canEditLineup ? "pointer" : "default",
+                                  width: "28%",
+                                  maxWidth: "130px",
+                                }}
+                                onClick={() => goToBuilderFromField(index)}
+                                disabled={!canEditLineup}
+                              >
+                                {renderPlayerSlotCard(player)}
+                              </button>
+                            );
+                          })}
                         </div>
-
-                        {/* Fila inferior (2 jugadores) */}
-                        <div className="fantasy__lineup-row fantasy__lineup-row--bottom">
-                          {playersWithPoints.slice(3, 5).map((p) => (
-                            <div
-                              key={p.number}
-                              className="fantasy__player-card"
-                            >
-                              {p.image &&
-                                (() => {
-                                  const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
-                                    /^\/+/,
-                                    ""
-                                  )}`;
-                                  return (
-                                    <img
-                                      src={imgSrc}
-                                      alt={p.name}
-                                      className="fantasy-builder__player-photo"
-                                    />
-                                  );
-                                })()}
-                              <div className="fantasy__player-info">
-                                <h3>
-                                  <span className="fantasy__player-number">
-                                    #{displayNumber(p.number)}
-                                  </span>{" "}
-                                  {p.name}
-                                  {p.isCaptain && (
-                                    <span className="fantasy-builder__captain-badge">
-                                      CAP
-                                    </span>
-                                  )}
-                                  {/* NUEVO: estado del jugador */}
-                                  {p.status && (
-                                    <div
-                                      className={`fantasy__player-status fantasy__player-status--${p.status}`}
-                                      title={p.statusNote || ""}
-                                    >
-                                      {p.status === "injured"
-                                        ? "Lesionado"
-                                        : p.status === "doubtful"
-                                        ? "Dudoso"
-                                        : "Disponible"}
-                                    </div>
-                                  )}
-                                </h3>
-                                <p className="fantasy__player-meta">
-                                  {p.price} 🍺 · PIR medio{" "}
-                                  {p.pir_avg?.toFixed
-                                    ? p.pir_avg.toFixed(1)
-                                    : p.pir_avg}
-                                </p>
-                                {p.traits && p.traits.length > 0 && (
-                                  <div className="fantasy-builder__item-traits" style={{ justifyContent: "center" }}>
-                                    {p.traits.map((t) => (
-                                      <span
-                                        key={t}
-                                        className="fantasy-builder__trait-chip"
-                                      >
-                                        {t}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                <p className="fantasy__player-points">
-                                  Puntos Fantasy:{" "}
-                                  {typeof p.fantasyPoints === "number"
-                                    ? p.fantasyPoints.toFixed(1)
-                                    : "–"}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        {!canEditLineup && (
+                          <p className="fantasy__text fantasy__court-hint">
+                            El quinteto se puede editar solo cuando haya una
+                            jornada futura y antes del límite.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -875,24 +1059,28 @@ export default function FantasyHome() {
                     </p>
                   )}
 
+                  {/* Leyenda atributos */}
+                  <section className="fantasy__section" style={{ marginTop: 12 }}>
+                    <h3 className="fantasy__section-subtitle">
+                      Leyenda de atributos
+                    </h3>
+                    <p className="fantasy-builder__text fantasy-builder__legend">
+                      {Object.entries(TRAIT_LABELS).map(([letter, desc]) => (
+                        <span
+                          key={letter}
+                          className="fantasy-builder__legend-item"
+                        >
+                          <span className="fantasy-builder__trait-chip">
+                            {letter}
+                          </span>{" "}
+                          {desc}
+                        </span>
+                      ))}
+                    </p>
+                  </section>
+
                   {/* Botones */}
                   <div className="fantasy__actions">
-                    <button
-                      type="button"
-                      className="fantasy__button fantasy__button--ghost"
-                      disabled={!canEditLineup}
-                      onClick={() => {
-                        if (canEditLineup) navigate("/fantasy/crear-equipo");
-                      }}
-                      title={
-                        canEditLineup
-                          ? "Abrir creador de equipo"
-                          : "Solo se puede editar cuando haya una jornada futura y antes del límite."
-                      }
-                      style={{ margin: 16 }}
-                    >
-                      Ir al creador de equipo
-                    </button>
                     <button
                       type="button"
                       className="fantasy__button fantasy__button--ghost"

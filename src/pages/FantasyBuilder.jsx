@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 
@@ -35,6 +35,18 @@ const PLAYER_TRAITS = {
   oier: ["J", "A"],
 };
 
+const COACH_TRAITS = {
+  david: ["S", "A"],
+  gorka: ["V", "C"],
+  unai: ["J", "L"],
+};
+
+const COACH_LABELS = {
+  david: "David",
+  gorka: "Gorka",
+  unai: "Unai",
+};
+
 const TRAIT_LABELS = {
   A: "Alcohólico",
   L: "Ludópata",
@@ -43,18 +55,6 @@ const TRAIT_LABELS = {
   J: "Joven promesa",
   C: "Boost Covela 1.5x",
   P: "Primos",
-};
-
-const COACH_TRAITS = {
-  david: ["S", "A"], // Sexólogo, Alcohólico
-  gorka: ["V", "C"], // Vieja guardia, Boost Covela
-  unai: ["J", "L"], // Joven promesa, Ludópata
-};
-
-const COACH_LABELS = {
-  david: "David",
-  gorka: "Gorka",
-  unai: "Unai",
 };
 
 function getPlayerTraitsForName(name) {
@@ -66,36 +66,85 @@ function getCoachTraits(code) {
   return COACH_TRAITS[code] || [];
 }
 
+// ========================
+// Barras last3 PIR
+// ========================
+
+const MIN_PIR = -10;
+const MAX_PIR = 30;
+const MIN_HEIGHT = 16; // px
+const MAX_HEIGHT = 56; // px
+
+function getBarVisual(value) {
+  const v = Math.max(MIN_PIR, Math.min(MAX_PIR, value));
+  const absV = Math.abs(v);
+  const t = Math.min(absV / MAX_PIR, 1);
+  const height = MIN_HEIGHT + t * (MAX_HEIGHT - MIN_HEIGHT);
+
+  const red = [231, 76, 60];
+  const yellow = [241, 196, 15];
+  const green = [46, 204, 113];
+
+  let color;
+
+  if (v < 0) {
+    color = `rgb(${red[0]}, ${red[1]}, ${red[2]})`;
+  } else {
+    const tt = v / MAX_PIR;
+    const r = Math.round(yellow[0] + (green[0] - yellow[0]) * tt);
+    const g = Math.round(yellow[1] + (green[1] - yellow[1]) * tt);
+    const b = Math.round(yellow[2] + (green[2] - yellow[2]) * tt);
+    color = `rgb(${r}, ${g}, ${b})`;
+  }
+
+  return { height, color };
+}
+
+const EMPTY_SLOT = "-1";
+
+const displayNumber = (raw) => {
+  const num = Number(raw);
+  return !Number.isNaN(num) && num === 0 ? "00" : String(raw);
+};
+
+// Los 3 entrenadores permitidos
+const COACHES = [
+  { code: "david" },
+  { code: "gorka" },
+  { code: "unai" },
+];
+
 export default function FantasyBuilder() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const coachParam = searchParams.get("coach");
+  const isCoachMode = coachParam === "1";
+  const slotParam = searchParams.get("slot");
+  const slotIndex = !isCoachMode && slotParam != null ? Number(slotParam) : -1;
 
   const [team, setTeam] = useState(null);
   const [gameweek, setGameweek] = useState(null);
+  const [lineup, setLineup] = useState(null);
   const [players, setPlayers] = useState([]);
   const [playerStatuses, setPlayerStatuses] = useState(new Map());
-  const [selectedNumbers, setSelectedNumbers] = useState([]);
-  const [captainNumber, setCaptainNumber] = useState(null);
-  const [coachCode, setCoachCode] = useState("david"); // entrenador por defecto
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [infoMsg, setInfoMsg] = useState(null);
-
   const BASE = import.meta.env.BASE_URL || "/";
 
   // ========================
-  // 1) Carga inicial
+  // 1) Cargar equipo, jornada, lineup, jugadores y estados
   // ========================
   useEffect(() => {
     if (!user) return;
 
     async function init() {
-      setLoading(true);
-      setErrorMsg(null);
-
       try {
-        // Equipo Fantasy del usuario
+        setLoading(true);
+        setErrorMsg(null);
+
+        // Equipo del usuario
         const { data: teamData, error: teamError } = await supabase
           .from("fantasy_teams")
           .select("*")
@@ -105,9 +154,8 @@ export default function FantasyBuilder() {
         if (teamError) throw teamError;
         setTeam(teamData);
 
-        // Gameweek activa (deadline en el futuro)
+        // Jornada activa (status = scheduled y deadline > ahora)
         const nowIso = new Date().toISOString();
-
         const { data: gwData, error: gwError } = await supabase
           .from("gameweeks")
           .select("*")
@@ -118,24 +166,32 @@ export default function FantasyBuilder() {
           .maybeSingle();
 
         if (gwError) throw gwError;
-
         if (!gwData) {
-          setErrorMsg("No hay ninguna jornada Fantasy activa ahora mismo.");
+          setErrorMsg("No hay ninguna jornada activa ahora mismo.");
           setLoading(false);
           return;
         }
-
         setGameweek(gwData);
 
-        // Jugadores Fantasy (precio, PIR medio, last3_pir, etc.)
+        // Lineup para este equipo y jornada (si existe)
+        const { data: lineupData, error: lineupError } = await supabase
+          .from("fantasy_lineups")
+          .select("*")
+          .eq("fantasy_team_id", teamData.id)
+          .eq("gameweek_id", gwData.id)
+          .maybeSingle();
+
+        if (lineupError && lineupError.code !== "PGRST116") throw lineupError;
+        setLineup(lineupData || null);
+
+        // Jugadores disponibles
         const res = await fetch(`${BASE}data/fantasy_players.json`);
-        if (!res.ok) {
+        if (!res.ok)
           throw new Error("No se ha podido cargar fantasy_players.json");
-        }
         const json = await res.json();
         setPlayers(json);
 
-        // NUEVO: cargar estados de jugador de esta jornada
+        // Estados de los jugadores para esta jornada
         const { data: statuses, error: statusError } = await supabase
           .from("player_statuses")
           .select("player_number, status, note")
@@ -146,50 +202,16 @@ export default function FantasyBuilder() {
         } else {
           const map = new Map();
           for (const s of statuses || []) {
-            map.set(Number(s.player_number), { status: s.status, note: s.note });
+            map.set(Number(s.player_number), {
+              status: s.status,
+              note: s.note,
+            });
           }
           setPlayerStatuses(map);
         }
-
-        // Lineup que ya tenía guardado para esta jornada (si existe)
-        const { data: lineupData, error: lineupError } = await supabase
-          .from("fantasy_lineups")
-          .select("*")
-          .eq("fantasy_team_id", teamData.id)
-          .eq("gameweek_id", gwData.id)
-          .maybeSingle();
-
-        if (lineupError && lineupError.code !== "PGRST116") {
-          throw lineupError;
-        }
-
-        if (lineupData && Array.isArray(lineupData.players)) {
-          const nums = lineupData.players
-            .map((n) => Number(n))
-            .filter((n) => !Number.isNaN(n));
-          setSelectedNumbers(nums);
-
-          if (lineupData.captain_number != null) {
-            const cap = Number(lineupData.captain_number);
-            setCaptainNumber(Number.isNaN(cap) ? null : cap);
-          } else {
-            setCaptainNumber(null);
-          }
-
-          if (lineupData.coach_code) {
-            setCoachCode(lineupData.coach_code);
-          }
-        } else {
-          setSelectedNumbers([]);
-          setCaptainNumber(null);
-          // coachCode se queda en el valor por defecto
-        }
       } catch (err) {
         console.error("Error inicializando FantasyBuilder:", err);
-        setErrorMsg(
-          "No se ha podido cargar el mercado: " +
-            (err.message || "error desconocido")
-        );
+        setErrorMsg(err.message || "Error cargando mercado");
       } finally {
         setLoading(false);
       }
@@ -199,97 +221,121 @@ export default function FantasyBuilder() {
   }, [user, BASE]);
 
   // ========================
-  // 2) Derivados (cervezas, equipo actual...)
+  // 1.1) Info derivada del lineup
   // ========================
 
-  const cervezasTotales = team?.cervezas ?? 0;
+  const totalBudget = team?.cervezas ?? 0;
 
-  const selectedPlayers = useMemo(() => {
-    if (!selectedNumbers.length || !players.length) return [];
-    const selectedSet = new Set(selectedNumbers);
-    return players.filter((p) => selectedSet.has(Number(p.number ?? p.dorsal)));
-  }, [players, selectedNumbers]);
+  // Array de 5 posiciones de strings siempre
+  const currentPlayersArray = useMemo(() => {
+    let arr = Array.isArray(lineup?.players) ? [...lineup.players] : [];
+    while (arr.length < 5) arr.push(EMPTY_SLOT);
+    if (arr.length > 5) arr = arr.slice(0, 5);
+    return arr;
+  }, [lineup]);
 
-  const costeUsado = useMemo(
-    () => selectedPlayers.reduce((sum, p) => sum + (p.price || 0), 0),
-    [selectedPlayers]
+  const selectedNumbers = useMemo(
+    () =>
+      currentPlayersArray
+        .filter((v) => v && v !== EMPTY_SLOT)
+        .map((v) => Number(v))
+        .filter((n) => !Number.isNaN(n)),
+    [currentPlayersArray]
   );
 
-  const cervezasRestantes = Math.max(cervezasTotales - costeUsado, 0);
+  const selectedNumbersSet = useMemo(
+    () => new Set(selectedNumbers),
+    [selectedNumbers]
+  );
 
-  const canConfirm =
-    selectedNumbers.length === 5 &&
-    costeUsado <= cervezasTotales &&
-    !!gameweek &&
-    captainNumber != null &&
-    selectedNumbers.includes(captainNumber);
-  // Nota: no obligamos aún a elegir entrenador, pero siempre hay uno seleccionado.
+  const currentSlotNumber = useMemo(() => {
+    if (
+      isCoachMode ||
+      slotIndex < 0 ||
+      slotIndex > 4 ||
+      !currentPlayersArray ||
+      !currentPlayersArray.length
+    )
+      return null;
+    const raw = currentPlayersArray[slotIndex];
+    if (!raw || raw === EMPTY_SLOT) return null;
+    const n = Number(raw);
+    return Number.isNaN(n) ? null : n;
+  }, [currentPlayersArray, slotIndex, isCoachMode]);
+
+  const usedBeers = useMemo(() => {
+    if (!players.length) return 0;
+    return currentPlayersArray.reduce((sum, val) => {
+      if (!val || val === EMPTY_SLOT) return sum;
+      const num = Number(val);
+      const pl = players.find((p) => Number(p.number ?? p.dorsal) === num);
+      return sum + (pl?.price || 0);
+    }, 0);
+  }, [currentPlayersArray, players]);
+
+  const remainingBeers = Math.max(totalBudget - usedBeers, 0);
+
+  const currentSlotPlayer = useMemo(() => {
+    if (isCoachMode || !currentSlotNumber || !players.length) return null;
+    return (
+      players.find(
+        (p) => Number(p.number ?? p.dorsal) === Number(currentSlotNumber)
+      ) || null
+    );
+  }, [currentSlotNumber, players, isCoachMode]);
+
+  const maxPriceForSlot = useMemo(() => {
+    if (isCoachMode) return null;
+    const currentPrice = currentSlotPlayer?.price || 0;
+    return remainingBeers + currentPrice;
+  }, [remainingBeers, currentSlotPlayer, isCoachMode]);
+
+  const currentCoachCode = lineup?.coach_code || null;
 
   // ========================
-  // 3) Seleccionar / quitar jugadores
+  // 2) Añadir jugador al slot
   // ========================
-
-  function togglePlayer(number) {
-    const num = Number(number);
-    if (Number.isNaN(num)) return;
-
-    setSelectedNumbers((prev) => {
-      if (prev.includes(num)) {
-        // Si quitamos al capitán, dejamos de tener capitán
-        if (captainNumber === num) {
-          setCaptainNumber(null);
-        }
-        return prev.filter((n) => n !== num);
-      }
-      if (prev.length >= 5) {
-        return prev;
-      }
-      return [...prev, num];
-    });
-  }
-
-  function handleSetCaptain(number) {
-    const num = Number(number);
-    if (Number.isNaN(num)) return;
-    if (!selectedNumbers.includes(num)) return; // solo se puede hacer capitán a un seleccionado
-    setCaptainNumber(num);
-  }
-
-  // ========================
-  // 4) Guardar quinteto
-  // ========================
-
-  async function handleSave() {
-    if (!canConfirm || !team || !gameweek) return;
-
-    setSaving(true);
-    setErrorMsg(null);
-    setInfoMsg(null);
-
+  async function handleAddPlayer(player) {
     try {
-      const { data: existing, error: existingError } = await supabase
-        .from("fantasy_lineups")
-        .select("*")
-        .eq("fantasy_team_id", team.id)
-        .eq("gameweek_id", gameweek.id)
-        .maybeSingle();
+      if (!team || !gameweek || isCoachMode) return;
 
-      if (existingError && existingError.code !== "PGRST116") {
-        throw existingError;
+      if (slotIndex < 0 || slotIndex > 4) {
+        console.warn("slotIndex fuera de rango:", slotIndex);
+        return navigate("/fantasy");
       }
 
-      const playersToSave = selectedNumbers;
+      const playerNumber = String(player.number);
 
-      if (existing) {
+      let currentPlayers = [...currentPlayersArray];
+
+      // Evitar duplicados (si ya estaba en otro hueco)
+      const existingIndex = currentPlayers.findIndex((n) => n === playerNumber);
+      if (existingIndex !== -1) currentPlayers[existingIndex] = EMPTY_SLOT;
+
+      // Asignar jugador al hueco actual
+      currentPlayers[slotIndex] = playerNumber;
+
+      // --- Comprobar cervezas con el nuevo quinteto ---
+      const totalCost = currentPlayers.reduce((sum, val) => {
+        if (!val || val === EMPTY_SLOT) return sum;
+        const num = Number(val);
+        const pl = players.find((p) => Number(p.number ?? p.dorsal) === num);
+        return sum + (pl?.price || 0);
+      }, 0);
+
+      const budget = team?.cervezas ?? 0;
+      if (totalCost > budget) {
+        alert(
+          `No tienes suficientes cervezas.\nCoste actual: ${totalCost} 🍺\nPresupuesto: ${budget} 🍺`
+        );
+        return;
+      }
+
+      if (lineup) {
         const { error: updError } = await supabase
           .from("fantasy_lineups")
-          .update({
-            players: playersToSave,
-            captain_number: captainNumber,
-            coach_code: coachCode,
-          })
-          .eq("id", existing.id);
-
+          .update({ players: currentPlayers })
+          .eq("id", lineup.id);
         if (updError) throw updError;
       } else {
         const { error: insError } = await supabase
@@ -297,74 +343,99 @@ export default function FantasyBuilder() {
           .insert({
             fantasy_team_id: team.id,
             gameweek_id: gameweek.id,
-            players: playersToSave,
-            captain_number: captainNumber,
-            coach_code: coachCode,
+            players: currentPlayers,
           });
-
         if (insError) throw insError;
       }
 
-      setInfoMsg("Equipo guardado para esta jornada 🎉");
       navigate("/fantasy");
     } catch (err) {
-      console.error("Error guardando lineup:", err);
-      setErrorMsg(
-        "No se ha podido guardar el equipo: " +
-          (err.message || "error desconocido")
+      console.error("Error al añadir jugador:", err);
+      alert(
+        "No se pudo añadir el jugador: " +
+          (err.message || "Error desconocido")
       );
-    } finally {
-      setSaving(false);
     }
   }
 
   // ========================
-  // 5) Barras de rendimiento (last3_pir)
+  // 3) Vaciar hueco de jugador
   // ========================
+  async function handleClearSlot() {
+    try {
+      if (!team || !gameweek || isCoachMode) return;
 
-  const MIN_PIR = -10;
-  const MAX_PIR = 30;
-  const MIN_HEIGHT = 16; // px
-  const MAX_HEIGHT = 56; // px
+      let currentPlayers = [...currentPlayersArray];
+      if (slotIndex < 0 || slotIndex > 4) return;
+      currentPlayers[slotIndex] = EMPTY_SLOT;
 
-  function getBarVisual(value) {
-    // Clamp dentro de rango
-    const v = Math.max(MIN_PIR, Math.min(MAX_PIR, value));
-    const absV = Math.abs(v);
-    const t = Math.min(absV / MAX_PIR, 1); // escala 0..1
-    const height = MIN_HEIGHT + t * (MAX_HEIGHT - MIN_HEIGHT);
+      if (lineup) {
+        const { error: updError } = await supabase
+          .from("fantasy_lineups")
+          .update({ players: currentPlayers })
+          .eq("id", lineup.id);
+        if (updError) throw updError;
+      } else {
+        const { error: insError } = await supabase
+          .from("fantasy_lineups")
+          .insert({
+            fantasy_team_id: team.id,
+            gameweek_id: gameweek.id,
+            players: currentPlayers,
+          });
+        if (insError) throw insError;
+      }
 
-    // Colores base
-    const red = [231, 76, 60]; // rojo
-    const yellow = [241, 196, 15]; // amarillo
-    const green = [46, 204, 113]; // verde
-
-    let color;
-
-    if (v < 0) {
-      // siempre rojo si es negativo
-      color = `rgb(${red[0]}, ${red[1]}, ${red[2]})`;
-    } else {
-      // de 0 a MAX_PIR degradado amarillo → verde
-      const tt = v / MAX_PIR;
-      const r = Math.round(yellow[0] + (green[0] - yellow[0]) * tt);
-      const g = Math.round(yellow[1] + (green[1] - yellow[1]) * tt);
-      const b = Math.round(yellow[2] + (green[2] - yellow[2]) * tt);
-      color = `rgb(${r}, ${g}, ${b})`;
+      navigate("/fantasy");
+    } catch (err) {
+      console.error("Error al vaciar hueco:", err);
+      alert(
+        "No se pudo vaciar el hueco: " +
+          (err.message || "Error desconocido")
+      );
     }
-
-    return { height, color };
   }
 
-  const displayNumber = (raw) => {
-    const num = Number(raw);
-    return !Number.isNaN(num) && num === 0 ? "00" : String(raw);
-  };
+  // ========================
+  // 4) Seleccionar entrenador
+  // ========================
+  async function handleSelectCoach(code) {
+    try {
+      if (!team || !gameweek || !isCoachMode) return;
+
+      const currentPlayers = [...currentPlayersArray];
+
+      if (lineup) {
+        const { error: updError } = await supabase
+          .from("fantasy_lineups")
+          .update({ coach_code: code, players: currentPlayers })
+          .eq("id", lineup.id);
+        if (updError) throw updError;
+      } else {
+        const { error: insError } = await supabase
+          .from("fantasy_lineups")
+          .insert({
+            fantasy_team_id: team.id,
+            gameweek_id: gameweek.id,
+            players: currentPlayers,
+            coach_code: code,
+          });
+        if (insError) throw insError;
+      }
+
+      navigate("/fantasy");
+    } catch (err) {
+      console.error("Error al seleccionar entrenador:", err);
+      alert(
+        "No se pudo seleccionar entrenador: " +
+          (err.message || "Error desconocido")
+      );
+    }
+  }
 
   // ========================
-  // 6) Render
+  // 5) Renderizado
   // ========================
-
   if (loading) {
     return (
       <div className="fantasy-builder">
@@ -400,8 +471,6 @@ export default function FantasyBuilder() {
       minute: "2-digit",
     });
 
-  const coachTraits = getCoachTraits(coachCode);
-
   return (
     <div className="fantasy-builder">
       <div className="container">
@@ -415,186 +484,342 @@ export default function FantasyBuilder() {
             >
               ← Volver
             </button>
-            <h1 className="fantasy-builder__title">Creador de equipo</h1>
-            <p className="fantasy-builder__subtitle">
-              Jornada <strong>{gameweek?.name || `#${gameweek?.id}`}</strong> ·
-              Deadline: <strong>{deadlineText}</strong>
-            </p>
+
+            <div className="fantasy-builder__header-top">
+              <div>
+                <h1 className="fantasy-builder__title">
+                  {isCoachMode ? "Elegir entrenador" : "Mercado de jugadores"}
+                </h1>
+                <p className="fantasy-builder__subtitle">
+                  Jornada{" "}
+                  <strong>
+                    {gameweek?.name || `#${gameweek?.id ?? ""}`}
+                  </strong>{" "}
+                  · Deadline: <strong>{deadlineText}</strong>
+                  <br />
+                  {isCoachMode ? (
+                    <>
+                      Elige tu entrenador para la jornada.
+                      {currentCoachCode && (
+                        <>
+                          {" "}
+                          Actual:{" "}
+                          <strong>{COACH_LABELS[currentCoachCode]}</strong>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      Hueco #{slotIndex + 1}{" "}
+                      {currentSlotPlayer ? (
+                        <>
+                          · actual:{" "}
+                          <strong>
+                            #{displayNumber(currentSlotPlayer.number)}{" "}
+                            {currentSlotPlayer.name}
+                          </strong>{" "}
+                          ({currentSlotPlayer.price} 🍺)
+                        </>
+                      ) : (
+                        <>· actualmente libre</>
+                      )}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {/* Cervezas */}
+              {team && (
+                <div className="fantasy-builder__budget">
+                  <div className="fantasy-builder__budget-pill">
+                    Total: <strong>{totalBudget}</strong> 🍺
+                  </div>
+                  <div className="fantasy-builder__budget-pill">
+                    Usadas: <strong>{usedBeers}</strong> 🍺 · Libres:{" "}
+                    <strong>{remainingBeers}</strong> 🍺
+                  </div>
+                  {!isCoachMode && (
+                    <div className="fantasy-builder__budget-pill">
+                      Máx. precio para este hueco:{" "}
+                      <strong>{maxPriceForSlot}</strong> 🍺
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {!isCoachMode && slotIndex >= 0 && slotIndex <= 4 && (
+              <button
+                type="button"
+                className="fantasy-builder__btn-secondary"
+                onClick={handleClearSlot}
+                style={{ marginTop: "6px" }}
+              >
+                Vaciar este hueco
+              </button>
+            )}
           </header>
 
-          {/* Resumen */}
-          <section className="fantasy-builder__summary">
-            <div className="fantasy-builder__badge">
-              En caja: <strong>{cervezasRestantes} 🍺</strong>
-            </div>
-            <div className="fantasy-builder__badge">
-              Jugadores: <strong>{selectedNumbers.length} / 5</strong>
-            </div>
-            <div className="fantasy-builder__badge">
-              Capitán:{" "}
-              <strong>
-                {captainNumber != null
-                  ? `#${displayNumber(captainNumber)}`
-                  : "Sin capitán"}
-              </strong>
-            </div>
-          </section>
-
-          {/* Entrenador */}
-          <section className="fantasy-builder__section">
-            <h2 className="fantasy-builder__section-title">Entrenador</h2>
-            <p className="fantasy-builder__text">
-              El entrenador no cuesta cervezas pero activa los rasgos de los
-              jugadores que compartan atributo. Leyenda al final de la página.
-            </p>
-
-            <div className="fantasy-builder__coach-selector">
-              <label className="fantasy-builder__field">
-                <span className="fantasy-builder__label">Selecciona técnico</span>
-                <select
-                  value={coachCode}
-                  onChange={(e) => setCoachCode(e.target.value)}
-                  className="fantasy-builder__input"
-                >
-                  <option value="david">
-                    David ({COACH_TRAITS.david.join(" · ")})
-                  </option>
-                  <option value="gorka">
-                    Gorka ({COACH_TRAITS.gorka.join(" · ")})
-                  </option>
-                  <option value="unai">
-                    Unai ({COACH_TRAITS.unai.join(" · ")})
-                  </option>
-                </select>
-              </label>
-
-              <div className="fantasy-builder__coach-traits">
-                <div className="fantasy-builder__coach-avatar">
-                  <img
-                    src={`${import.meta.env.BASE_URL}images/coaches/${coachCode}.png`}
-                    alt={COACH_LABELS[coachCode]}
-                    className="fantasy-builder__coach-photo"
-                  />
-                </div>
-
-                <div className="fantasy-builder__coach-info">
-                  <span className="fantasy-builder__coach-name">
-                    {COACH_LABELS[coachCode]}
-                  </span>
-                  <div className="fantasy-builder__traits">
-                    {coachTraits.map((t) => (
-                      <span key={t} className="fantasy-builder__trait-chip">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {infoMsg && (
-            <p className="fantasy-builder__message fantasy-builder__message--success">
-              {infoMsg}
-            </p>
-          )}
-          {errorMsg && (
-            <p className="fantasy-builder__message fantasy-builder__message--error">
-              {errorMsg}
-            </p>
-          )}
-
-          {/* Mercado */}
-          <section className="fantasy-builder__section">
-            <h2 className="fantasy-builder__section-title">
-              Mercado de jugadores
-            </h2>
-
+          {/* Lista */}
+          {isCoachMode ? (
+            <ul className="fantasy-builder__list fantasy-builder__list--coaches">
+              {COACHES.map((coach) => {
+                const code = coach.code;
+                const name = COACH_LABELS[code] || code;
+                const traits = getCoachTraits(code);
+                const isSelected = currentCoachCode === code;
+              
+                return (
+                  <li
+                    key={code}
+                    className={
+                      "fantasy-builder__coach-card" +
+                      (isSelected ? " fantasy-builder__coach-card--selected" : "")
+                    }
+                    style={{
+                      listStyle: "none",
+                      marginBottom: "12px",
+                      padding: "12px 14px",
+                      borderRadius: "16px",
+                      background: "rgba(24,24,27,0.96)",
+                      border: isSelected
+                        ? "1px solid rgba(250,204,21,0.9)"
+                        : "1px solid rgba(55,65,81,0.8)",
+                      boxShadow: "0 8px 18px rgba(0,0,0,0.6)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                    }}
+                  >
+                    {/* Izquierda: avatar + info */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      {/* Avatar en círculo */}
+                      <div
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: "999px",
+                          overflow: "hidden",
+                          border: "2px solid #FACC15",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <img
+                          src={`${import.meta.env.BASE_URL}images/coaches/${code}.png`}
+                          alt={name}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      </div>
+                        
+                      {/* Nombre + atributos */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.95rem",
+                            fontWeight: 700,
+                            color: "#F9FAFB",
+                          }}
+                        >
+                          {name}
+                        </div>
+                        
+                        {traits.length > 0 && (
+                          <div className="fantasy-builder__item-traits">
+                            {traits.map((t) => (
+                              <span
+                                key={t}
+                                className="fantasy-builder__trait-chip"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                      
+                    {/* Derecha: botón */}
+                    <div>
+                      <button
+                        type="button"
+                        className="fantasy-builder__btn"
+                        onClick={() => handleSelectCoach(code)}
+                        disabled={isSelected}
+                      >
+                        {isSelected ? "Seleccionado" : "Elegir"}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
             <ul className="fantasy-builder__list">
               {players.map((p) => {
                 const rawNumber = p.number ?? p.dorsal;
                 const num = Number(rawNumber);
-                const isSelected =
-                  !Number.isNaN(num) && selectedNumbers.includes(num);
-                const isCaptain =
-                  !Number.isNaN(num) && captainNumber === num && isSelected;
                 const last3 = p.last3_pir || [];
                 const traits = getPlayerTraitsForName(p.name);
+
+                const st = playerStatuses.get(Number(p.number));
+                const status = st?.status || "available";
+                const note = st?.note || "";
+
+                const isInTeam =
+                  !Number.isNaN(num) && selectedNumbersSet.has(num);
+                const isInThisSlot =
+                  !Number.isNaN(num) &&
+                  currentSlotNumber != null &&
+                  currentSlotNumber === num;
+
+                const disableAdd = isInTeam && !isInThisSlot;
+                const itemSelectedClass = isInTeam
+                  ? " fantasy-builder__item--selected"
+                  : "";
 
                 return (
                   <li
                     key={rawNumber}
-                    className={
-                      "fantasy-builder__item" +
-                      (isSelected ? " fantasy-builder__item--selected" : "")
-                    }
+                    className={"fantasy-builder__item" + itemSelectedClass}
+                    style={{ position: "relative" }}
                   >
-                    <div className="fantasy-builder__item-main">
-                      {p.image &&
-                        (() => {
-                          const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
+                    {/* Bloque principal: foto + info */}
+                    <div
+                      className="fantasy-builder__item-main"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                      }}
+                    >
+                      {/* Foto */}
+                      {p.image && (
+                        <img
+                          src={`${import.meta.env.BASE_URL}${p.image.replace(
                             /^\/+/,
                             ""
-                          )}`;
-                          return (
-                            <img
-                              src={imgSrc}
-                              alt={p.name}
-                              className="fantasy-builder__player-photo"
-                            />
-                          );
-                        })()}
+                          )}`}
+                          alt={p.name}
+                          className="fantasy-builder__player-photo"
+                        />
+                      )}
 
-                      <div className="fantasy-builder__item-name">
-                        #{displayNumber(rawNumber)} · {p.name}
-                        {isCaptain && (
-                          <span className="fantasy-builder__captain-badge">
-                            CAP
-                          </span>
+                      {/* Texto: nombre, estado, PIR, rasgos */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}
+                      >
+                        {/* Nombre + dorsal */}
+                        <div className="fantasy-builder__item-name">
+                          #{displayNumber(rawNumber)} · {p.name}
+                          {isInThisSlot && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                fontSize: "0.7rem",
+                                padding: "2px 6px",
+                                borderRadius: "999px",
+                                border:
+                                  "1px solid rgba(250,204,21,0.85)",
+                              }}
+                            >
+                              En este hueco
+                            </span>
+                          )}
+                          {!isInThisSlot && isInTeam && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                fontSize: "0.7rem",
+                                padding: "2px 6px",
+                                borderRadius: "999px",
+                                border:
+                                  "1px solid rgba(156,163,175,0.85)",
+                                color: "#9CA3AF",
+                              }}
+                            >
+                              En tu equipo
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Estado justo debajo del nombre */}
+                        <div
+                          className={`fantasy__player-status fantasy__player-status--${status}`}
+                          title={note}
+                          style={{
+                            alignSelf: "flex-start",
+                            fontSize: "0.7rem",
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: "999px",
+                            background:
+                              status === "injured"
+                                ? "rgba(239,68,68,0.25)"
+                                : status === "doubtful"
+                                ? "rgba(250,204,21,0.25)"
+                                : "rgba(16,185,129,0.25)",
+                            color:
+                              status === "injured"
+                                ? "#FCA5A5"
+                                : status === "doubtful"
+                                ? "#FBBF24"
+                                : "#34D399",
+                          }}
+                        >
+                          {status === "injured"
+                            ? "Lesionado"
+                            : status === "doubtful"
+                            ? "Dudoso"
+                            : "Disponible"}
+                        </div>
+
+                        {/* PIR medio */}
+                        <div className="fantasy-builder__item-sub">
+                          PIR medio:{" "}
+                          <strong>
+                            {p.pir_avg?.toFixed?.(1) ?? p.pir_avg ?? "–"}
+                          </strong>
+                        </div>
+
+                        {/* Rasgos */}
+                        {traits.length > 0 && (
+                          <div className="fantasy-builder__item-traits">
+                            {traits.map((t) => (
+                              <span
+                                key={t}
+                                className="fantasy-builder__trait-chip"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-
-                      <div className="fantasy-builder__item-sub">
-                        PIR medio:{" "}
-                        <strong>
-                          {p.pir_avg?.toFixed?.(1) ?? p.pir_avg ?? "–"}
-                        </strong>
-                      </div>
-                      {/* NUEVO: estado del jugador */}
-                      {(() => {
-                        const st = playerStatuses.get(Number(p.number));
-                        const status = st?.status || "available";
-                        const note = st?.note || "";
-                      
-                        return (
-                          <div
-                            className={`fantasy__player-status fantasy__player-status--${status}`}
-                            title={note}
-                          >
-                            {status === "injured"
-                              ? "Lesionado"
-                              : status === "doubtful"
-                              ? "Dudoso"
-                              : "Disponible"}
-                          </div>
-                        );
-                      })()}
-
-                      {traits.length > 0 && (
-                        <div className="fantasy-builder__item-traits">
-                          {traits.map((t) => (
-                            <span
-                              key={t}
-                              className="fantasy-builder__trait-chip"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Barras de los últimos 3 PIR */}
+                    {/* Barras últimas 3 valoraciones */}
                     <div className="fantasy-builder__item-middle">
                       {last3.length === 0 ? (
                         <span className="fantasy-builder__last3-empty">
@@ -623,43 +848,35 @@ export default function FantasyBuilder() {
                       )}
                     </div>
 
+                    {/* Precio + botón Añadir */}
                     <div className="fantasy-builder__item-right">
                       <div className="fantasy-builder__price">
                         {p.price} 🍺
                       </div>
                       <button
                         type="button"
-                        className={
-                          "fantasy-builder__btn" +
-                          (isSelected
-                            ? " fantasy-builder__btn--remove"
-                            : "")
-                        }
-                        onClick={() => togglePlayer(rawNumber)}
+                        className="fantasy-builder__btn"
+                        onClick={() => handleAddPlayer(p)}
+                        disabled={disableAdd || isInThisSlot}
                       >
-                        {isSelected ? "Quitar" : "Añadir"}
-                      </button>
-                      <button
-                        type="button"
-                        className={
-                          "fantasy-builder__btn-secondary" +
-                          (isCaptain ? " is-captain" : "")
-                        }
-                        disabled={!isSelected}
-                        onClick={() => handleSetCaptain(rawNumber)}
-                      >
-                        {isCaptain ? "Capitán ✅" : "Hacer capitán"}
+                        {isInThisSlot
+                          ? "En este hueco"
+                          : disableAdd
+                          ? "En tu equipo"
+                          : "Añadir"}
                       </button>
                     </div>
                   </li>
                 );
               })}
             </ul>
-          </section>
+          )}
 
           {/* Leyenda de atributos */}
           <section className="fantasy-builder__section">
-            <h2 className="fantasy-builder__section-title">Leyenda atributos</h2>
+            <h2 className="fantasy-builder__section-title">
+              Leyenda atributos
+            </h2>
             <p className="fantasy-builder__text fantasy-builder__legend">
               {Object.entries(TRAIT_LABELS).map(([letter, desc]) => (
                 <span
@@ -673,26 +890,6 @@ export default function FantasyBuilder() {
                 </span>
               ))}
             </p>
-          </section>
-
-          {/* Footer */}
-          <section className="fantasy-builder__footer">
-            <button
-              type="button"
-              className="fantasy-builder__confirm"
-              disabled={!canConfirm || saving}
-              onClick={handleSave}
-            >
-              {saving
-                ? "Guardando equipo..."
-                : "Confirmar equipo (5 jugadores y capitán)"}
-            </button>
-            {!canConfirm && (
-              <p className="fantasy-builder__hint">
-                Necesitas exactamente 5 jugadores, no pasarte de cervezas y
-                elegir un capitán para poder confirmar.
-              </p>
-            )}
           </section>
         </div>
       </div>

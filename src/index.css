@@ -2230,3 +2230,18 @@ html {
 .auth__input {
   box-sizing: border-box;
 }
+
+/* ==== Hover dorado en tarjetas de jugador y entrenador ==== */
+
+.fantasy__court-slot-card,
+.fantasy__coach-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Solo efecto cuando el mercado está abierto (usa cursor pointer en el contenedor) */
+button:enabled .fantasy__court-slot-card:hover,
+button:enabled .fantasy__coach-card:hover {
+  transform: scale(1.03);
+  border-color: #facc15;
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.5);
+}
