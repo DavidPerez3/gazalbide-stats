@@ -69,15 +69,16 @@ const EMPTY_SLOT_RAW = "-1";
 
 // Posiciones (en %) de los 5 huecos sobre el campo (3–2)
 const COURT_SLOTS = [
-  // fila superior (3 jugadores)
-  { id: 0, top: "32%", left: "20%" },
-  { id: 1, top: "32%", left: "50%" },
-  { id: 2, top: "32%", left: "80%" },
+  // fila superior un poco más arriba
+  { id: 0, top: "26%", left: "20%" },
+  { id: 1, top: "26%", left: "50%" },
+  { id: 2, top: "26%", left: "80%" },
 
-  // fila inferior (2 jugadores)
-  { id: 3, top: "68%", left: "35%" },
-  { id: 4, top: "68%", left: "65%" },
+  // fila inferior más abajo
+  { id: 3, top: "74%", left: "35%" },
+  { id: 4, top: "74%", left: "65%" },
 ];
+
 
 export default function FantasyHome() {
   const { user, profile } = useAuth();
@@ -655,6 +656,8 @@ export default function FantasyHome() {
             alignItems: "center",
             gap: 4,
             marginBottom: 2,
+            maxWidth: "100%",
+            overflow: "hidden",      // protegemos todo el header
           }}
         >
           <span
@@ -663,6 +666,8 @@ export default function FantasyHome() {
           >
             #{displayNumber(p.number)}
           </span>
+        
+          {/* Nombre con ellipsis y ancho limitado: cuando hay CAP, recortamos nombre */}
           <span
             className="fantasy__court-slot-name"
             style={{
@@ -671,16 +676,18 @@ export default function FantasyHome() {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              maxWidth: "90px",
+              maxWidth: p.isCaptain ? "60px" : "90px", // menos ancho si hay CAP
               fontSize: "0.8rem",
             }}
           >
             {p.name}
           </span>
+          
           {p.isCaptain && (
             <span
               className="fantasy-builder__captain-badge"
               style={{
+                flexShrink: 0,             // que no se aplaste el chip
                 marginLeft: 4,
                 fontSize: "0.6rem",
                 padding: "2px 6px",

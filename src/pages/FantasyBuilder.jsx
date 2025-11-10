@@ -733,35 +733,6 @@ export default function FantasyBuilder() {
                         {/* Nombre + dorsal */}
                         <div className="fantasy-builder__item-name">
                           #{displayNumber(rawNumber)} · {p.name}
-                          {isInThisSlot && (
-                            <span
-                              style={{
-                                marginLeft: 6,
-                                fontSize: "0.7rem",
-                                padding: "2px 6px",
-                                borderRadius: "999px",
-                                border:
-                                  "1px solid rgba(250,204,21,0.85)",
-                              }}
-                            >
-                              En este hueco
-                            </span>
-                          )}
-                          {!isInThisSlot && isInTeam && (
-                            <span
-                              style={{
-                                marginLeft: 6,
-                                fontSize: "0.7rem",
-                                padding: "2px 6px",
-                                borderRadius: "999px",
-                                border:
-                                  "1px solid rgba(156,163,175,0.85)",
-                                color: "#9CA3AF",
-                              }}
-                            >
-                              En tu equipo
-                            </span>
-                          )}
                         </div>
 
                         {/* Estado justo debajo del nombre */}

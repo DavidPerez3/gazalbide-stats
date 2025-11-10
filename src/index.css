@@ -2245,3 +2245,35 @@ button:enabled .fantasy__coach-card:hover {
   border-color: #facc15;
   box-shadow: 0 0 18px rgba(250, 204, 21, 0.5);
 }
+
+/* Estilo general (escritorio / tablet) */
+.fantasy__court {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  height: 280px;              /* ya lo tenías parecido */
+  background-size: 100% 100%;
+}
+
+/* El botón/slot sobre el campo */
+.fantasy__court-slot {
+  width: 28%;
+  max-width: 130px;
+}
+
+/* MÓVIL: da un poco más de altura al campo y encoge un pelín las tarjetas */
+@media (max-width: 600px) {
+  .fantasy__court {
+    height: 330px;           /* más alto → más hueco entre filas */
+  }
+
+  .fantasy__court-slot {
+    width: 30%;
+  }
+
+  .fantasy__court-slot-card {
+    transform: scale(0.9);   /* tarjetas un 10% más pequeñas */
+    transform-origin: center;
+  }
+}
