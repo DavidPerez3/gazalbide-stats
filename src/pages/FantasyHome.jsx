@@ -85,6 +85,8 @@ export default function FantasyHome() {
   const [creating, setCreating] = useState(false);
   const [teamName, setTeamName] = useState("");
 
+  const [playerStatuses, setPlayerStatuses] = useState(new Map());
+
   const BASE = import.meta.env.BASE_URL || "/";
 
   // 1) Cargar equipo del usuario
@@ -297,6 +299,43 @@ export default function FantasyHome() {
     fetchStats();
   }, [lineupGameweek, BASE]);
 
+  // NUEVO: cargar estados de jugador desde Supabase
+  useEffect(() => {
+    if (!lineupGameweek || !lineupGameweek.id) {
+      setPlayerStatuses(new Map());
+      return;
+    }
+
+    async function fetchPlayerStatuses() {
+      try {
+        const { data, error } = await supabase
+          .from("player_statuses")
+          .select("player_number, status, note")
+          .eq("gameweek_id", lineupGameweek.id);
+
+        if (error) {
+          console.error("Error cargando estados de jugadores:", error);
+          setPlayerStatuses(new Map());
+          return;
+        }
+
+        const map = new Map();
+        for (const row of data || []) {
+          const num = Number(row.player_number);
+          if (!Number.isNaN(num)) {
+            map.set(num, { status: row.status, note: row.note });
+          }
+        }
+        setPlayerStatuses(map);
+      } catch (e) {
+        console.error("Error cargando estados de jugadores:", e);
+        setPlayerStatuses(new Map());
+      }
+    }
+
+    fetchPlayerStatuses();
+  }, [lineupGameweek]);
+
   async function handleCreateTeam(e) {
     e.preventDefault();
     if (!teamName.trim()) return;
@@ -380,19 +419,33 @@ export default function FantasyHome() {
   const playersWithPoints = useMemo(() => {
     if (!selectedPlayers.length) return [];
 
-    // si no hay breakdown (sin stats), dejamos comportamiento anterior (sin puntos) pero ya con rasgos
+    // Sin breakdown: rasgos + estado, pero sin puntos
     if (!breakdown) {
       return selectedPlayers.map((p) => {
         const raw = p.number ?? p.dorsal;
         const num = Number(raw);
         const isCaptain =
           captainNumber != null && !Number.isNaN(num) && num === captainNumber;
+
+        let status = "available";
+        let statusNote = "";
+
+        if (playerStatuses && playerStatuses.size && !Number.isNaN(num)) {
+          const st = playerStatuses.get(num);
+          if (st) {
+            status = st.status || "available";
+            statusNote = st.note || "";
+          }
+        }
+
         return {
           ...p,
           isCaptain,
           fantasyPoints: null,
           traits: getPlayerTraits(p.name),
           synergies: [],
+          status,
+          statusNote,
         };
       });
     }
@@ -409,6 +462,17 @@ export default function FantasyHome() {
         bd?.isCaptain ||
         (captainNumber != null && !Number.isNaN(num) && num === captainNumber);
 
+      let status = "available";
+      let statusNote = "";
+
+      if (playerStatuses && playerStatuses.size && !Number.isNaN(num)) {
+        const st = playerStatuses.get(num);
+        if (st) {
+          status = st.status || "available";
+          statusNote = st.note || "";
+        }
+      }
+
       return {
         ...p,
         isCaptain,
@@ -416,9 +480,11 @@ export default function FantasyHome() {
           typeof bd?.finalScore === "number" ? bd.finalScore : null,
         traits: getPlayerTraits(p.name),
         synergies: bd?.synergies || [],
+        status,
+        statusNote,
       };
     });
-  }, [selectedPlayers, breakdown, captainNumber]);
+  }, [selectedPlayers, breakdown, captainNumber, playerStatuses]);
 
   const totalFantasyPoints = useMemo(() => {
     if (breakdown) {
@@ -672,6 +738,19 @@ export default function FantasyHome() {
                                       CAP
                                     </span>
                                   )}
+                                  {/* NUEVO: estado del jugador */}
+                                  {p.status && (
+                                    <div
+                                      className={`fantasy__player-status fantasy__player-status--${p.status}`}
+                                      title={p.statusNote || ""}
+                                    >
+                                      {p.status === "injured"
+                                        ? "Lesionado"
+                                        : p.status === "doubtful"
+                                        ? "Dudoso"
+                                        : "Disponible"}
+                                    </div>
+                                  )}
                                 </h3>
                                 <p className="fantasy__player-meta">
                                   {p.price} 🍺 · PIR medio{" "}
@@ -733,6 +812,19 @@ export default function FantasyHome() {
                                     <span className="fantasy-builder__captain-badge">
                                       CAP
                                     </span>
+                                  )}
+                                  {/* NUEVO: estado del jugador */}
+                                  {p.status && (
+                                    <div
+                                      className={`fantasy__player-status fantasy__player-status--${p.status}`}
+                                      title={p.statusNote || ""}
+                                    >
+                                      {p.status === "injured"
+                                        ? "Lesionado"
+                                        : p.status === "doubtful"
+                                        ? "Dudoso"
+                                        : "Disponible"}
+                                    </div>
                                   )}
                                 </h3>
                                 <p className="fantasy__player-meta">

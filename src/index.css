@@ -2120,3 +2120,28 @@ html {
   letter-spacing: 0.5px;
 }
 
+.fantasy__player-status {
+  text-align: center;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  width: fit-content;
+  margin-inline: auto;
+}
+
+.fantasy__player-status--available {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.fantasy__player-status--doubtful {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.fantasy__player-status--injured {
+  background-color: #fee2e2;
+  color: #991b1b;
+}

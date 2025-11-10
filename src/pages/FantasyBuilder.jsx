@@ -73,6 +73,7 @@ export default function FantasyBuilder() {
   const [team, setTeam] = useState(null);
   const [gameweek, setGameweek] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [playerStatuses, setPlayerStatuses] = useState(new Map());
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [captainNumber, setCaptainNumber] = useState(null);
   const [coachCode, setCoachCode] = useState("david"); // entrenador por defecto
@@ -133,6 +134,22 @@ export default function FantasyBuilder() {
         }
         const json = await res.json();
         setPlayers(json);
+
+        // NUEVO: cargar estados de jugador de esta jornada
+        const { data: statuses, error: statusError } = await supabase
+          .from("player_statuses")
+          .select("player_number, status, note")
+          .eq("gameweek_id", gwData.id);
+
+        if (statusError) {
+          console.error("Error cargando estados de jugadores:", statusError);
+        } else {
+          const map = new Map();
+          for (const s of statuses || []) {
+            map.set(Number(s.player_number), { status: s.status, note: s.note });
+          }
+          setPlayerStatuses(map);
+        }
 
         // Lineup que ya tenía guardado para esta jornada (si existe)
         const { data: lineupData, error: lineupError } = await supabase
@@ -543,6 +560,25 @@ export default function FantasyBuilder() {
                           {p.pir_avg?.toFixed?.(1) ?? p.pir_avg ?? "–"}
                         </strong>
                       </div>
+                      {/* NUEVO: estado del jugador */}
+                      {(() => {
+                        const st = playerStatuses.get(Number(p.number));
+                        const status = st?.status || "available";
+                        const note = st?.note || "";
+                      
+                        return (
+                          <div
+                            className={`fantasy__player-status fantasy__player-status--${status}`}
+                            title={note}
+                          >
+                            {status === "injured"
+                              ? "Lesionado"
+                              : status === "doubtful"
+                              ? "Dudoso"
+                              : "Disponible"}
+                          </div>
+                        );
+                      })()}
 
                       {traits.length > 0 && (
                         <div className="fantasy-builder__item-traits">
