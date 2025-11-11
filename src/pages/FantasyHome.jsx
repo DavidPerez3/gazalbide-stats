@@ -614,7 +614,7 @@ export default function FantasyHome() {
           border: "1px solid rgba(250,204,21,0.6)",
           boxShadow: "0 8px 18px rgba(0,0,0,0.6)",
           overflow: "hidden",
-          fontSize: "0.7rem",
+          fontSize: "0.65rem",
           lineHeight: 1.15,
           boxSizing: "border-box",
           minHeight: "165px",
@@ -666,7 +666,7 @@ export default function FantasyHome() {
         >
           <span
             className="fantasy__player-number"
-            style={{ fontWeight: 700, color: "#FACC15", fontSize: "0.85rem" }}
+            style={{ fontWeight: 700, color: "#FACC15", fontSize: "0.70rem" }}
           >
             #{displayNumber(p.number)}
           </span>
@@ -680,7 +680,7 @@ export default function FantasyHome() {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              maxWidth: "110px", // menos ancho si hay CAP
+              maxWidth: "130px", // menos ancho si hay CAP
               fontSize: "0.8rem",
             }}
           >
