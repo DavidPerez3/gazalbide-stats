@@ -617,8 +617,7 @@ export default function FantasyHome() {
           fontSize: "0.65rem",
           lineHeight: 1.15,
           boxSizing: "border-box",
-          height: "200px",
-          width: "115px"
+          height: "200px"
         }}
       >
         {/* 1. Foto */}
