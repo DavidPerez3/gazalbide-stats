@@ -580,6 +580,8 @@ export default function FantasyHome() {
             overflow: "hidden",
             fontSize: "0.75rem",
             lineHeight: 1.2,
+            boxSizing: "border-box",
+            minHeight: "165px",
           }}
         >
           <span
@@ -614,6 +616,8 @@ export default function FantasyHome() {
           overflow: "hidden",
           fontSize: "0.7rem",
           lineHeight: 1.15,
+          boxSizing: "border-box",
+          minHeight: "165px",
         }}
       >
         {/* 1. Foto */}
