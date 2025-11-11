@@ -100,6 +100,7 @@ export default function FantasyHome() {
   const [coachCode, setCoachCode] = useState(null);
   const [loadingLineup, setLoadingLineup] = useState(false);
   const [lineupError, setLineupError] = useState(null);
+  const [lineupId, setLineupId] = useState(null);
 
   // Stats del partido de esa jornada (para puntos)
   const [statsByNumber, setStatsByNumber] = useState(null);
@@ -199,6 +200,7 @@ export default function FantasyHome() {
         }
 
         if (lineupRow && Array.isArray(lineupRow.players)) {
+          setLineupId(lineupRow.id);
           let raw = [...lineupRow.players];
 
           // Siempre 5 posiciones, usando "-1" como hueco vacío
@@ -246,6 +248,7 @@ export default function FantasyHome() {
           }
         } else {
           setLineupNumbers([]);
+          setLineupId(null);
           setLineupGameweek(null);
           setCaptainNumber(null);
           setCoachCode(null);
@@ -383,6 +386,27 @@ export default function FantasyHome() {
       setErrorMsg("No se ha podido crear el equipo.");
     } else {
       setTeam(data);
+    }
+  }
+
+  async function handleSetCaptain(playerNumber) {
+    if (!canEditLineup || !lineupId) return;
+
+    try {
+      const newCaptain = Number(playerNumber); // o String, pero sé consistente
+
+      const { error } = await supabase
+        .from("fantasy_lineups")
+        .update({ captain_number: newCaptain })
+        .eq("id", lineupId);
+
+      if (error) throw error;
+
+      // actualizar estado local -> recalcula isCaptain en playersWithPoints
+      setCaptainNumber(newCaptain);
+    } catch (err) {
+      console.error("Error al cambiar capitán:", err);
+      alert("No se pudo cambiar el capitán.");
     }
   }
 
@@ -690,23 +714,57 @@ export default function FantasyHome() {
         </div>
 
         {/* 5. CAP */}
-        {p.isCaptain && (
+        {p.isCaptain ? (
+          // CAP actual (solo indicador)
+          <span
+            className="fantasy-builder__captain-badge"
+            style={{
+              flexShrink: 0,
+              marginLeft: 4,
+              fontSize: "0.6rem",
+              padding: "2px 6px",
+              borderRadius: "999px",
+              background: "#FACC15",
+              color: "#111827",
+              fontWeight: 700,
+            }}
+          >
+            CAP
+          </span>
+        ) : (
+          canEditLineup && (
             <span
-              className="fantasy-builder__captain-badge"
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation(); // que no abra el builder
+                handleSetCaptain(p.number);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSetCaptain(p.number);
+                }
+              }}
               style={{
-                flexShrink: 0,             // que no se aplaste el chip
+                flexShrink: 0,
                 marginLeft: 4,
                 fontSize: "0.6rem",
                 padding: "2px 6px",
                 borderRadius: "999px",
-                background: "#FACC15",
-                color: "#111827",
-                fontWeight: 700,
+                border: "1px solid rgba(156,163,175,0.9)",
+                background: "transparent",
+                color: "#D1D5DB",
+                fontWeight: 600,
+                cursor: "pointer",
               }}
             >
-              CAP
+              Hacer CAP
             </span>
-          )}
+          )
+        )}
+
 
         {/* 4. Status */}
         {p.status && (
