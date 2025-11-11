@@ -581,7 +581,7 @@ export default function FantasyHome() {
             fontSize: "0.75rem",
             lineHeight: 1.2,
             boxSizing: "border-box",
-            minHeight: "165px",
+            height: "175px",
           }}
         >
           <span
@@ -680,7 +680,7 @@ export default function FantasyHome() {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              maxWidth: p.isCaptain ? "60px" : "90px", // menos ancho si hay CAP
+              maxWidth: "110px", // menos ancho si hay CAP
               fontSize: "0.8rem",
             }}
           >
@@ -746,6 +746,9 @@ export default function FantasyHome() {
             fontSize: "0.65rem",
             color: "#D1D5DB",
             marginBottom: 2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {p.price} 🍺 · PIR{" "}
@@ -1010,7 +1013,7 @@ export default function FantasyHome() {
                             width: "100%",
                             maxWidth: "400px",
                             margin: "0 auto",
-                            height: "550px",
+                            height: "500px",
                             backgroundImage: `url(${courtSrc})`,
                             backgroundSize: "100% 100%",
                             backgroundRepeat: "no-repeat",
