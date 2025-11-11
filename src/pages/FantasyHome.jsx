@@ -617,7 +617,7 @@ export default function FantasyHome() {
           fontSize: "0.65rem",
           lineHeight: 1.15,
           boxSizing: "border-box",
-          minHeight: "165px",
+          height: "190px",
         }}
       >
         {/* 1. Foto */}
@@ -686,8 +686,10 @@ export default function FantasyHome() {
           >
             {p.name}
           </span>
-          
-          {p.isCaptain && (
+        </div>
+
+        {/* 5. CAP */}
+        {p.isCaptain && (
             <span
               className="fantasy-builder__captain-badge"
               style={{
@@ -704,9 +706,8 @@ export default function FantasyHome() {
               CAP
             </span>
           )}
-        </div>
 
-        {/* 3. Status */}
+        {/* 4. Status */}
         {p.status && (
           <div
             className={`fantasy__player-status fantasy__player-status--${p.status}`}
@@ -739,7 +740,7 @@ export default function FantasyHome() {
           </div>
         )}
 
-        {/* 4. Precio + PIR */}
+        {/* 5. Precio + PIR */}
         <div
           className="fantasy__court-slot-meta"
           style={{
@@ -755,7 +756,7 @@ export default function FantasyHome() {
           {p.pir_avg?.toFixed ? p.pir_avg.toFixed(1) : p.pir_avg}
         </div>
 
-        {/* 5. Rasgos */}
+        {/* 6. Rasgos */}
         {p.traits && p.traits.length > 0 && (
           <div
             className="fantasy-builder__item-traits"
@@ -784,7 +785,7 @@ export default function FantasyHome() {
           </div>
         )}
 
-        {/* 6. Puntos fantasy */}
+        {/* 7. Puntos fantasy */}
         <div
           className="fantasy__court-slot-points"
           style={{
@@ -1047,12 +1048,6 @@ export default function FantasyHome() {
                             );
                           })}
                         </div>
-                        {!canEditLineup && (
-                          <p className="fantasy__text fantasy__court-hint">
-                            El quinteto se puede editar solo cuando haya una
-                            jornada futura y antes del límite.
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
