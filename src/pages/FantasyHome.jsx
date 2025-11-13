@@ -247,11 +247,11 @@ export default function FantasyHome() {
             setLineupGameweek(null);
           }
         } else {
-          setLineupNumbers([]);
+          setLineupNumbers(new Array(5).fill(EMPTY_SLOT_NUM));
           setLineupId(null);
           setLineupGameweek(null);
           setCaptainNumber(null);
-          setCoachCode(null);
+          setCoachCode("david");
         }
 
         // Jugadores fantasy
@@ -1057,57 +1057,61 @@ export default function FantasyHome() {
                       <p className="fantasy__message fantasy__message--error">
                         {lineupError}
                       </p>
-                    ) : filledSlots === 0 ? (
-                      <p className="fantasy__text">
-                        Aún no has elegido tu quinteto.
-                      </p>
                     ) : (
-                      <div
-                        className="fantasy__court-wrapper"
-                        style={{ display: "flex", justifyContent: "center" }}
-                      >
+                      <>
+                        {filledSlots === 0 && (
+                          <p className="fantasy__text" style={{ marginBottom: 8 }}>
+                            Aún no has elegido tu quinteto. Toca un hueco del campo para fichar jugadores.
+                          </p>
+                        )}
+
                         <div
-                          className="fantasy__court"
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            maxWidth: "400px",
-                            margin: "0 auto",
-                            height: "500px",
-                            backgroundImage: `url(${courtSrc})`,
-                            backgroundSize: "100% 100%",
-                            backgroundRepeat: "no-repeat",
-                            backgroundPosition: "center",
-                          }}
+                          className="fantasy__court-wrapper"
+                          style={{ display: "flex", justifyContent: "center" }}
                         >
-                          {COURT_SLOTS.map((slot, index) => {
-                            const player = playersWithPoints[index] || null;
-                            return (
-                              <button
-                                key={slot.id}
-                                type="button"
-                                className="fantasy__court-slot"
-                                style={{
-                                  position: "absolute",
-                                  top: slot.top,
-                                  left: slot.left,
-                                  transform: "translate(-50%, -50%)",
-                                  background: "transparent",
-                                  border: "none",
-                                  padding: 0,
-                                  cursor: canEditLineup ? "pointer" : "default",
-                                  width: "28%",
-                                  maxWidth: "130px",
-                                }}
-                                onClick={() => goToBuilderFromField(index)}
-                                disabled={!canEditLineup}
-                              >
-                                {renderPlayerSlotCard(player)}
-                              </button>
-                            );
-                          })}
+                          <div
+                            className="fantasy__court"
+                            style={{
+                              position: "relative",
+                              width: "100%",
+                              maxWidth: "400px",
+                              margin: "0 auto",
+                              height: "500px",
+                              backgroundImage: `url(${courtSrc})`,
+                              backgroundSize: "100% 100%",
+                              backgroundRepeat: "no-repeat",
+                              backgroundPosition: "center",
+                            }}
+                          >
+                            {COURT_SLOTS.map((slot, index) => {
+                              const player = playersWithPoints[index] || null;
+                              return (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  className="fantasy__court-slot"
+                                  style={{
+                                    position: "absolute",
+                                    top: slot.top,
+                                    left: slot.left,
+                                    transform: "translate(-50%, -50%)",
+                                    background: "transparent",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: canEditLineup ? "pointer" : "default",
+                                    width: "28%",
+                                    maxWidth: "130px",
+                                  }}
+                                  onClick={() => goToBuilderFromField(index)}
+                                  disabled={!canEditLineup}
+                                >
+                                  {renderPlayerSlotCard(player)}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
 
