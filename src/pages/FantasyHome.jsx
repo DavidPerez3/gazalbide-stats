@@ -51,7 +51,7 @@ const TRAIT_LABELS = {
   S: "Sexólogo",
   V: "Vieja guardia",
   J: "Joven promesa",
-  C: "Boost Covela 1.5x",
+  C: "Boost Covela x2",
   P: "Primos",
 };
 
