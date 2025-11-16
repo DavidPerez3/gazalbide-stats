@@ -86,5 +86,27 @@
       14
     ],
     "result": "W"
+  },
+  {
+    "id": "2025-11-16-vs-bar-manaos-lakua",
+    "date": "2025-11-16",
+    "opponent": "Bar Manaos Lakua",
+    "file": "stats_bar_manaos_lakua_vs_gazal_a_16-11-25.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 65,
+    "opp_pts": 33,
+    "q_pf": [
+      18,
+      22,
+      16,
+      9
+    ],
+    "q_pa": [
+      14,
+      5,
+      1,
+      13
+    ],
+    "result": "W"
   }
 ]
