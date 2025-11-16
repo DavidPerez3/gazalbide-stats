@@ -519,7 +519,16 @@ async function main() {
     .map((p) => {
       const pirAvg =
         p.gamesPlayed > 0 ? p.pirSum / p.gamesPlayed : 0;
-      const pirForPrice = Math.max(pirAvg, 0); // nunca usamos PIR negativo para precio
+
+      // 🔥 NUEVO: usamos solo las 3 últimas valoraciones para el precio
+      const allPirs = p.pirs || [];
+      const last3 = allPirs.slice(-3);
+      const pirAvgLast3 =
+        last3.length > 0
+          ? last3.reduce((sum, v) => sum + v, 0) / last3.length
+          : pirAvg; // fallback a media histórica si aún no tiene 3 partidos
+
+      const pirForPrice = Math.max(pirAvgLast3, 0); // nunca usamos PIR negativo para precio
 
       // Fórmula de precio (cervezas)
       const BASE = 8;
@@ -529,7 +538,8 @@ async function main() {
       const rawPrice = BASE + pirForPrice * FACTOR;
       const price = Math.max(MIN_PRICE, Math.round(rawPrice));
 
-      const last3_pir = (p.pirs || []).slice(-3);
+      const last3_pir = last3; // ya lo tenemos calculado arriba
+
 
       // 👇 AÑADIMOS RUTA DE IMAGEN SIEMPRE EN BASE A DORSAL + NOMBRE
       let image = null;

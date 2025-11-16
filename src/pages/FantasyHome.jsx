@@ -482,7 +482,9 @@ export default function FantasyHome() {
 
   // Breakdown fantasy (solo si equipo válido)
   const breakdown = useMemo(() => {
-    if (!statsByNumber || !lineupNumbers.length || !isValidLineup) return null;
+    // Solo bloqueamos si NO hay stats o no hay jugadores,
+    // pero ya no miramos isValidLineup para calcular puntos
+    if (!statsByNumber || !lineupNumbers.length) return null;
 
     const playersNums = lineupNumbers.filter(
       (n) => n != null && n !== EMPTY_SLOT_NUM && !Number.isNaN(n)
@@ -500,7 +502,7 @@ export default function FantasyHome() {
       console.error("Error calculando breakdown en FantasyHome:", e);
       return null;
     }
-  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, isValidLineup]);
+  }, [lineupNumbers, statsByNumber, captainNumber, coachCode]);
 
   // Puntos fantasy por jugador por slot
   const playersWithPoints = useMemo(() => {
@@ -1041,10 +1043,9 @@ export default function FantasyHome() {
                   )}
 
                   {/* aviso de validez del equipo */}
-                  {!isValidLineup && (
+                  {canEditLineup && !isValidLineup && (
                     <p className="fantasy__message fantasy__message--warning">
-                      Tu equipo no puntuará esta jornada hasta que tengas 5
-                      jugadores, un capitán y un entrenador, y no te pases de
+                      Recuerda tener 5 jugadores, un capitán y un entrenador, y no te pases de
                       cervezas.
                     </p>
                   )}

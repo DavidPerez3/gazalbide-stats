@@ -61,9 +61,9 @@ const COACH_TRAITS = {
 // P:      PRIMOS (Julen + Aingeru en pista a la vez).
 //
 const TRAIT_MULTIPLIERS = {
-  DEFAULT: 1.1,
-  C: 1.5,
-  P: 1.2,
+  DEFAULT: 1.5,
+  C: 2,
+  P: 1.5,
 };
 
 // Para textos de breakdown (por si quieres mostrarlos bonitos)
