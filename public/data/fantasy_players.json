@@ -48,7 +48,7 @@
       2,
       3
     ],
-    "price": 11,
+    "price": 13,
     "image": "/images/players/06_Lucho.png"
   },
   {
@@ -86,7 +86,7 @@
       16,
       15
     ],
-    "price": 29,
+    "price": 26,
     "image": "/images/players/10_Oier.png"
   },
   {
@@ -125,7 +125,7 @@
       11,
       10
     ],
-    "price": 17,
+    "price": 20,
     "image": "/images/players/14_Iñaki.png"
   },
   {
@@ -176,7 +176,7 @@
       0,
       -2
     ],
-    "price": 9,
+    "price": 8,
     "image": "/images/players/25_Imanol.png"
   }
 ]
