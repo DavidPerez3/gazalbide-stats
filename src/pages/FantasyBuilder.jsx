@@ -53,7 +53,7 @@ const TRAIT_LABELS = {
   S: "Sexólogo",
   V: "Vieja guardia",
   J: "Joven promesa",
-  C: "Boost Covela 1.5x",
+  C: "Boost Covela x2",
   P: "Primos",
 };
 
@@ -680,8 +680,21 @@ export default function FantasyBuilder() {
                 const traits = getPlayerTraitsForName(p.name);
 
                 const st = playerStatuses.get(Number(p.number));
-                const status = st?.status || "available";
+                const statusRaw = st?.status ?? null;
                 const note = st?.note || "";
+
+                const s = (statusRaw ?? "").trim().toLowerCase();
+                const statusColor = !s
+                  ? "available"
+                  : (s === "dudoso" || s === "doubtful")
+                  ? "doubtful"
+                  : "custom-red";
+
+                const statusLabel = !s
+                  ? "Disponible"
+                  : (s === "dudoso" || s === "doubtful")
+                  ? "Dudoso"
+                  : statusRaw;   // texto tal cual lo metiste en DB
 
                 const isInTeam =
                   !Number.isNaN(num) && selectedNumbersSet.has(num);
@@ -737,7 +750,7 @@ export default function FantasyBuilder() {
 
                         {/* Estado justo debajo del nombre */}
                         <div
-                          className={`fantasy__player-status fantasy__player-status--${status}`}
+                          className={`fantasy__player-status fantasy__player-status--${statusColor}`}
                           title={note}
                           style={{
                             alignSelf: "flex-start",
@@ -746,24 +759,20 @@ export default function FantasyBuilder() {
                             padding: "2px 8px",
                             borderRadius: "999px",
                             background:
-                              status === "injured"
+                              statusColor === "custom-red"
                                 ? "rgba(239,68,68,0.25)"
-                                : status === "doubtful"
+                                : statusColor === "doubtful"
                                 ? "rgba(250,204,21,0.25)"
                                 : "rgba(16,185,129,0.25)",
                             color:
-                              status === "injured"
+                              statusColor === "custom-red"
                                 ? "#FCA5A5"
-                                : status === "doubtful"
+                                : statusColor === "doubtful"
                                 ? "#FBBF24"
                                 : "#34D399",
                           }}
                         >
-                          {status === "injured"
-                            ? "Lesionado"
-                            : status === "doubtful"
-                            ? "Dudoso"
-                            : "Disponible"}
+                          {statusLabel}
                         </div>
 
                         {/* PIR medio */}

@@ -534,13 +534,32 @@ export default function FantasyHome() {
         }
       }
 
-      let status = "available";
+      // --- STATUS (default available unless there is a DB row) ---
+      let statusColor = "available";
+      let statusLabel = "Disponible";
       let statusNote = "";
+
       if (playerStatuses && playerStatuses.size && !Number.isNaN(num)) {
         const st = playerStatuses.get(num);
+      
+        // SOLO si hay fila en DB para este jugador
         if (st) {
-          status = st.status || "available";
+          const statusRaw = st.status ?? null;
           statusNote = st.note || "";
+        
+          const s = (statusRaw ?? "").trim().toLowerCase();
+        
+          if (!s) {
+            // hay fila pero el texto está vacío -> lo tratamos como disponible
+            statusColor = "available";
+            statusLabel = "Disponible";
+          } else if (s === "dudoso" || s === "doubtful") {
+            statusColor = "doubtful";
+            statusLabel = "Dudoso";
+          } else {
+            statusColor = "custom-red";
+            statusLabel = statusRaw; // texto libre tal cual
+          }
         }
       }
 
@@ -550,7 +569,8 @@ export default function FantasyHome() {
         fantasyPoints,
         traits: getPlayerTraits(p.name),
         synergies,
-        status,
+        status: statusColor,
+        statusLabel,
         statusNote,
       };
     });
@@ -771,7 +791,7 @@ export default function FantasyHome() {
         {/* 4. Status */}
         {p.status && (
           <div
-            className={`fantasy__player-status fantasy__player-status--${p.status}`}
+            className={`fantasy__player-status fantasy__player-status--${p.statusColor}`}
             title={p.statusNote || ""}
             style={{
               fontSize: "0.62rem",
@@ -780,24 +800,20 @@ export default function FantasyHome() {
               padding: "2px 6px",
               borderRadius: "6px",
               background:
-                p.status === "injured"
+                p.statusColor === "custom-red"
                   ? "rgba(239,68,68,0.2)"
-                  : p.status === "doubtful"
+                  : p.statusColor === "doubtful"
                   ? "rgba(250,204,21,0.2)"
                   : "rgba(16,185,129,0.25)",
               color:
-                p.status === "injured"
+                p.statusColor === "custom-red"
                   ? "#FCA5A5"
-                  : p.status === "doubtful"
+                  : p.statusColor === "doubtful"
                   ? "#FBBF24"
                   : "#34D399",
             }}
           >
-            {p.status === "injured"
-              ? "Lesionado"
-              : p.status === "doubtful"
-              ? "Dudoso"
-              : "Disponible"}
+            {p.statusLabel}
           </div>
         )}
 
