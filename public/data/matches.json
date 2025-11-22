@@ -108,5 +108,27 @@
       13
     ],
     "result": "W"
+  },
+  {
+    "id": "2025-11-22-vs-agurain-c",
+    "date": "2025-11-22",
+    "opponent": "Agurain C",
+    "file": "stats_gazal_a_vs_agurain_c_22-11-25.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 69,
+    "opp_pts": 29,
+    "q_pf": [
+      13,
+      14,
+      20,
+      22
+    ],
+    "q_pa": [
+      5,
+      4,
+      9,
+      11
+    ],
+    "result": "W"
   }
 ]
