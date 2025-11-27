@@ -93,7 +93,24 @@ export default function FantasyHistory() {
 
         const gwMap = new Map((gameweeks || []).map((g) => [g.id, g]));
 
-        // 4) Cargar stats JSON por jornada
+        // 4) Mapa dorsal -> nombre desde fantasy_players
+        const playerNameMap = new Map();
+        try {
+          const resPlayers = await fetch(`${BASE}data/fantasy_players.json`);
+          if (resPlayers.ok) {
+            const fantasyPlayers = await resPlayers.json();
+            for (const fp of fantasyPlayers) {
+              const n = Number(fp.number ?? fp.dorsal);
+              if (!Number.isNaN(n) && fp.name) {
+                playerNameMap.set(n, fp.name);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("No se pudo cargar fantasy_players.json", e);
+        }
+
+        // 5) Cargar stats JSON por jornada
         const statsByGw = new Map();
 
         for (const gw of gameweeks || []) {
@@ -116,6 +133,11 @@ export default function FantasyHistory() {
               const num = Number(row.number);
               if (!Number.isNaN(num)) {
                 map.set(num, row); // fila entera (name, pir, etc.)
+
+                // si hay nombre en stats y aún no está en playerNameMap, lo añadimos
+                if (row.name && !playerNameMap.has(num)) {
+                  playerNameMap.set(num, row.name);
+                }
               }
             }
             statsByGw.set(gw.id, map);
@@ -124,20 +146,33 @@ export default function FantasyHistory() {
           }
         }
 
-        // 5) Construir entries: una por jornada del equipo
+        // 6) Construir entries: una por jornada del equipo
         const newEntries = [];
 
         for (const lineup of lineups) {
           const gw = gwMap.get(lineup.gameweek_id);
           if (!gw) continue;
 
-          const statsMap = statsByGw.get(gw.id);
-          if (!statsMap) continue;
+          const statsMap = statsByGw.get(gw.id) || new Map();
 
-          const playersNums = (lineup.players || [])
-            .map((n) => Number(n))
-            .filter((n) => !Number.isNaN(n));
-          if (playersNums.length === 0) continue;
+          // Jugadores de la alineación tal cual vienen de la DB
+          const rawPlayers = Array.isArray(lineup.players)
+            ? lineup.players
+            : [];
+
+          // ¿Hay algún hueco (-1 o "-1")?
+          const hasEmptySlot = rawPlayers.some(
+            (v) => v === -1 || v === "-1"
+          );
+
+          // Regla: exactamente 5 jugadores reales y ningún hueco
+          if (rawPlayers.length !== 5 || hasEmptySlot) {
+            // Alineación incompleta → no puntúa y no se muestra en el historial
+            continue;
+          }
+
+          // A partir de aquí, ya sabemos que todos son dorsales reales
+          const playersNums = rawPlayers.map((val) => Number(val));
 
           const captainNumber =
             lineup.captain_number != null
@@ -153,14 +188,28 @@ export default function FantasyHistory() {
             coachCode,
           });
 
-          const playersDetailed = breakdown.players.map((p) => ({
-            number: p.number,
-            name: p.name,
-            pir: p.pirBase,
-            isCaptain: p.isCaptain,
-            synergies: p.synergies || [],
-            finalScore: p.finalScore,
-          }));
+          // rawPlayers viene directamente de la DB: ["00","13","25","8","10"]
+          const playersDetailed = breakdown.players.map((p, idx) => {
+            const rawNum = rawPlayers[idx]; // string exacto
+            const num = Number(rawNum);
+            const hasStats =
+              !Number.isNaN(num) && statsMap.has(num);
+
+            const mappedName =
+              (!Number.isNaN(num) && playerNameMap.get(num))
+                ? playerNameMap.get(num)
+                : p.name;
+
+            return {
+              // dorsal EXACTO que viene de la DB (respeta "00")
+              number: rawNum ?? String(p.number),
+              name: mappedName,
+              pir: hasStats ? p.pirBase : 0,
+              isCaptain: p.isCaptain,
+              synergies: hasStats ? p.synergies || [] : [],
+              finalScore: hasStats ? p.finalScore : 0,
+            };
+          });
 
           newEntries.push({
             id: lineup.id,

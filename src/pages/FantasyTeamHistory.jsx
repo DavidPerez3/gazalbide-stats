@@ -45,7 +45,7 @@ export default function FantasyTeamHistory() {
       setErrorMsg(null);
 
       try {
-        // 0) Nombre del equipo desde BD (por si no viene en state)
+        // 0) Nombre del equipo desde BD
         const { data: teamData, error: teamError } = await supabase
           .from("fantasy_teams")
           .select("id, name")
@@ -56,7 +56,7 @@ export default function FantasyTeamHistory() {
           setTeamName(teamData.name);
         }
 
-        // 1) Lineups de este equipo
+        // 1) Lineups del equipo
         const { data: lineups, error: lineupError } = await supabase
           .from("fantasy_lineups")
           .select("*")
@@ -87,7 +87,7 @@ export default function FantasyTeamHistory() {
 
         const gwMap = new Map((gameweeks || []).map((g) => [g.id, g]));
 
-        // 3) Mapa dorsal -> nombre desde fantasy_players
+        // 3) Cargar nombres desde fantasy_players.json
         const playerNameMap = new Map();
         try {
           const resPlayers = await fetch(`${BASE}data/fantasy_players.json`);
@@ -104,7 +104,7 @@ export default function FantasyTeamHistory() {
           console.error("No se pudo cargar fantasy_players.json", e);
         }
 
-        // 4) Stats de cada jornada (Map<number, rowStats>)
+        // 4) Cargar stats por jornada (Map<number, rowStats>)
         const statsByGw = new Map();
 
         for (const gw of gameweeks || []) {
@@ -127,6 +127,11 @@ export default function FantasyTeamHistory() {
               const num = Number(row.number);
               if (!Number.isNaN(num)) {
                 map.set(num, row);
+
+                // Si en stats hay nombre y aún no está en playerNameMap → rellenar
+                if (row.name && !playerNameMap.has(num)) {
+                  playerNameMap.set(num, row.name);
+                }
               }
             }
             statsByGw.set(gw.id, map);
@@ -135,7 +140,7 @@ export default function FantasyTeamHistory() {
           }
         }
 
-        // 5) Construir entries con breakdown (base, bonus, final)
+        // 5) Construir entries
         const newEntries = [];
 
         for (const lineup of lineups) {
@@ -144,10 +149,21 @@ export default function FantasyTeamHistory() {
 
           const statsMap = statsByGw.get(gw.id) || new Map();
 
-          const playersNums = (lineup.players || [])
-            .map((n) => Number(n))
-            .filter((n) => !Number.isNaN(n));
-          if (playersNums.length === 0) continue;
+          const rawPlayers = Array.isArray(lineup.players)
+            ? lineup.players
+            : [];
+
+          // Alineación incompleta → no puntúa
+          const hasEmptySlot = rawPlayers.some(
+            (v) => v === "-1" || v === -1
+          );
+
+          if (rawPlayers.length !== 5 || hasEmptySlot) {
+            continue;
+          }
+
+          // Convertimos dorsales para computar puntos
+          const playersNums = rawPlayers.map((v) => Number(v));
 
           const captainNumber =
             lineup.captain_number != null
@@ -163,15 +179,28 @@ export default function FantasyTeamHistory() {
             coachCode,
           });
 
-          const playersDetailed = breakdown.players.map((p) => ({
-            number: p.number,
-            // si no hay nombre en stats, usamos el de fantasy_players
-            name: playerNameMap.get(p.number) || p.name,
-            pir: p.pirBase,
-            isCaptain: p.isCaptain,
-            synergies: p.synergies || [],
-            finalScore: p.finalScore,
-          }));
+          // Construir jugadores detallados
+          const playersDetailed = breakdown.players.map((p, idx) => {
+            const rawNum = rawPlayers[idx];    // "00", "14", etc
+            const num = Number(rawNum);
+            const hasStats =
+              !Number.isNaN(num) && statsMap.has(num);
+
+            // Nombre (stats → fantasy_players → fallback breakdown)
+            const mappedName =
+              (!Number.isNaN(num) && playerNameMap.get(num))
+                ? playerNameMap.get(num)
+                : p.name;
+
+            return {
+              number: rawNum,                  // dorsal EXACTO tal como viene de DB
+              name: mappedName,
+              pir: hasStats ? p.pirBase : 0,
+              isCaptain: p.isCaptain,
+              synergies: hasStats ? p.synergies || [] : [],
+              finalScore: hasStats ? p.finalScore : 0,
+            };
+          });
 
           newEntries.push({
             id: lineup.id,
@@ -183,7 +212,7 @@ export default function FantasyTeamHistory() {
             totalPoints: breakdown.totalPoints,
             baseTotal: breakdown.baseTotal,
             bonusTotal: breakdown.bonusTotal,
-            coachCode, // 👈 entrenador usado en esa jornada
+            coachCode,
           });
         }
 
@@ -315,10 +344,8 @@ export default function FantasyTeamHistory() {
                               {COACH_LABELS[e.coachCode] || e.coachCode}
                             </strong>{" "}
                             <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>
-                              (
                               {getCoachTraits(e.coachCode).join(" · ") ||
                                 "sin rasgos"}
-                              )
                             </span>
                           </p>
                         )}

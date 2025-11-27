@@ -162,17 +162,31 @@ export default function FantasyRanking() {
           const statsMap = statsByGw.get(gw.id);
           if (!statsMap) continue;
 
-          const nums = (lineup.players || [])
+          // Jugadores tal cual vienen de la DB (strings tipo ["00","13","25","8","10"])
+          const rawPlayers = Array.isArray(lineup.players) ? lineup.players : [];
+                  
+          // ¿Hay algún hueco? (en la DB usas "-1" para huecos)
+          const hasEmptySlot = rawPlayers.some((v) => v === "-1");
+                  
+          // Regla: exactamente 5 jugadores reales y ningún hueco
+          if (rawPlayers.length !== 5 || hasEmptySlot) {
+            // Este equipo NO puntúa esta jornada
+            continue;
+          }
+          
+          // Para calcular puntos, convertimos a Number (statsMap usa números)
+          const nums = rawPlayers
             .map((n) => Number(n))
             .filter((n) => !Number.isNaN(n));
-          if (nums.length === 0) continue;
-
+          if (nums.length !== 5) {
+            // Por seguridad, si algo raro pasa, tampoco puntuamos
+            continue;
+          }
+          
           const captainNumber =
-            lineup.captain_number != null
-              ? Number(lineup.captain_number)
-              : null;
+            lineup.captain_number != null ? Number(lineup.captain_number) : null;
           const coachCode = lineup.coach_code || null;
-
+          
           const points = computeLineupPoints({
             playersNums: nums,
             statsMap,

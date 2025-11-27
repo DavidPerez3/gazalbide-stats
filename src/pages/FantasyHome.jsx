@@ -480,17 +480,18 @@ export default function FantasyHome() {
   const isValidLineup =
     filledSlots === 5 && hasCoach && hasCaptain && usedBeers <= totalBudget;
 
-  // Breakdown fantasy (solo si equipo válido)
+  // Breakdown fantasy (solo si equipo válido para puntuar: 5 jugadores)
   const breakdown = useMemo(() => {
-    // Solo bloqueamos si NO hay stats o no hay jugadores,
-    // pero ya no miramos isValidLineup para calcular puntos
     if (!statsByNumber || !lineupNumbers.length) return null;
-
+  
+    // 🔴 NUEVA REGLA: si no hay 5 jugadores (algún -1 en la DB) -> no hay puntos
+    if (filledSlots !== 5) return null;
+  
     const playersNums = lineupNumbers.filter(
       (n) => n != null && n !== EMPTY_SLOT_NUM && !Number.isNaN(n)
     );
     if (!playersNums.length) return null;
-
+  
     try {
       return computeLineupBreakdown({
         playersNums,
@@ -502,7 +503,7 @@ export default function FantasyHome() {
       console.error("Error calculando breakdown en FantasyHome:", e);
       return null;
     }
-  }, [lineupNumbers, statsByNumber, captainNumber, coachCode]);
+  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, filledSlots]);
 
   // Puntos fantasy por jugador por slot
   const playersWithPoints = useMemo(() => {
