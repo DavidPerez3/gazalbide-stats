@@ -570,7 +570,10 @@ export default function FantasyHome() {
         fantasyPoints,
         traits: getPlayerTraits(p.name),
         synergies,
+        // status "genérico" (por si lo usas en otro sitio)
         status: statusColor,
+        // y además el color separado, que es lo que usa el render
+        statusColor,
         statusLabel,
         statusNote,
       };
