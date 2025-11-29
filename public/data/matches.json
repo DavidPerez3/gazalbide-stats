@@ -130,5 +130,27 @@
       11
     ],
     "result": "W"
+  },
+  {
+    "id": "2025-11-29-vs-atzurra-sugoiak",
+    "date": "2025-11-29",
+    "opponent": "Atzurra Sugoiak",
+    "file": "stats_atzurra_sugoiak_vs_gazal_a_29-11-25.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 60,
+    "opp_pts": 55,
+    "q_pf": [
+      21,
+      5,
+      17,
+      17
+    ],
+    "q_pa": [
+      9,
+      23,
+      17,
+      6
+    ],
+    "result": "W"
   }
 ]
