@@ -152,5 +152,27 @@
       6
     ],
     "result": "W"
+  },
+  {
+    "id": "2025-12-13-vs-i4a",
+    "date": "2025-12-13",
+    "opponent": "I4a",
+    "file": "stats_gazal_a_vs_i4a_13-12-25.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 51,
+    "opp_pts": 54,
+    "q_pf": [
+      14,
+      8,
+      12,
+      17
+    ],
+    "q_pa": [
+      14,
+      11,
+      12,
+      17
+    ],
+    "result": "L"
   }
 ]

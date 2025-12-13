@@ -15,14 +15,14 @@
   {
     "number": "1",
     "name": "Josu",
-    "gamesPlayed": 5,
-    "pir_avg": 21.4,
+    "gamesPlayed": 6,
+    "pir_avg": 22.5,
     "last3_pir": [
-      26,
       18,
-      24
+      24,
+      28
     ],
-    "price": 35,
+    "price": 36,
     "image": "/images/players/01_Josu.png"
   },
   {
@@ -41,27 +41,27 @@
   {
     "number": "6",
     "name": "Lucho",
-    "gamesPlayed": 5,
-    "pir_avg": 2,
+    "gamesPlayed": 6,
+    "pir_avg": 1.67,
     "last3_pir": [
-      2,
       3,
+      0,
       0
     ],
-    "price": 10,
+    "price": 9,
     "image": "/images/players/06_Lucho.png"
   },
   {
     "number": "8",
     "name": "Aimar",
-    "gamesPlayed": 7,
-    "pir_avg": 6.14,
+    "gamesPlayed": 8,
+    "pir_avg": 5.88,
     "last3_pir": [
-      11,
       10,
-      1
+      1,
+      4
     ],
-    "price": 17,
+    "price": 14,
     "image": "/images/players/08_Aimar.png"
   },
   {
@@ -80,40 +80,40 @@
   {
     "number": "10",
     "name": "Oier",
-    "gamesPlayed": 7,
-    "pir_avg": 18.71,
+    "gamesPlayed": 8,
+    "pir_avg": 17.88,
     "last3_pir": [
-      15,
       10,
-      32
+      32,
+      12
     ],
-    "price": 31,
+    "price": 30,
     "image": "/images/players/10_Oier.png"
   },
   {
     "number": "11",
     "name": "Jorge",
-    "gamesPlayed": 6,
-    "pir_avg": 13.83,
+    "gamesPlayed": 7,
+    "pir_avg": 11.29,
     "last3_pir": [
-      17,
       11,
-      21
+      21,
+      -4
     ],
-    "price": 28,
+    "price": 19,
     "image": "/images/players/11_Jorge.png"
   },
   {
     "number": "13",
     "name": "Aguirre",
-    "gamesPlayed": 5,
-    "pir_avg": 7.8,
+    "gamesPlayed": 6,
+    "pir_avg": 6.5,
     "last3_pir": [
-      24,
       1,
-      2
+      2,
+      0
     ],
-    "price": 19,
+    "price": 9,
     "image": "/images/players/13_Aguirre.png"
   },
   {
@@ -132,25 +132,25 @@
   {
     "number": "15",
     "name": "Kusky",
-    "gamesPlayed": 4,
-    "pir_avg": 5.25,
+    "gamesPlayed": 5,
+    "pir_avg": 2.8,
     "last3_pir": [
-      3,
       9,
-      7
+      7,
+      -7
     ],
-    "price": 16,
+    "price": 12,
     "image": "/images/players/15_Kusky.png"
   },
   {
     "number": "17",
     "name": "Covela",
-    "gamesPlayed": 6,
-    "pir_avg": -1.17,
+    "gamesPlayed": 7,
+    "pir_avg": -0.86,
     "last3_pir": [
-      1,
       6,
-      -1
+      -1,
+      1
     ],
     "price": 10,
     "image": "/images/players/17_Covela.png"
@@ -158,25 +158,25 @@
   {
     "number": "21",
     "name": "Julen",
-    "gamesPlayed": 4,
-    "pir_avg": 4,
+    "gamesPlayed": 5,
+    "pir_avg": 4.2,
     "last3_pir": [
-      -3,
       6,
-      1
+      1,
+      5
     ],
-    "price": 10,
+    "price": 13,
     "image": "/images/players/21_Julen.png"
   },
   {
     "number": "25",
     "name": "Imanol",
-    "gamesPlayed": 6,
-    "pir_avg": -0.83,
+    "gamesPlayed": 7,
+    "pir_avg": -2.43,
     "last3_pir": [
       -2,
-      -2,
-      -6
+      -6,
+      -12
     ],
     "price": 8,
     "image": "/images/players/25_Imanol.png"
