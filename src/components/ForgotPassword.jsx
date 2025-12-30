@@ -14,10 +14,15 @@ export default function ForgotPassword() {
 
     try {
       // Aquí el cambio importante 👇
+      const redirectTo = new URL(window.location.href);
+      redirectTo.hash = "";         // limpia el hash
+      redirectTo.search = "";       // limpia query
+      redirectTo.pathname = "/gazalbide-stats/"; // fuerza subpath correcto
+          
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/`, // redirige al home tras hacer click en el link
+          emailRedirectTo: redirectTo.toString(),
         },
       });
 
