@@ -47,13 +47,14 @@ export default function AuthPage() {
     setInfoMsg(null);
     setLoading(true);
 
+    const redirectTo = `${window.location.origin}/gazalbide-stats/`;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          username,
-        },
+        data: { username },
+        emailRedirectTo: redirectTo,
       },
     });
 
