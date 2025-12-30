@@ -46,10 +46,10 @@ export default function AuthPage() {
     setErrorMsg(null);
     setInfoMsg(null);
     setLoading(true);
-
-    const redirectTo = `${window.location.origin}/gazalbide-stats/`;
-
-    const { error } = await supabase.auth.signUp({
+    
+    const redirectTo = "https://davidperez3.github.io/gazalbide-stats/";
+    
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -57,17 +57,20 @@ export default function AuthPage() {
         emailRedirectTo: redirectTo,
       },
     });
-
+  
+    console.log("signup data:", data);
+    console.log("signup error:", error);
+  
     setLoading(false);
-
+  
     if (error) {
       setErrorMsg(error.message);
       return;
     }
-
-    setInfoMsg(
-      "Te hemos enviado un correo para confirmar tu cuenta. Revisa tu bandeja de entrada."
-    );
+  
+    // Si email confirmations está activo, normalmente data.user existe pero data.session es null
+    // Si está desactivado, data.session puede venir ya creada
+    setInfoMsg("Te hemos enviado un correo para confirmar tu cuenta. Revisa tu bandeja de entrada.");
   }
 
   return (
