@@ -198,9 +198,9 @@
     "result": "L"
   },
   {
-    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio",
+    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio-10-1-26",
     "date": "2026-01-10",
-    "opponent": "Ventaclim Sugarrak Laudio",
+    "opponent": "Ventaclim Sugarrak Laudio 10-1-26",
     "file": "stats_gazal_a_vs_ventaclim_sugarrak_laudio_10-1-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 43,
@@ -218,5 +218,27 @@
       10
     ],
     "result": "L"
+  },
+  {
+    "id": "2026-01-18-vs-makoak",
+    "date": "2026-01-18",
+    "opponent": "Makoak",
+    "file": "stats_makoak_vs_gazal_a_18-1-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 57,
+    "opp_pts": 46,
+    "q_pf": [
+      13,
+      16,
+      16,
+      12
+    ],
+    "q_pa": [
+      16,
+      8,
+      14,
+      8
+    ],
+    "result": "W"
   }
 ]
