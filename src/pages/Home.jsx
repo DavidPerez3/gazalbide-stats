@@ -24,9 +24,10 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
+      const BASE = import.meta.env.BASE_URL;
       // Cargar técnicas (public/data/techs.json -> /data/techs.json)
       try {
-        const res = await fetch("/data/techs.json", { cache: "no-store" });
+        const res = await fetch(`${BASE}data/techs.json`, { cache: "no-store" });
         if (res.ok) setTechs(await res.json());
         else setTechs({});
       } catch {

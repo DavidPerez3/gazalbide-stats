@@ -66,7 +66,7 @@ export default function Ranking() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/data/techs.json", { cache: "no-store" });
+        const res = await fetch(`${BASE}data/techs.json`, { cache: "no-store" });
         setTechs(res.ok ? await res.json() : {});
       } catch {
         setTechs({});
