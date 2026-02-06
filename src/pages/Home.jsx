@@ -36,7 +36,7 @@ export default function Home() {
 
       // Cargar players (public/data/players.json -> /data/players.json)
       try {
-        const resP = await fetch("/data/players.json", { cache: "no-store" });
+        const resP = await fetch(`${BASE}data/players.json`, { cache: "no-store" });
         if (resP.ok) setPlayers(await resP.json());
         else setPlayers([]);
       } catch {

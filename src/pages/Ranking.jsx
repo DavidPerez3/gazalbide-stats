@@ -65,6 +65,7 @@ export default function Ranking() {
   // Cargar y agregar datos por jugador
   useEffect(() => {
     (async () => {
+      const BASE = import.meta.env.BASE_URL;
       try {
         const res = await fetch(`${BASE}data/techs.json`, { cache: "no-store" });
         setTechs(res.ok ? await res.json() : {});
