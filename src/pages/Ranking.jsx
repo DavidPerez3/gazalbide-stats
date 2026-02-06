@@ -29,6 +29,7 @@ const METRICS = [
   { key: "plus_minus", label: "+/-", type: "count" },
   { key: "pir", label: "PIR", type: "count" },
   { key: "eff", label: "EFF", type: "count" },
+  { key: "tech", label: "TECH", type: "count", source: "techs" },
 
   // Tiro (conteos)
   { key: "fgm", label: "FGM", type: "count" },
@@ -58,10 +59,18 @@ export default function Ranking() {
   const [metric, setMetric] = useState("pts");
   const [mode, setMode] = useState("media");
   const [rows, setRows] = useState([]);
+  const [techs, setTechs] = useState({});
+
 
   // Cargar y agregar datos por jugador
   useEffect(() => {
     (async () => {
+      try {
+        const res = await fetch("/data/techs.json", { cache: "no-store" });
+        setTechs(res.ok ? await res.json() : {});
+      } catch {
+        setTechs({});
+      }
       const matches = await getMatches();
       const agg = new Map();
 
@@ -90,6 +99,13 @@ export default function Ranking() {
 
   const meta = METRICS.find((x) => x.key === metric) || METRICS[0];
 
+  const getTech = (num) => {
+    const v = techs?.[String(num)];
+    if (typeof v === "number") return v;
+    if (v && typeof v === "object") return Number(v.tech_fouls ?? 0);
+    return 0;
+  };
+
   const ranking = useMemo(() => {
     return rows
       .map((r) => {
@@ -97,6 +113,14 @@ export default function Ranking() {
         let display = "";
         let made = 0;
         let att = 0;
+        
+        if (meta.source === "techs") {
+          const total = getTech(r.number);
+          const base = mode === "media" ? (r.games ? total / r.games : 0) : total;
+          valueNum = Number(base || 0);
+          display = mode === "media" ? valueNum.toFixed(2) : String(valueNum);
+          return { ...r, valueNum, display, made, att };
+        }
 
         if (meta.type === "pct") {
           made = Number(r[meta.made] || 0);
@@ -117,7 +141,7 @@ export default function Ranking() {
       })
       .sort((a, b) => b.valueNum - a.valueNum)
       .slice(0, 50);
-  }, [rows, meta, mode]);
+  }, [rows, meta, mode, techs]);
 
   const isPct = meta.type === "pct";
   const valueHeader = isPct

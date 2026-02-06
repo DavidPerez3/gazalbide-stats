@@ -8,9 +8,11 @@ const num = (v) => Number(v || 0);
 
 export default function Home() {
   const [matches, setMatches] = useState([]);
+  const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(""); // 🔎 búsqueda por oponente
   const [order, setOrder] = useState("desc"); // ⬆⬇ orden por fecha
+  const [techs, setTechs] = useState({});
   const [teamTotals, setTeamTotals] = useState({
     games: 0,
     pointsFor: 0,
@@ -22,6 +24,24 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
+      // Cargar técnicas (public/data/techs.json -> /data/techs.json)
+      try {
+        const res = await fetch("/data/techs.json", { cache: "no-store" });
+        if (res.ok) setTechs(await res.json());
+        else setTechs({});
+      } catch {
+        setTechs({});
+      }
+
+      // Cargar players (public/data/players.json -> /data/players.json)
+      try {
+        const resP = await fetch("/data/players.json", { cache: "no-store" });
+        if (resP.ok) setPlayers(await resP.json());
+        else setPlayers([]);
+      } catch {
+        setPlayers([]);
+      }
+
       const ms = await getMatches();
       setMatches(ms);
 
@@ -99,6 +119,42 @@ export default function Home() {
     return (d >= 0 ? "+" : "") + d.toFixed(1);
   }, [teamTotals]);
 
+  const techTotals = useMemo(() => {
+    const entries = Object.entries(techs || {});
+    let total = 0;
+
+    let topPlayerId = null;
+    let topValue = 0;
+
+    for (const [playerId, raw] of entries) {
+      const value =
+        typeof raw === "number"
+          ? raw
+          : raw && typeof raw === "object"
+          ? Number(raw.tech_fouls ?? 0)
+          : 0;
+
+      total += value;
+
+      if (value > topValue) {
+        topValue = value;
+        topPlayerId = playerId;
+      }
+    }
+
+    // 🔑 AQUÍ está la clave
+    const topPlayerObj = players.find(
+      (p) => String(p.number) === String(topPlayerId)
+    );
+
+    return {
+      total,
+      topPlayerId,
+      topPlayer: topPlayerObj?.name ?? "—",
+      topValue,
+    };
+  }, [techs, players]);
+
   return (
     <section className="space-y-4">
       {/* Bienvenida */}
@@ -127,9 +183,17 @@ export default function Home() {
           <div className="text-dim" style={{fontSize:'12px'}}>Victorias – Derrotas</div>
         </div>
         <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Puntos totales</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>{teamTotals.pointsFor}</div>
-          <div className="text-dim" style={{fontSize:'12px'}}>Máximo en un partido: {teamTotals.maxPF}</div>
+          <div className="text-dim" style={{ fontSize: "12px", marginBottom: 6 }}>
+            Técnicas (equipo)
+          </div>
+          
+          <div style={{ fontSize: "22px", fontWeight: 800 }}>
+            {techTotals.total}
+          </div>
+          
+          <div className="text-dim" style={{ fontSize: "12px" }}>
+            Máximo jugador: {techTotals.topPlayerId ? `#${techTotals.topPlayerId} — ${techTotals.topPlayer} (${techTotals.topValue})` : "—"}
+          </div>
         </div>
 
         <div className="card card--p">
