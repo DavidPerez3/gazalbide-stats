@@ -108,20 +108,83 @@ export default function Ranking() {
   };
 
   const ranking = useMemo(() => {
+    const isNumericId = (k) => /^\d+$/.test(String(k));
+
+    const getTechLocal = (id) => {
+      const v = techs?.[String(id)];
+      if (typeof v === "number") return v;
+      if (v && typeof v === "object") return Number(v.tech_fouls ?? 0);
+      return 0;
+    };
+
+    // ===============================
+    // CASO TÉCNICAS (incluye staff en TOTAL, no en MEDIA)
+    // ===============================
+    if (meta.source === "techs") {
+      const baseRows = rows.map((r) => {
+        const total = getTechLocal(r.number);
+
+        const valueNum =
+          mode === "media"
+            ? r.games
+              ? total / r.games
+              : 0
+            : total;
+
+        const display =
+          mode === "media" ? Number(valueNum || 0).toFixed(2) : String(Number(valueNum || 0));
+
+        return {
+          ...r,
+          valueNum: Number(valueNum || 0),
+          display,
+          made: 0,
+          att: 0,
+        };
+      });
+
+      // En MEDIA no metemos staff (no tiene games)
+      if (mode === "media") {
+        return baseRows
+          .sort((a, b) => b.valueNum - a.valueNum)
+          .slice(0, 50);
+      }
+
+      // TOTAL: añadimos staff/extras
+      const knownNumbers = new Set(rows.map((r) => String(r.number)));
+
+      const extraRows = Object.keys(techs || {})
+        .filter((k) => !isNumericId(k) || !knownNumbers.has(String(k)))
+        .map((k) => {
+          const total = getTechLocal(k);
+          const valueNum = Number(total || 0);
+
+          return {
+            number: "—",
+            name: k,
+            games: 0,
+            valueNum,
+            display: String(valueNum),
+            made: 0,
+            att: 0,
+            _isStaff: true,
+          };
+        });
+
+      return [...baseRows, ...extraRows]
+        .sort((a, b) => b.valueNum - a.valueNum)
+        .slice(0, 50);
+    }
+
+    // ===============================
+    // RESTO DE MÉTRICAS
+    // ===============================
     return rows
       .map((r) => {
         let valueNum = 0;
         let display = "";
         let made = 0;
         let att = 0;
-        
-        if (meta.source === "techs") {
-          const total = getTech(r.number);
-          const base = mode === "media" ? (r.games ? total / r.games : 0) : total;
-          valueNum = Number(base || 0);
-          display = mode === "media" ? valueNum.toFixed(2) : String(valueNum);
-          return { ...r, valueNum, display, made, att };
-        }
 
         if (meta.type === "pct") {
           made = Number(r[meta.made] || 0);
@@ -200,7 +263,9 @@ export default function Ranking() {
             {ranking.map((r, i) => (
               <tr key={i}>
                 <td>{i + 1}</td>
-                <td>#{r.number} — {r.name}</td>
+                <td>
+                  {r._isStaff ? `${r.name} (staff)` : `#${r.number} — ${r.name}`}
+                </td>
                 {isPct ? (
                   <td>
                     <div>{r.display}</div>
