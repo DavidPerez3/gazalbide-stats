@@ -198,9 +198,9 @@
     "result": "L"
   },
   {
-    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio",
+    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio-10-1-26",
     "date": "2026-01-10",
-    "opponent": "Ventaclim Sugarrak Laudio",
+    "opponent": "Ventaclim Sugarrak Laudio 10-1-26",
     "file": "stats_gazal_a_vs_ventaclim_sugarrak_laudio_10-1-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 43,
@@ -264,7 +264,7 @@
     "result": "W"
   },
   {
-    "id": "2026-02-08-vs-viajes-olarizu",
+    "id": "2026-02-08-vs-viajes-olarizu-8-2-26",
     "date": "2026-02-08",
     "opponent": "Viajes Olarizu 8-2-26",
     "file": "stats_gazal_a_vs_viajes_olarizu_8-2-26.xls",
@@ -282,6 +282,28 @@
       18,
       15,
       17
+    ],
+    "result": "L"
+  },
+  {
+    "id": "2026-02-22-vs-eureka",
+    "date": "2026-02-22",
+    "opponent": "Eureka",
+    "file": "stats_eureka_vs_gazal_a_22-2-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 33,
+    "opp_pts": 52,
+    "q_pf": [
+      4,
+      7,
+      5,
+      17
+    ],
+    "q_pa": [
+      12,
+      9,
+      13,
+      18
     ],
     "result": "L"
   }
