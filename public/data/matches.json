@@ -292,7 +292,7 @@
     "file": "stats_eureka_vs_gazal_a_22-2-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 33,
-    "opp_pts": 52,
+    "opp_pts": 53,
     "q_pf": [
       4,
       7,
@@ -302,7 +302,7 @@
     "q_pa": [
       12,
       9,
-      13,
+      14,
       18
     ],
     "result": "L"
