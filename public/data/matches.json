@@ -198,7 +198,7 @@
     "result": "L"
   },
   {
-    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio-10-1-26",
+    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio",
     "date": "2026-01-10",
     "opponent": "Ventaclim Sugarrak Laudio 10-1-26",
     "file": "stats_gazal_a_vs_ventaclim_sugarrak_laudio_10-1-26.xls",
@@ -264,7 +264,7 @@
     "result": "W"
   },
   {
-    "id": "2026-02-08-vs-viajes-olarizu-8-2-26",
+    "id": "2026-02-08-vs-viajes-olarizu",
     "date": "2026-02-08",
     "opponent": "Viajes Olarizu 8-2-26",
     "file": "stats_gazal_a_vs_viajes_olarizu_8-2-26.xls",
@@ -308,7 +308,7 @@
     "result": "L"
   },
   {
-    "id": "2026-02-28-vs-pozo-i-moicar-28-2-26",
+    "id": "2026-02-28-vs-pozo-i-moicar",
     "date": "2026-02-28",
     "opponent": "Pozo I Moicar 28-2-26",
     "file": "stats_gazal_a_vs_pozo_i_moicar_28-2-26.xls",
@@ -316,14 +316,14 @@
     "gazal_pts": 60,
     "opp_pts": 40,
     "q_pf": [
-      7,
-      14,
+      8,
+      13,
       17,
       22
     ],
     "q_pa": [
-      6,
-      11,
+      7,
+      10,
       14,
       9
     ],
