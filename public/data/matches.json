@@ -198,9 +198,9 @@
     "result": "L"
   },
   {
-    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio",
+    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio-10-1-26",
     "date": "2026-01-10",
-    "opponent": "Ventaclim Sugarrak Laudio",
+    "opponent": "Ventaclim Sugarrak Laudio 10-1-26",
     "file": "stats_gazal_a_vs_ventaclim_sugarrak_laudio_10-1-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 43,
@@ -264,9 +264,9 @@
     "result": "W"
   },
   {
-    "id": "2026-02-08-vs-viajes-olarizu",
+    "id": "2026-02-08-vs-viajes-olarizu-8-2-26",
     "date": "2026-02-08",
-    "opponent": "Viajes Olarizu",
+    "opponent": "Viajes Olarizu 8-2-26",
     "file": "stats_gazal_a_vs_viajes_olarizu_8-2-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 60,
@@ -308,9 +308,9 @@
     "result": "L"
   },
   {
-    "id": "2026-02-28-vs-pozo-i-moicar",
+    "id": "2026-02-28-vs-pozo-i-moicar-28-2-26",
     "date": "2026-02-28",
-    "opponent": "Pozo I Moicar",
+    "opponent": "Pozo I Moicar 28-2-26",
     "file": "stats_gazal_a_vs_pozo_i_moicar_28-2-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 60,
@@ -330,9 +330,9 @@
     "result": "W"
   },
   {
-    "id": "2026-03-07-vs-bar-manaos-lakua",
+    "id": "2026-03-07-vs-bar-manaos-lakua-7-3-26",
     "date": "2026-03-07",
-    "opponent": "Bar Manaos Lakua",
+    "opponent": "Bar Manaos Lakua 7-3-26",
     "file": "stats_gazal_a_vs_bar_manaos_lakua_7-3-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 85,
@@ -347,6 +347,28 @@
       11,
       13,
       21,
+      12
+    ],
+    "result": "W"
+  },
+  {
+    "id": "2026-03-21-vs-agurain-c",
+    "date": "2026-03-21",
+    "opponent": "Agurain C",
+    "file": "stats_agurain_c_vs_gazal_a_21-3-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 59,
+    "opp_pts": 45,
+    "q_pf": [
+      10,
+      16,
+      23,
+      10
+    ],
+    "q_pa": [
+      7,
+      17,
+      9,
       12
     ],
     "result": "W"
