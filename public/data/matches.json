@@ -372,5 +372,27 @@
       12
     ],
     "result": "W"
+  },
+  {
+    "id": "2026-03-29-vs-atzurra-sugoiak-29-3-26",
+    "date": "2026-03-29",
+    "opponent": "Atzurra Sugoiak 29-3-26",
+    "file": "stats_gazal_a_vs_atzurra_sugoiak_29-3-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 61,
+    "opp_pts": 66,
+    "q_pf": [
+      11,
+      14,
+      15,
+      16
+    ],
+    "q_pa": [
+      16,
+      6,
+      11,
+      23
+    ],
+    "result": "L"
   }
 ]
