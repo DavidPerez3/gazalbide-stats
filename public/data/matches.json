@@ -3,7 +3,7 @@
     "id": "2025-10-12-vs-anboto-jatetxea",
     "date": "2025-10-12",
     "opponent": "Anboto Jatetxea",
-    "file": "stats_gazal_a_vs_anboto_jatetxea_17_01_12-10-25.xls",
+    "file": "stats_gazal_a_vs_anboto_jatetxea_12-10-25.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 80,
     "opp_pts": 46,
@@ -198,9 +198,9 @@
     "result": "L"
   },
   {
-    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio-10-1-26",
+    "id": "2026-01-10-vs-ventaclim-sugarrak-laudio",
     "date": "2026-01-10",
-    "opponent": "Ventaclim Sugarrak Laudio 10-1-26",
+    "opponent": "Ventaclim Sugarrak Laudio",
     "file": "stats_gazal_a_vs_ventaclim_sugarrak_laudio_10-1-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 43,
@@ -264,9 +264,9 @@
     "result": "W"
   },
   {
-    "id": "2026-02-08-vs-viajes-olarizu-8-2-26",
+    "id": "2026-02-08-vs-viajes-olarizu",
     "date": "2026-02-08",
-    "opponent": "Viajes Olarizu 8-2-26",
+    "opponent": "Viajes Olarizu",
     "file": "stats_gazal_a_vs_viajes_olarizu_8-2-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 60,
@@ -308,9 +308,9 @@
     "result": "L"
   },
   {
-    "id": "2026-02-28-vs-pozo-i-moicar-28-2-26",
+    "id": "2026-02-28-vs-pozo-i-moicar",
     "date": "2026-02-28",
-    "opponent": "Pozo I Moicar 28-2-26",
+    "opponent": "Pozo I Moicar",
     "file": "stats_gazal_a_vs_pozo_i_moicar_28-2-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 60,
@@ -330,9 +330,9 @@
     "result": "W"
   },
   {
-    "id": "2026-03-07-vs-bar-manaos-lakua-7-3-26",
+    "id": "2026-03-07-vs-bar-manaos-lakua",
     "date": "2026-03-07",
-    "opponent": "Bar Manaos Lakua 7-3-26",
+    "opponent": "Bar Manaos Lakua",
     "file": "stats_gazal_a_vs_bar_manaos_lakua_7-3-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 85,
@@ -374,9 +374,9 @@
     "result": "W"
   },
   {
-    "id": "2026-03-29-vs-atzurra-sugoiak-29-3-26",
+    "id": "2026-03-29-vs-atzurra-sugoiak",
     "date": "2026-03-29",
-    "opponent": "Atzurra Sugoiak 29-3-26",
+    "opponent": "Atzurra Sugoiak",
     "file": "stats_gazal_a_vs_atzurra_sugoiak_29-3-26.xls",
     "sheet": "Gazal A Stats",
     "gazal_pts": 61,

@@ -118,7 +118,7 @@ function parseFilenameMeta(filename) {
   }
 
   // 2) separar por “vs”
-  const split = base.split(/[_-]vs[_-]?/i);
+  const split = base.split(/[_-]vs(?:[_-]?)/i);
   let left = null;
   let right = null;
   if (split.length >= 2) {
@@ -131,9 +131,9 @@ function parseFilenameMeta(filename) {
     if (!s) return "";
     return s
       // _hh_mm_dd-mm-yy
-      .replace(/_\d{1,2}_\d{2}_\d{2}-\d{2}-\d{2}$/i, "")
+      .replace(/[_-]\d{1,2}[_-]\d{1,2}[_-]\d{1,2}-\d{1,2}-\d{2}$/i, "")
       // _dd-mm-yy o -dd-mm-yy (permitir día 1 o 2 dígitos)
-      .replace(/[_-]\d{1,2}-\d{2}-\d{2}$/i, "")
+      .replace(/[_-]\d{1,2}-\d{1,2}-\d{2}$/i, "")
       .trim();
   };
 
