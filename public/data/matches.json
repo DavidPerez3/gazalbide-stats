@@ -394,5 +394,27 @@
       23
     ],
     "result": "L"
+  },
+  {
+    "id": "2026-04-12-vs-i4a",
+    "date": "2026-04-12",
+    "opponent": "I4a",
+    "file": "stats_i4a_vs_gazal_a_12-4-26.xlsx",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 54,
+    "opp_pts": 43,
+    "q_pf": [
+      13,
+      14,
+      14,
+      13
+    ],
+    "q_pa": [
+      14,
+      12,
+      6,
+      11
+    ],
+    "result": "W"
   }
 ]
