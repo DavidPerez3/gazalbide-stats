@@ -416,5 +416,27 @@
       11
     ],
     "result": "W"
+  },
+  {
+    "id": "2026-04-18-vs-kangretx-legends",
+    "date": "2026-04-18",
+    "opponent": "Kangretx Legends",
+    "file": "stats_gazal_a_vs_kangretx_legends_18-4-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 52,
+    "opp_pts": 42,
+    "q_pf": [
+      12,
+      10,
+      17,
+      13
+    ],
+    "q_pa": [
+      4,
+      8,
+      18,
+      12
+    ],
+    "result": "W"
   }
 ]
