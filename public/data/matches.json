@@ -438,5 +438,49 @@
       12
     ],
     "result": "W"
+  },
+  {
+    "id": "2026-05-09-vs-sugarrak-llodio",
+    "date": "2026-05-09",
+    "opponent": "Sugarrak Llodio",
+    "file": "stats_sugarrak_llodio__vs_gazal_a_9-5-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 57,
+    "opp_pts": 50,
+    "q_pf": [
+      14,
+      14,
+      12,
+      17
+    ],
+    "q_pa": [
+      16,
+      10,
+      6,
+      18
+    ],
+    "result": "W"
+  },
+  {
+    "id": "2026-05-09-vs-ventaclim-sugarrak-laudio",
+    "date": "2026-05-09",
+    "opponent": "Ventaclim Sugarrak Laudio",
+    "file": "stats_ventaclim_sugarrak_laudio__vs_gazal_a_9-5-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 57,
+    "opp_pts": 50,
+    "q_pf": [
+      14,
+      14,
+      12,
+      17
+    ],
+    "q_pa": [
+      16,
+      10,
+      6,
+      18
+    ],
+    "result": "W"
   }
 ]
