@@ -482,5 +482,27 @@
       18
     ],
     "result": "W"
+  },
+  {
+    "id": "2026-05-17-vs-makoak",
+    "date": "2026-05-17",
+    "opponent": "Makoak",
+    "file": "stats_gazal_a_vs_makoak__17-5-26.xls",
+    "sheet": "Gazal A Stats",
+    "gazal_pts": 51,
+    "opp_pts": 71,
+    "q_pf": [
+      14,
+      16,
+      9,
+      12
+    ],
+    "q_pa": [
+      15,
+      26,
+      13,
+      17
+    ],
+    "result": "L"
   }
 ]
