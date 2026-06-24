@@ -18,15 +18,17 @@ export default function LeGazalControlPanel({
 
   return (
     <section className="le-gazal-console">
-      <div className="le-gazal-console__primary">
-        <div className="le-gazal-console__plate le-gazal-console__plate--bet">
-          <div className="le-gazal-console__label">Apuesta actual</div>
-          <div className="le-gazal-console__value">{bet}</div>
-          <div className="le-gazal-console__subvalue">
-            {bonusState.remaining > 0 ? `${bonusState.remaining} gratis` : `Win ${lastPrize}`}
-          </div>
-        </div>
+      <div className="le-gazal-console__status" aria-label="Estado de la partida">
+        <span className="le-gazal-console__status-pill">
+          <span className="le-gazal-console__label">Apuesta</span>
+          <strong className="le-gazal-console__status-value">{bet}</strong>
+        </span>
+        <span className="le-gazal-console__status-pill">
+          {bonusState.remaining > 0 ? `${bonusState.remaining} gratis x${bonusState.multiplier}` : `Win ${lastPrize}`}
+        </span>
+      </div>
 
+      <div className="le-gazal-console__primary">
         <div className="le-gazal-console__plate le-gazal-console__plate--selector">
           <div className="le-gazal-console__label">Selector</div>
           <div className="le-gazal-console__bets" role="group" aria-label="Apuesta demo">
@@ -65,8 +67,14 @@ export default function LeGazalControlPanel({
       </div>
 
       <div className="le-gazal-console__quickline" aria-label="Resumen de premio">
-        <span>Win {lastPrize}</span>
-        <span>Total Win {totalWon}</span>
+        <span>
+          <strong>Win</strong>
+          <em>{lastPrize}</em>
+        </span>
+        <span>
+          <strong>Total Win</strong>
+          <em>{totalWon}</em>
+        </span>
       </div>
 
       <div className="le-gazal-console__secondary">

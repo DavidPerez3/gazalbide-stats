@@ -75,21 +75,6 @@ export default function LeGazalPage() {
 
             <div className="le-gazal-core">
               <section className="le-gazal-machine card">
-                <div className="le-gazal-machine__topbar">
-                  <div>
-                    <span className="le-gazal-chip">Apuesta {bet}</span>
-                    {bonusState.remaining > 0 ? (
-                      <span className="le-gazal-chip le-gazal-chip--bonus">
-                        {bonusState.remaining} free spins x{bonusState.multiplier}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="le-gazal-machine__legend">
-                    WILD: 88 | SCATTER: Escudo | BONUS: Bonus
-                  </div>
-                </div>
-
                 <LeGazalGrid
                   grid={grid}
                   isSpinning={isSpinning}

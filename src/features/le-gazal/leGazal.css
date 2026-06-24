@@ -192,46 +192,9 @@
   pointer-events: none;
 }
 
-.le-gazal-machine__topbar,
 .le-gazal-machine__footer {
   position: relative;
   z-index: 1;
-}
-
-.le-gazal-machine__topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.le-gazal-chip {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 8px;
-  margin-bottom: 6px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(250, 204, 21, 0.26);
-  color: #ffefb5;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.le-gazal-chip--bonus {
-  background: rgba(249, 115, 22, 0.12);
-  border-color: rgba(249, 115, 22, 0.38);
-  color: #fed7aa;
-}
-
-.le-gazal-machine__legend {
-  color: #d1d5db;
-  font-size: 0.82rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 .le-gazal-board-wrap {
@@ -469,20 +432,44 @@
   min-width: 0;
 }
 
-.le-gazal-console__primary {
-  display: grid;
-  grid-template-columns: 170px minmax(0, 1fr) 152px;
-  gap: 12px;
+.le-gazal-console__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
-  min-width: 0;
 }
 
-.le-gazal-console__plate--selector {
+.le-gazal-console__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(250, 204, 21, 0.18);
+  color: #fff3c4;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.le-gazal-console__status-value {
+  color: #ffd54a;
+  font-size: 1.02rem;
+  line-height: 1;
+}
+
+.le-gazal-console__primary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 152px;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
   min-width: 0;
 }
 
 .le-gazal-console__plate {
-  min-height: 88px;
+  min-height: 84px;
   padding: 11px 12px;
   border-radius: 18px;
   display: flex;
@@ -499,19 +486,6 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.le-gazal-console__value {
-  color: #ffd54a;
-  font-size: 1.56rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.le-gazal-console__subvalue {
-  color: #d1d5db;
-  font-size: 0.8rem;
-  font-weight: 700;
 }
 
 .le-gazal-console__bets {
@@ -627,9 +601,9 @@
 
 .le-gazal-console__quickline {
   margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   color: #ffe7a3;
   font-size: 0.82rem;
   font-weight: 800;
@@ -637,7 +611,29 @@
 }
 
 .le-gazal-console__quickline span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 66px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(250, 204, 21, 0.18);
   opacity: 0.94;
+}
+
+.le-gazal-console__quickline strong {
+  color: #d1d5db;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.le-gazal-console__quickline em {
+  color: #ffd54a;
+  font-size: 1.08rem;
+  font-style: normal;
+  line-height: 1;
 }
 
 .le-gazal-console__secondary {
@@ -816,7 +812,7 @@
   }
 
   .le-gazal-console__primary {
-    grid-template-columns: 156px minmax(0, 1fr) 142px;
+    grid-template-columns: minmax(0, 1fr) 142px;
   }
 }
 
@@ -833,7 +829,7 @@
   }
 
   .le-gazal-console__primary {
-    grid-template-columns: 148px minmax(0, 1fr) 136px;
+    grid-template-columns: minmax(0, 1fr) 136px;
   }
 
   .le-gazal-mascot-figure {
@@ -856,60 +852,40 @@
   }
 
   .le-gazal-cabinet__body {
-    grid-template-areas:
-      "core"
-      "totem"
-      "mascot";
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 14px;
+    min-height: auto;
   }
 
-  .le-gazal-totem {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
-  }
-
-  .le-gazal-totem__foot {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-
+  .le-gazal-totem,
   .le-gazal-mascot-figure {
-    justify-content: center;
-    min-height: 0;
-    padding-top: 0;
+    display: none;
   }
 
-  .le-gazal-mascot-figure__image {
-    max-width: 136px;
-    max-height: 160px;
+  .le-gazal-core,
+  .le-gazal-machine,
+  .le-gazal-board-wrap,
+  .le-gazal-board,
+  .le-gazal-console {
+    width: 100%;
+    min-width: 0;
   }
 
-  .le-gazal-board {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+  .le-gazal-machine__footer {
+    display: none;
   }
 
   .le-gazal-console__primary {
     grid-template-columns: minmax(0, 1fr) 146px;
-    grid-template-areas:
-      "bet spin"
-      "selector selector";
     align-items: stretch;
   }
 
-  .le-gazal-console__plate--bet {
-    grid-area: bet;
-  }
-
   .le-gazal-console__plate--selector {
-    grid-area: selector;
+    min-width: 0;
   }
 
   .le-gazal-console__spin {
-    grid-area: spin;
     align-self: center;
   }
 
@@ -936,19 +912,6 @@
 
   .le-gazal-marquee p {
     font-size: 0.76rem;
-  }
-
-  .le-gazal-machine__topbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .le-gazal-machine__legend {
-    width: 100%;
-    font-size: 0.72rem;
-    line-height: 1.35;
   }
 
   .le-gazal-machine {
@@ -998,8 +961,8 @@
     font-size: 0.74rem;
   }
 
-  .le-gazal-totem {
-    grid-template-columns: 1fr;
+  .le-gazal-console__status {
+    justify-content: center;
   }
 
   .le-gazal-console {
@@ -1009,15 +972,11 @@
 
   .le-gazal-console__primary {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "bet"
-      "selector"
-      "spin";
     gap: 8px;
   }
 
   .le-gazal-console__plate {
-    min-height: 72px;
+    min-height: 70px;
     padding: 10px;
     border-radius: 16px;
   }
@@ -1026,18 +985,16 @@
     font-size: 0.67rem;
   }
 
-  .le-gazal-console__value,
   .le-gazal-totem__value {
     font-size: 1.42rem;
   }
 
-  .le-gazal-console__subvalue,
   .le-gazal-console__quickline {
     font-size: 0.74rem;
   }
 
   .le-gazal-console__quickline {
-    gap: 8px 12px;
+    gap: 8px;
   }
 
   .le-gazal-console__bets {
@@ -1051,13 +1008,8 @@
 
   .le-gazal-console__spin {
     justify-self: center;
-    width: 120px;
-    height: 120px;
-  }
-
-  .le-gazal-mascot-figure__image {
-    max-width: 92px;
-    max-height: 108px;
+    width: 112px;
+    height: 112px;
   }
 }
 
@@ -1075,18 +1027,6 @@
 
   .le-gazal-machine {
     padding: 8px;
-  }
-
-  .le-gazal-chip {
-    margin-right: 6px;
-    margin-bottom: 4px;
-    padding: 5px 9px;
-    font-size: 0.72rem;
-  }
-
-  .le-gazal-machine__legend {
-    font-size: 0.66rem;
-    line-height: 1.3;
   }
 
   .le-gazal-board {
@@ -1113,14 +1053,13 @@
     font-size: clamp(1.05rem, 6.4vw, 1.5rem);
   }
 
-  .le-gazal-console__value,
-  .le-gazal-totem__value {
+  .le-gazal-console__quickline em {
     font-size: 1.3rem;
   }
 
   .le-gazal-console__spin {
-    width: 108px;
-    height: 108px;
+    width: 102px;
+    height: 102px;
   }
 
   .le-gazal-console__spin-core {
@@ -1141,22 +1080,9 @@
   }
 }
 
-@media (orientation: portrait) and (max-width: 768px) {
-  .le-gazal-mascot-figure__image {
-    max-width: 132px;
-    max-height: 154px;
-  }
-}
-
 @media (orientation: landscape) and (max-width: 1024px) {
-  .le-gazal-cabinet__body {
-    grid-template-areas: "core core" "totem mascot";
-    grid-template-columns: minmax(0, 1fr) 132px;
-  }
-
-  .le-gazal-mascot-figure__image {
-    max-width: 120px;
-    max-height: 140px;
+  .le-gazal-console__primary {
+    grid-template-columns: minmax(0, 1fr) 126px;
   }
 }
 
@@ -1196,10 +1122,6 @@
   .le-gazal-console__primary {
     gap: 10px;
   }
-
-  .le-gazal-mascot-figure__image {
-    max-height: min(34vh, 300px);
-  }
 }
 
 @media (max-height: 740px) {
@@ -1211,22 +1133,6 @@
     font-size: 0.72rem;
   }
 
-  .le-gazal-totem {
-    padding: 10px 12px;
-  }
-
-  .le-gazal-cabinet__body {
-    grid-template-columns: 92px minmax(0, 760px) minmax(120px, 150px);
-  }
-
-  .le-gazal-mascot-figure {
-    padding-top: 26px;
-  }
-
-  .le-gazal-mascot-figure__image {
-    max-width: 138px;
-    max-height: 168px;
-  }
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
@@ -1244,8 +1150,8 @@
   }
 
   .le-gazal-cabinet__body {
-    grid-template-areas: "core";
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
   }
 
@@ -1256,33 +1162,33 @@
 
   .le-gazal-core {
     gap: 8px;
+    width: 100%;
   }
 
   .le-gazal-machine {
     padding: 8px;
+    width: 100%;
   }
 
   .le-gazal-board {
-    max-width: min(100%, 520px);
+    width: 100%;
+    max-width: 100%;
     margin-inline: auto;
   }
 
   .le-gazal-console {
     padding: 8px;
+    width: 100%;
   }
 
   .le-gazal-console__primary {
-    grid-template-columns: 128px minmax(0, 1fr) 118px;
+    grid-template-columns: minmax(0, 1fr) 118px;
     gap: 8px;
   }
 
   .le-gazal-console__plate {
     min-height: 60px;
     padding: 8px 10px;
-  }
-
-  .le-gazal-console__value {
-    font-size: 1.26rem;
   }
 
   .le-gazal-console__spin {
