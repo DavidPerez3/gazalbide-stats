@@ -75,6 +75,9 @@ export default function Navbar() {
           <NavLink to="/compare" className={link} onClick={handleLinkClick}>
             Comparar
           </NavLink>
+          <NavLink to="/le-gazal" className={link} onClick={handleLinkClick}>
+            Le Gazal
+          </NavLink>
           <NavLink to="/fantasy" className={link} onClick={handleLinkClick}>
             Fantasy
           </NavLink>

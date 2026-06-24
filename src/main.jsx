@@ -9,6 +9,7 @@ import Players from "./pages/Players.jsx";
 import Player from "./pages/Player.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Compare from "./pages/Compare.jsx";
+import LeGazalPage from "./pages/LeGazalPage.jsx";
 
 import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
@@ -36,6 +37,7 @@ const router = createHashRouter([
       { path: "jugador/:name", element: <Player /> },
       { path: "ranking", element: <Ranking /> },
       { path: "compare", element: <Compare /> },
+      { path: "le-gazal", element: <LeGazalPage /> },
 
       { path: "login", element: <AuthPage /> },
       { path: "forgot-password", element: <ForgotPassword /> },

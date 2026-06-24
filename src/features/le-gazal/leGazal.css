@@ -1,0 +1,1314 @@
+.le-gazal-page {
+  --le-gazal-gold: #facc15;
+  --le-gazal-gold-deep: #d18d00;
+  --le-gazal-ink: #f8fafc;
+  --le-gazal-shadow: 0 26px 60px rgba(0, 0, 0, 0.46);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--le-gazal-ink);
+  overflow-x: clip;
+}
+
+.le-gazal-page,
+.le-gazal-page * {
+  box-sizing: border-box;
+}
+
+.le-gazal-arena {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 22px 24px 18px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 50% 5%, rgba(255, 255, 255, 0.16), transparent 16%),
+    radial-gradient(circle at top, rgba(250, 204, 21, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(12, 12, 12, 0.98) 0%, rgba(24, 16, 8, 0.98) 62%, rgba(76, 40, 5, 0.98) 100%);
+  box-shadow: var(--le-gazal-shadow);
+}
+
+.le-gazal-arena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(255, 246, 204, 0.18), transparent 8%),
+    radial-gradient(circle at 36% 9%, rgba(255, 246, 204, 0.14), transparent 7%),
+    radial-gradient(circle at 60% 10%, rgba(255, 246, 204, 0.18), transparent 8%),
+    radial-gradient(circle at 82% 14%, rgba(255, 246, 204, 0.14), transparent 7%);
+  pointer-events: none;
+}
+
+.le-gazal-arena::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  background:
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.16)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(134, 74, 10, 0.84) 0 52px,
+      rgba(191, 112, 15, 0.84) 52px 104px
+    );
+  transform: perspective(680px) rotateX(74deg);
+  transform-origin: bottom;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.le-gazal-cabinet {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.le-gazal-marquee {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.le-gazal-marquee__title-logo {
+  display: block;
+  width: min(640px, 72vw);
+  height: clamp(82px, 11vw, 150px);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.le-gazal-marquee p {
+  margin: 0;
+  width: min(100%, 680px);
+  color: #d1d5db;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.le-gazal-cabinet__body {
+  display: grid;
+  grid-template-areas: "totem core mascot";
+  grid-template-columns: 110px minmax(0, 860px) minmax(150px, 190px);
+  justify-content: center;
+  gap: 16px;
+  align-items: start;
+  min-height: min(72vh, 860px);
+  min-width: 0;
+}
+
+.le-gazal-totem {
+  grid-area: totem;
+  align-self: start;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.98), rgba(31, 21, 10, 0.96));
+  border: 2px solid rgba(250, 204, 21, 0.34);
+  box-shadow: var(--le-gazal-shadow);
+  min-height: 0;
+}
+
+.le-gazal-totem__label {
+  color: #d1d5db;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.le-gazal-totem__value {
+  color: #ffd54a;
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.le-gazal-totem__foot {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(250, 204, 21, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #f3f4f6;
+  font-size: 0.82rem;
+}
+
+.le-gazal-totem__foot span {
+  color: #d1d5db;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.le-gazal-machine,
+.le-gazal-console,
+.le-gazal-debug {
+  background:
+    linear-gradient(180deg, rgba(13, 13, 13, 0.98), rgba(28, 19, 8, 0.98)),
+    radial-gradient(circle at top, rgba(250, 204, 21, 0.12), transparent 30%);
+  border: 2px solid rgba(250, 204, 21, 0.34);
+  box-shadow: var(--le-gazal-shadow);
+}
+
+.le-gazal-core {
+  grid-area: core;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.le-gazal-machine {
+  padding: clamp(12px, 1.5vw, 16px);
+  border-radius: 30px;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.le-gazal-machine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  border: 3px solid rgba(255, 214, 84, 0.38);
+  pointer-events: none;
+}
+
+.le-gazal-machine__topbar,
+.le-gazal-machine__footer {
+  position: relative;
+  z-index: 1;
+}
+
+.le-gazal-machine__topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.le-gazal-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+  margin-bottom: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(250, 204, 21, 0.26);
+  color: #ffefb5;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.le-gazal-chip--bonus {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.38);
+  color: #fed7aa;
+}
+
+.le-gazal-machine__legend {
+  color: #d1d5db;
+  font-size: 0.82rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.le-gazal-board-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.le-gazal-board {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 6 / 5;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, 0.8vw, 10px);
+  padding: clamp(10px, 1vw, 14px);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 16, 0.98), rgba(8, 8, 8, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 14%);
+  border: 3px solid rgba(250, 204, 21, 0.64);
+  box-shadow:
+    inset 0 0 0 2px rgba(85, 54, 7, 0.88),
+    inset 0 12px 30px rgba(255, 255, 255, 0.03),
+    0 18px 42px rgba(0, 0, 0, 0.4);
+}
+
+.le-gazal-board::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(250, 204, 21, 0.18);
+  pointer-events: none;
+}
+
+.le-gazal-board__payline {
+  position: absolute;
+  z-index: 2;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 214, 84, 0), rgba(255, 214, 84, 0.95), rgba(255, 214, 84, 0));
+  box-shadow: 0 0 14px rgba(255, 204, 0, 0.42);
+  pointer-events: none;
+}
+
+.le-gazal-board__column {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: clamp(6px, 0.8vw, 10px);
+}
+
+.le-gazal-board__column--spinning {
+  animation: leGazalColumnPulse 0.46s ease-in-out infinite alternate;
+}
+
+.le-gazal-board__cell {
+  min-height: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(250, 204, 21, 0.18);
+  background:
+    linear-gradient(180deg, rgba(32, 32, 32, 0.94), rgba(12, 12, 12, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 36%);
+  overflow: hidden;
+  box-shadow:
+    inset 0 10px 20px rgba(255, 255, 255, 0.02),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.42);
+}
+
+.le-gazal-board__cell--winning {
+  border-color: rgba(255, 210, 77, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(255, 210, 77, 0.88),
+    0 0 26px rgba(255, 196, 0, 0.22),
+    inset 0 0 22px rgba(255, 208, 79, 0.14);
+  animation: leGazalWinningCell 0.84s ease-in-out 2;
+}
+
+.le-gazal-symbol {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.le-gazal-symbol--wild,
+.le-gazal-symbol--shield,
+.le-gazal-symbol--bonus {
+  background: radial-gradient(circle at center, rgba(250, 204, 21, 0.08), transparent 60%);
+}
+
+.le-gazal-symbol__art {
+  width: min(78%, 86px);
+  height: min(78%, 86px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.38));
+}
+
+.le-gazal-symbol__art svg,
+.le-gazal-symbol__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.le-gazal-symbol__value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: min(76%, 76px);
+  height: min(76%, 76px);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: clamp(1.6rem, 2.4vw, 2.7rem);
+  font-weight: 900;
+  color: #f8fafc;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+}
+
+.le-gazal-symbol__tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.88);
+  color: #ffd24d;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.le-gazal-symbol--wild .le-gazal-symbol__art,
+.le-gazal-symbol--shield .le-gazal-symbol__art,
+.le-gazal-symbol--bonus .le-gazal-symbol__art {
+  width: min(82%, 92px);
+  height: min(82%, 92px);
+  animation: leGazalSpecialPulse 1.9s ease-in-out infinite alternate;
+}
+
+.le-gazal-machine__footer {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.le-gazal-machine__wins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.le-gazal-win-pill {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 194, 24, 0.12);
+  border: 1px solid rgba(255, 194, 24, 0.34);
+  color: #ffefb5;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.le-gazal-coin-burst {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.le-gazal-coin-burst__coin {
+  position: absolute;
+  bottom: 16px;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.4));
+  animation-name: leGazalCoinBurst;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.le-gazal-coin-burst__label {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.82);
+  border: 1px solid rgba(250, 204, 21, 0.36);
+  color: #ffd54a;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  animation: leGazalCoinLabel 1.2s ease-out both;
+}
+
+.le-gazal-mascot-figure {
+  grid-area: mascot;
+  align-self: start;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  pointer-events: none;
+  padding-top: clamp(110px, 11vw, 152px);
+}
+
+.le-gazal-mascot-figure__image {
+  width: 100%;
+  max-width: 182px;
+  max-height: min(46vh, 360px);
+  object-fit: contain;
+  filter:
+    drop-shadow(0 22px 26px rgba(0, 0, 0, 0.48))
+    drop-shadow(0 0 18px rgba(250, 204, 21, 0.1));
+}
+
+.le-gazal-mascot-figure--missing {
+  align-self: end;
+  min-height: 220px;
+  color: #e5e7eb;
+  font-size: 0.84rem;
+}
+
+.le-gazal-console {
+  padding: 12px 14px;
+  border-radius: 24px;
+  min-width: 0;
+}
+
+.le-gazal-console__primary {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) 152px;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.le-gazal-console__plate--selector {
+  min-width: 0;
+}
+
+.le-gazal-console__plate {
+  min-height: 88px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(44, 30, 12, 0.5));
+  border: 1px solid rgba(250, 204, 21, 0.16);
+}
+
+.le-gazal-console__label {
+  color: #d1d5db;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.le-gazal-console__value {
+  color: #ffd54a;
+  font-size: 1.56rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.le-gazal-console__subvalue {
+  color: #d1d5db;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.le-gazal-console__bets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.le-gazal-console__bet {
+  min-height: 40px;
+  border-radius: 13px;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff8de;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.le-gazal-console__bet:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(250, 204, 21, 0.58);
+}
+
+.le-gazal-console__bet--active {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.18), rgba(249, 115, 22, 0.12));
+  border-color: rgba(250, 204, 21, 0.72);
+}
+
+.le-gazal-console__bet:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.le-gazal-console__spin {
+  justify-self: center;
+  width: clamp(122px, 11vw, 136px);
+  height: clamp(122px, 11vw, 136px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+.le-gazal-console__spin:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.le-gazal-console__spin-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), transparent 26%),
+    linear-gradient(180deg, #ffd54a, #9c5c00);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 238, 183, 0.42),
+    0 18px 26px rgba(0, 0, 0, 0.35);
+}
+
+.le-gazal-console__spin-core {
+  position: absolute;
+  inset: 13px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: radial-gradient(circle at top, rgba(255, 204, 0, 0.2), rgba(10, 10, 10, 0.96) 65%);
+  border: 4px solid rgba(255, 209, 71, 0.38);
+  color: #ffe186;
+}
+
+.le-gazal-console__spin-arrow {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.le-gazal-console__spin-text {
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.le-gazal-console__tool {
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff5cf;
+  font-size: 1.12rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.le-gazal-console__ticker {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(250, 204, 21, 0.18);
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.le-gazal-console__quickline {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  color: #ffe7a3;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.le-gazal-console__quickline span {
+  opacity: 0.94;
+}
+
+.le-gazal-console__secondary {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.le-gazal-debug {
+  padding: 16px;
+  border-radius: 24px;
+}
+
+.le-gazal-debug__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.le-gazal-debug__header h2 {
+  margin: 0;
+  color: #fff1c6;
+  font-size: 1rem;
+}
+
+.le-gazal-debug__header span {
+  color: #cbd5e1;
+  font-size: 0.78rem;
+}
+
+.le-gazal-debug__grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.le-gazal-debug__button {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(250, 204, 21, 0.26);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff5cf;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.le-gazal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.74);
+  backdrop-filter: blur(8px);
+}
+
+.le-gazal-modal__card {
+  width: min(700px, 100%);
+  padding: 22px;
+  border-radius: 28px;
+  border: 2px solid rgba(250, 204, 21, 0.34);
+  background:
+    linear-gradient(180deg, rgba(15, 15, 15, 0.98), rgba(30, 20, 8, 0.98)),
+    radial-gradient(circle at top, rgba(250, 204, 21, 0.18), transparent 36%);
+}
+
+.le-gazal-modal__card--centered {
+  width: min(450px, 100%);
+}
+
+.le-gazal-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.le-gazal-modal__header h2 {
+  margin: 0;
+  color: #fff1c6;
+}
+
+.le-gazal-modal__close {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff8de;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.le-gazal-modal__body {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #e5e7eb;
+  line-height: 1.55;
+}
+
+.le-gazal-modal__body--centered {
+  text-align: center;
+}
+
+.le-gazal-spin {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg, #facc15, #f97316);
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.le-gazal-spin--compact {
+  max-width: 220px;
+  margin-inline: auto;
+}
+
+@keyframes leGazalColumnPulse {
+  from { transform: translateY(0); filter: brightness(1); }
+  to { transform: translateY(8px); filter: brightness(1.08); }
+}
+
+@keyframes leGazalWinningCell {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes leGazalSpecialPulse {
+  from { transform: scale(1); filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38)); }
+  to { transform: scale(1.035); filter: drop-shadow(0 10px 18px rgba(250, 204, 21, 0.16)); }
+}
+
+@keyframes leGazalCoinBurst {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) rotate(var(--coin-rotate)) scale(var(--coin-scale));
+  }
+  12% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate3d(-8px, -220px, 0) rotate(var(--coin-rotate)) scale(calc(var(--coin-scale) + 0.24));
+  }
+}
+
+@keyframes leGazalCoinLabel {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px) scale(0.9);
+  }
+  20% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-44px) scale(1.04);
+  }
+}
+
+@keyframes leGazalMascotFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
+
+@media (max-width: 1440px) {
+  .le-gazal-cabinet__body {
+    grid-template-columns: 104px minmax(0, 820px) minmax(146px, 182px);
+  }
+
+  .le-gazal-console__primary {
+    grid-template-columns: 156px minmax(0, 1fr) 142px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .le-gazal-cabinet__body {
+    grid-template-areas: "core core" "totem mascot";
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 14px;
+    min-height: auto;
+  }
+
+  .le-gazal-totem {
+    align-self: stretch;
+  }
+
+  .le-gazal-console__primary {
+    grid-template-columns: 148px minmax(0, 1fr) 136px;
+  }
+
+  .le-gazal-mascot-figure {
+    padding-top: 36px;
+  }
+}
+
+@media (max-width: 768px) {
+  .le-gazal-arena {
+    padding: 18px 12px 14px;
+  }
+
+  .le-gazal-marquee p {
+    font-size: 0.84rem;
+  }
+
+  .le-gazal-marquee__title-logo {
+    width: min(520px, 86vw);
+    height: 92px;
+  }
+
+  .le-gazal-cabinet__body {
+    grid-template-areas:
+      "core"
+      "totem"
+      "mascot";
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .le-gazal-totem {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .le-gazal-totem__foot {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .le-gazal-mascot-figure {
+    justify-content: center;
+    min-height: 0;
+    padding-top: 0;
+  }
+
+  .le-gazal-mascot-figure__image {
+    max-width: 136px;
+    max-height: 160px;
+  }
+
+  .le-gazal-board {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .le-gazal-console__primary {
+    grid-template-columns: minmax(0, 1fr) 146px;
+    grid-template-areas:
+      "bet spin"
+      "selector selector";
+    align-items: stretch;
+  }
+
+  .le-gazal-console__plate--bet {
+    grid-area: bet;
+  }
+
+  .le-gazal-console__plate--selector {
+    grid-area: selector;
+  }
+
+  .le-gazal-console__spin {
+    grid-area: spin;
+    align-self: center;
+  }
+
+}
+
+@media (max-width: 430px) {
+  .le-gazal-page {
+    gap: 14px;
+  }
+
+  .le-gazal-arena {
+    padding: 12px 8px 10px;
+    border-radius: 24px;
+  }
+
+  .le-gazal-cabinet {
+    gap: 12px;
+  }
+
+  .le-gazal-marquee__title-logo {
+    width: min(92vw, 420px);
+    height: 74px;
+  }
+
+  .le-gazal-marquee p {
+    font-size: 0.76rem;
+  }
+
+  .le-gazal-machine__topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .le-gazal-machine__legend {
+    width: 100%;
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .le-gazal-machine {
+    padding: 10px;
+    border-radius: 22px;
+  }
+
+  .le-gazal-board {
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .le-gazal-board__column {
+    gap: 4px;
+  }
+
+  .le-gazal-board::before {
+    inset: 6px;
+  }
+
+  .le-gazal-board__cell {
+    border-radius: 12px;
+  }
+
+  .le-gazal-symbol__art {
+    width: min(72%, 50px);
+    height: min(72%, 50px);
+  }
+
+  .le-gazal-symbol__value {
+    width: min(74%, 54px);
+    height: min(74%, 54px);
+    font-size: clamp(1.2rem, 7vw, 1.75rem);
+  }
+
+  .le-gazal-symbol__tag {
+    font-size: 0.5rem;
+    padding: 2px 6px;
+  }
+
+  .le-gazal-machine__footer {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .le-gazal-win-pill {
+    font-size: 0.74rem;
+  }
+
+  .le-gazal-totem {
+    grid-template-columns: 1fr;
+  }
+
+  .le-gazal-console {
+    padding: 8px;
+    border-radius: 22px;
+  }
+
+  .le-gazal-console__primary {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "bet"
+      "selector"
+      "spin";
+    gap: 8px;
+  }
+
+  .le-gazal-console__plate {
+    min-height: 72px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .le-gazal-console__label {
+    font-size: 0.67rem;
+  }
+
+  .le-gazal-console__value,
+  .le-gazal-totem__value {
+    font-size: 1.42rem;
+  }
+
+  .le-gazal-console__subvalue,
+  .le-gazal-console__quickline {
+    font-size: 0.74rem;
+  }
+
+  .le-gazal-console__quickline {
+    gap: 8px 12px;
+  }
+
+  .le-gazal-console__bets {
+    gap: 6px;
+  }
+
+  .le-gazal-console__bet {
+    min-height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .le-gazal-console__spin {
+    justify-self: center;
+    width: 120px;
+    height: 120px;
+  }
+
+  .le-gazal-mascot-figure__image {
+    max-width: 92px;
+    max-height: 108px;
+  }
+}
+
+@media (max-width: 375px) {
+  .le-gazal-machine,
+  .le-gazal-console,
+  .le-gazal-debug,
+  .le-gazal-modal__card {
+    padding: 12px;
+  }
+
+  .le-gazal-marquee__title-logo {
+    height: 64px;
+  }
+
+  .le-gazal-machine {
+    padding: 8px;
+  }
+
+  .le-gazal-chip {
+    margin-right: 6px;
+    margin-bottom: 4px;
+    padding: 5px 9px;
+    font-size: 0.72rem;
+  }
+
+  .le-gazal-machine__legend {
+    font-size: 0.66rem;
+    line-height: 1.3;
+  }
+
+  .le-gazal-board {
+    gap: 3px;
+    padding: 5px;
+  }
+
+  .le-gazal-board__column {
+    gap: 3px;
+  }
+
+  .le-gazal-board::before {
+    inset: 5px;
+  }
+
+  .le-gazal-symbol__art {
+    width: min(68%, 44px);
+    height: min(68%, 44px);
+  }
+
+  .le-gazal-symbol__value {
+    width: min(72%, 48px);
+    height: min(72%, 48px);
+    font-size: clamp(1.05rem, 6.4vw, 1.5rem);
+  }
+
+  .le-gazal-console__value,
+  .le-gazal-totem__value {
+    font-size: 1.3rem;
+  }
+
+  .le-gazal-console__spin {
+    width: 108px;
+    height: 108px;
+  }
+
+  .le-gazal-console__spin-core {
+    inset: 11px;
+  }
+
+  .le-gazal-console__spin-arrow {
+    font-size: 2.3rem;
+  }
+
+  .le-gazal-console__spin-text {
+    font-size: 0.74rem;
+  }
+
+  .le-gazal-console__tool {
+    width: 48px;
+    min-height: 48px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 768px) {
+  .le-gazal-mascot-figure__image {
+    max-width: 132px;
+    max-height: 154px;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .le-gazal-cabinet__body {
+    grid-template-areas: "core core" "totem mascot";
+    grid-template-columns: minmax(0, 1fr) 132px;
+  }
+
+  .le-gazal-mascot-figure__image {
+    max-width: 120px;
+    max-height: 140px;
+  }
+}
+
+@media (max-height: 860px) {
+  .le-gazal-page {
+    gap: 16px;
+  }
+
+  .le-gazal-arena {
+    padding: 16px 18px 14px;
+  }
+
+  .le-gazal-cabinet {
+    gap: 12px;
+  }
+
+  .le-gazal-marquee p {
+    font-size: 0.78rem;
+  }
+
+  .le-gazal-marquee__title-logo {
+    height: clamp(72px, 8vw, 118px);
+  }
+
+  .le-gazal-cabinet__body {
+    min-height: auto;
+  }
+
+  .le-gazal-core {
+    gap: 10px;
+  }
+
+  .le-gazal-machine {
+    padding: 12px;
+  }
+
+  .le-gazal-console__primary {
+    gap: 10px;
+  }
+
+  .le-gazal-mascot-figure__image {
+    max-height: min(34vh, 300px);
+  }
+}
+
+@media (max-height: 740px) {
+  .le-gazal-arena {
+    padding: 14px 16px 12px;
+  }
+
+  .le-gazal-marquee p {
+    font-size: 0.72rem;
+  }
+
+  .le-gazal-totem {
+    padding: 10px 12px;
+  }
+
+  .le-gazal-cabinet__body {
+    grid-template-columns: 92px minmax(0, 760px) minmax(120px, 150px);
+  }
+
+  .le-gazal-mascot-figure {
+    padding-top: 26px;
+  }
+
+  .le-gazal-mascot-figure__image {
+    max-width: 138px;
+    max-height: 168px;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .le-gazal-arena {
+    padding: 10px 12px 8px;
+    border-radius: 20px;
+  }
+
+  .le-gazal-marquee__title-logo {
+    height: 58px;
+  }
+
+  .le-gazal-cabinet {
+    gap: 8px;
+  }
+
+  .le-gazal-cabinet__body {
+    grid-template-areas: "core";
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .le-gazal-totem,
+  .le-gazal-mascot-figure {
+    display: none;
+  }
+
+  .le-gazal-core {
+    gap: 8px;
+  }
+
+  .le-gazal-machine {
+    padding: 8px;
+  }
+
+  .le-gazal-board {
+    max-width: min(100%, 520px);
+    margin-inline: auto;
+  }
+
+  .le-gazal-console {
+    padding: 8px;
+  }
+
+  .le-gazal-console__primary {
+    grid-template-columns: 128px minmax(0, 1fr) 118px;
+    gap: 8px;
+  }
+
+  .le-gazal-console__plate {
+    min-height: 60px;
+    padding: 8px 10px;
+  }
+
+  .le-gazal-console__value {
+    font-size: 1.26rem;
+  }
+
+  .le-gazal-console__spin {
+    width: 108px;
+    height: 108px;
+  }
+
+  .le-gazal-console__quickline,
+  .le-gazal-console__secondary {
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .le-gazal-board__column--spinning,
+  .le-gazal-board__cell--winning,
+  .le-gazal-symbol--wild .le-gazal-symbol__art,
+  .le-gazal-symbol--shield .le-gazal-symbol__art,
+  .le-gazal-symbol--bonus .le-gazal-symbol__art,
+  .le-gazal-coin-burst__coin,
+  .le-gazal-coin-burst__label,
+  .le-gazal-mascot-figure__image {
+    animation: none;
+  }
+
+  .le-gazal-console__bet {
+    transition: none;
+  }
+}
