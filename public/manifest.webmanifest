@@ -1,0 +1,18 @@
+{
+  "name": "Gazalbide Stats",
+  "short_name": "Gazal Stats",
+  "description": "Estadísticas, jugadores y fantasy de Gazalbide.",
+  "start_url": "/gazalbide-stats/",
+  "scope": "/gazalbide-stats/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "/gazalbide-stats/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
