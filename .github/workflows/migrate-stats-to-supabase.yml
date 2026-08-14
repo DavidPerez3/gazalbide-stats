@@ -1,0 +1,64 @@
+name: Migrate stats to Supabase
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/migrate-stats-to-supabase.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stats-supabase-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      STATS_SEASON: "2025-26"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check database secret
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Falta el secret SUPABASE_DB_URL. Añade la connection string de Supabase como Repository secret y vuelve a ejecutar este workflow manualmente."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Apply stats schema
+        env:
+          PGSSLMODE: require
+        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/001_stats_core.sql
+
+      - name: Install temporary Postgres driver
+        run: npm install --no-save --package-lock=false pg
+
+      - name: Import historical JSON data
+        run: node scripts/migrate_stats_via_postgres.mjs
+
+      - name: Confirm no repository data changed
+        shell: bash
+        run: |
+          if ! git diff --quiet -- public/data excels package.json package-lock.json; then
+            echo "::error::La migración modificó archivos legacy inesperadamente."
+            git diff -- public/data excels package.json package-lock.json
+            exit 1
+          fi
+          echo "Migración completada sin modificar Excel, JSON ni package files."
