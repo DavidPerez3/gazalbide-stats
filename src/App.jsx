@@ -5,10 +5,11 @@ import SeasonTabs from "./components/SeasonTabs.jsx";
 export default function App() {
   const { pathname } = useLocation();
   const isLiveScorer = pathname === "/admin/live";
+  const isLeGazal = pathname.startsWith("/le-gazal");
   const hidesSeasonTabs =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/fantasy") ||
-    pathname.startsWith("/le-gazal") ||
+    isLeGazal ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
@@ -17,6 +18,19 @@ export default function App() {
     return (
       <div className="live-app-shell">
         <Outlet />
+      </div>
+    );
+  }
+
+  if (isLeGazal) {
+    return (
+      <div className="le-gazal-app-shell">
+        <Navbar />
+        <main className="main le-gazal-app-main">
+          <div className="container le-gazal-app-container">
+            <Outlet />
+          </div>
+        </main>
       </div>
     );
   }
