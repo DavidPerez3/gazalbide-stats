@@ -28,6 +28,7 @@ import PrivateRoute from "./components/PrivateRoute.jsx";
 
 import "./index.css";
 import "./mobile.css";
+import "./fantasy-mobile.css";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 
