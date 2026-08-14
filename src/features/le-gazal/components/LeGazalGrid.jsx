@@ -32,6 +32,7 @@ function buildWinningRows(grid, winningCellKeys) {
 export default function LeGazalGrid({
   grid,
   isSpinning,
+  stoppedColumns,
   winningCellKeys,
   coinBurstKey,
   amountWon,
@@ -42,7 +43,11 @@ export default function LeGazalGrid({
 
   return (
     <div className="le-gazal-board-wrap">
-      <div className="le-gazal-board" role="img" aria-label="Rodillos de Le Gazal">
+      <div
+        className={`le-gazal-board ${isSpinning ? "le-gazal-board--spinning" : ""}`}
+        role="img"
+        aria-label="Rodillos de Le Gazal"
+      >
         {winningRows.map((line) => (
           <div
             key={`line-${line.row}-${line.min}-${line.max}`}
@@ -55,27 +60,33 @@ export default function LeGazalGrid({
           />
         ))}
 
-        {Array.from({ length: SLOT_COLUMNS }, (_, columnIndex) => (
-          <div
-            key={`column-${columnIndex}`}
-            className={`le-gazal-board__column ${isSpinning ? "le-gazal-board__column--spinning" : ""}`}
-            style={{ animationDelay: `${columnIndex * 0.08}s` }}
-          >
-            {Array.from({ length: SLOT_ROWS }, (_, rowIndex) => {
-              const cellKey = `${rowIndex}-${columnIndex}`;
-              const isWinning = winningSet.has(cellKey);
+        {Array.from({ length: SLOT_COLUMNS }, (_, columnIndex) => {
+          const hasStopped = Boolean(stoppedColumns?.[columnIndex]);
+          const spinningClass = isSpinning && !hasStopped ? " le-gazal-board__column--spinning" : "";
+          const settledClass = isSpinning && hasStopped ? " le-gazal-board__column--settled" : "";
 
-              return (
-                <div
-                  key={cellKey}
-                  className={`le-gazal-board__cell ${isWinning ? "le-gazal-board__cell--winning" : ""}`}
-                >
-                  <SlotSymbol symbolId={grid[rowIndex][columnIndex]} />
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <div
+              key={`column-${columnIndex}`}
+              className={`le-gazal-board__column${spinningClass}${settledClass}`}
+              style={{ animationDelay: `${columnIndex * 0.035}s` }}
+            >
+              {Array.from({ length: SLOT_ROWS }, (_, rowIndex) => {
+                const cellKey = `${rowIndex}-${columnIndex}`;
+                const isWinning = winningSet.has(cellKey);
+
+                return (
+                  <div
+                    key={cellKey}
+                    className={`le-gazal-board__cell ${isWinning ? "le-gazal-board__cell--winning" : ""}`}
+                  >
+                    <SlotSymbol symbolId={grid[rowIndex][columnIndex]} />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
 
       <LeGazalCoinBurst
