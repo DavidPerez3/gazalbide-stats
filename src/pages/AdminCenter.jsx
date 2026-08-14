@@ -35,8 +35,8 @@ const modules = [
     id: "live",
     icon: "⚡",
     title: "Live Stats",
-    description: "Registrar el partido en directo desde el banquillo.",
-    status: "Siguiente fase",
+    description: "Modelo de eventos preparado. Siguiente: estado local e interfaz horizontal.",
+    status: "Modelo preparado",
   },
 ];
 
