@@ -1,6 +1,12 @@
 // Shared Live Stats domain contract.
 // Keep this aligned with supabase/migrations/002_live_stats_core.sql.
 
+import {
+  MAX_BENCH_SIZE,
+  MAX_ON_COURT,
+  MAX_ROSTER_SIZE,
+} from "./rules.js";
+
 export const LIVE_STATS_CONFIG = Object.freeze({
   preferredOrientation: "landscape",
   tracksGazalbidePlayers: true,
@@ -8,6 +14,9 @@ export const LIVE_STATS_CONFIG = Object.freeze({
   opponentMode: "aggregate",
   regulationPeriodMs: 10 * 60 * 1000,
   overtimePeriodMs: 5 * 60 * 1000,
+  maxRosterSize: MAX_ROSTER_SIZE,
+  maxOnCourt: MAX_ON_COURT,
+  maxBenchSize: MAX_BENCH_SIZE,
 });
 
 export const LIVE_EVENT = Object.freeze({
@@ -26,6 +35,7 @@ export const LIVE_EVENT = Object.freeze({
   TOV: "TOV",
   STL: "STL",
   BLK: "BLK",
+  // PF always requires metadata.foulKind.
   PF: "PF",
   PFD: "PFD",
 
@@ -109,6 +119,12 @@ export const PLAYER_STAT_DELTA = Object.freeze({
   [LIVE_EVENT.PFD]: { pfd: 1 },
 });
 
+export const CLOCK_STOP_EVENT_TYPES = Object.freeze([
+  LIVE_EVENT.PF,
+  LIVE_EVENT.OPP_TEAM_FOUL,
+  LIVE_EVENT.PERIOD_END,
+]);
+
 export function getScoreDelta(eventType) {
   return SCORE_DELTA[eventType] || { gazalbide: 0, opponent: 0 };
 }
@@ -134,4 +150,8 @@ export function eventRequiresGazalbidePlayer(eventType) {
 
 export function isOpponentAggregateEvent(eventType) {
   return getEventSubject(eventType) === "opponent";
+}
+
+export function eventStopsClock(eventType) {
+  return CLOCK_STOP_EVENT_TYPES.includes(eventType);
 }
