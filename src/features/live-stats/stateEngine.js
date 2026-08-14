@@ -84,6 +84,7 @@ export function createInitialGameState({ roster, starterIds, matchDate, period =
         status: starterIds.includes(player.id) ? PLAYER_STATUS.ON_COURT : PLAYER_STATUS.BENCH,
         stats: { ...EMPTY_STATS },
         foulKinds: [],
+        playedMs: 0,
       },
     ])
   );
@@ -246,6 +247,38 @@ function applyPlayerStat(state, event) {
   };
 }
 
+export function addPlayedTime(state, elapsedMs) {
+  const safeElapsed = Math.max(0, Number(elapsedMs || 0));
+  if (!safeElapsed) return state;
+
+  const players = { ...state.players };
+  for (const playerId of state.onCourtIds) {
+    const player = players[playerId];
+    if (!player || !isPlayerEligible(player.status)) continue;
+    players[playerId] = {
+      ...player,
+      playedMs: Math.max(0, Number(player.playedMs || 0) + safeElapsed),
+    };
+  }
+  return { ...state, players };
+}
+
+export function adjustPlayedTimeForCurrentLineup(state, deltaMs) {
+  const correction = Number(deltaMs || 0);
+  if (!correction) return state;
+
+  const players = { ...state.players };
+  for (const playerId of state.onCourtIds) {
+    const player = players[playerId];
+    if (!player) continue;
+    players[playerId] = {
+      ...player,
+      playedMs: Math.max(0, Number(player.playedMs || 0) + correction),
+    };
+  }
+  return { ...state, players };
+}
+
 export function applyLiveEvent(previousState, event) {
   if (!event || event.is_void) return previousState;
   let state = previousState;
@@ -267,6 +300,7 @@ export function applyLiveEvent(previousState, event) {
   const period = event.period ?? state.period;
   const currentPeriodFouls = state.teamFouls[period] || { gazalbide: 0, opponent: 0 };
   const eventClockMs = Number.isFinite(event.clock_ms) ? event.clock_ms : state.clockMs;
+  const isSystemEvent = event.subject === "system";
 
   state = {
     ...state,
@@ -281,7 +315,9 @@ export function applyLiveEvent(previousState, event) {
       ...state.teamFouls,
       [period]: addDelta(currentPeriodFouls, foulDelta),
     },
-    lastEvent: event,
+    // Clock corrections and period markers are system events; they should not
+    // replace the spectator-facing "última acción".
+    lastEvent: isSystemEvent ? state.lastEvent : event,
   };
 
   return state;
