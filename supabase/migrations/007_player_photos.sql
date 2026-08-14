@@ -5,7 +5,26 @@ alter table public.players
   add column if not exists photo_path text;
 
 comment on column public.players.photo_path is
-  'Optional path inside the public player-photos Storage bucket. Uploaded photos are normalised by the PWA to 512x512 WebP.';
+  'Optional profile photo reference. Legacy /images paths are supported; new uploads live in the public player-photos Storage bucket as 512x512 WebP.';
+
+-- Reuse the player pictures that already exist in the 2025-2026 Fantasy assets.
+-- This runs only for historical members, so future players are not assigned a fake local file.
+update public.players p
+set photo_path =
+  '/images/players/' ||
+  case
+    when trim(p.number) in ('0', '00') then '00'
+    else lpad(trim(p.number), 2, '0')
+  end || '_' ||
+  regexp_replace(trim(p.name), '\s+', '_', 'g') ||
+  '.png'
+where p.photo_path is null
+  and exists (
+    select 1
+    from public.season_players sp
+    where sp.player_id = p.id
+      and sp.season_id = '2025-2026'
+  );
 
 insert into storage.buckets (
   id,
