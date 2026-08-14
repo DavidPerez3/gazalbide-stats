@@ -26,15 +26,12 @@ function resolveSeasonId(seasonId) {
 
 async function getJson(relativePath) {
   const response = await fetch(`${BASE}${relativePath}`);
-  if (!response.ok) {
-    throw new Error(`No se pudo cargar ${relativePath} (${response.status})`);
-  }
+  if (!response.ok) throw new Error(`No se pudo cargar ${relativePath} (${response.status})`);
   return response.json();
 }
 
 async function fromConfiguredSource(loadFromSupabase, loadFromJson, label) {
   if (STATS_SOURCE !== "supabase") return loadFromJson();
-
   try {
     const data = await loadFromSupabase();
     if (Array.isArray(data) && data.length === 0) return loadFromJson();
@@ -47,10 +44,7 @@ async function fromConfiguredSource(loadFromSupabase, loadFromJson, label) {
 
 function withSeason(match) {
   const explicit = normaliseSeasonId(match.season);
-  return {
-    ...match,
-    season: explicit || getSeasonIdForDate(match.date),
-  };
+  return { ...match, season: explicit || getSeasonIdForDate(match.date) };
 }
 
 async function getMatchesFromJson(seasonId) {
@@ -59,10 +53,6 @@ async function getMatchesFromJson(seasonId) {
 }
 
 async function derivePlayersFromSeasonMatches(seasonId) {
-  if (seasonId === LEGACY_SEASON_ID) {
-    return getJson("data/players.json");
-  }
-
   const matches = await getMatchesFromJson(seasonId);
   const unique = new Map();
   for (const match of matches) {
@@ -72,7 +62,6 @@ async function derivePlayersFromSeasonMatches(seasonId) {
       if (!unique.has(key)) unique.set(key, { number: row.number, name: row.name });
     }
   }
-
   return Array.from(unique.values()).sort((a, b) => Number(a.number) - Number(b.number));
 }
 
