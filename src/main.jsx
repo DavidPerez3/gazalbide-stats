@@ -14,6 +14,8 @@ import LeGazalPage from "./pages/LeGazalPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
+import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
+import LiveStatsPage from "./pages/LiveStatsPage.jsx";
 import FantasyBuilder from "./pages/FantasyBuilder.jsx";
 import FantasyHistory from "./pages/FantasyHistory.jsx";
 import FantasyRanking from "./pages/FantasyRanking.jsx";
@@ -89,6 +91,22 @@ const router = createHashRouter([
         element: (
           <PrivateRoute adminOnly={true}>
             <AdminCenter />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin/live/setup",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <LiveStatsSetup />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin/live",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <LiveStatsPage />
           </PrivateRoute>
         ),
       },
