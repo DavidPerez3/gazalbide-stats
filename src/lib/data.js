@@ -12,6 +12,17 @@ import {
 
 const BASE = import.meta.env.BASE_URL;
 const STATS_SOURCE = String(import.meta.env.VITE_STATS_SOURCE || "json").toLowerCase();
+const SEASON_STORAGE_KEY = "gazalbide.activeSeason";
+
+function resolveSeasonId(seasonId) {
+  if (seasonId) return seasonId;
+  try {
+    const stored = window.localStorage.getItem(SEASON_STORAGE_KEY);
+    return normaliseSeasonId(stored) || CURRENT_SEASON_ID;
+  } catch {
+    return CURRENT_SEASON_ID;
+  }
+}
 
 async function getJson(relativePath) {
   const response = await fetch(`${BASE}${relativePath}`);
@@ -44,7 +55,7 @@ function withSeason(match) {
 
 async function getMatchesFromJson(seasonId) {
   const matches = (await getJson("data/matches.json")).map(withSeason);
-  return seasonId ? matches.filter((match) => match.season === seasonId) : matches;
+  return matches.filter((match) => match.season === seasonId);
 }
 
 async function derivePlayersFromSeasonMatches(seasonId) {
@@ -65,26 +76,27 @@ async function derivePlayersFromSeasonMatches(seasonId) {
   return Array.from(unique.values()).sort((a, b) => Number(a.number) - Number(b.number));
 }
 
-export async function getMatches(seasonId = CURRENT_SEASON_ID) {
+export async function getMatches(seasonId) {
+  const resolved = resolveSeasonId(seasonId);
   return fromConfiguredSource(
-    () => getMatchesFromSupabase(seasonId),
-    () => getMatchesFromJson(seasonId),
-    `matches:${seasonId}`
+    () => getMatchesFromSupabase(resolved),
+    () => getMatchesFromJson(resolved),
+    `matches:${resolved}`
   );
 }
 
-export async function getPlayers(seasonId = CURRENT_SEASON_ID) {
+export async function getPlayers(seasonId) {
+  const resolved = resolveSeasonId(seasonId);
   return fromConfiguredSource(
-    () => getPlayersFromSupabase(seasonId),
-    () => derivePlayersFromSeasonMatches(seasonId),
-    `players:${seasonId}`
+    () => getPlayersFromSupabase(resolved),
+    () => derivePlayersFromSeasonMatches(resolved),
+    `players:${resolved}`
   );
 }
 
-export async function getTechs(seasonId = CURRENT_SEASON_ID) {
-  // techs.json belongs to the original 2025-2026 season. New seasons will derive
-  // technical/unsportsmanlike/disqualifying counts from Live Stats/Supabase.
-  if (seasonId !== LEGACY_SEASON_ID) return {};
+export async function getTechs(seasonId) {
+  const resolved = resolveSeasonId(seasonId);
+  if (resolved !== LEGACY_SEASON_ID) return {};
   try {
     return await getJson("data/techs.json");
   } catch {
