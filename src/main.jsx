@@ -13,7 +13,7 @@ import LeGazalPage from "./pages/LeGazalPage.jsx";
 
 import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
-import AdminPage from "./pages/AdminPage.jsx";
+import AdminCenter from "./pages/AdminCenter.jsx";
 import FantasyBuilder from "./pages/FantasyBuilder.jsx";
 import FantasyHistory from "./pages/FantasyHistory.jsx";
 import FantasyRanking from "./pages/FantasyRanking.jsx";
@@ -88,7 +88,7 @@ const router = createHashRouter([
         path: "admin",
         element: (
           <PrivateRoute adminOnly={true}>
-            <AdminPage />
+            <AdminCenter />
           </PrivateRoute>
         ),
       },
