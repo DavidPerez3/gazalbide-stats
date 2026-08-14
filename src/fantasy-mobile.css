@@ -1,0 +1,481 @@
+/* Fantasy mobile polish. Keeps the existing desktop experience and makes all
+   Fantasy routes comfortable on phones/small tablets. */
+
+@media (max-width: 900px) {
+  .fantasy,
+  .fantasy-builder {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Fantasy pages already live inside App's .container. Avoid double mobile padding. */
+  .fantasy > .container,
+  .fantasy-builder > .container {
+    width: 100%;
+    max-width: none;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .fantasy__card,
+  .fantasy-builder__card {
+    width: 100%;
+    min-width: 0;
+    padding: 14px !important;
+    border-radius: 18px;
+  }
+
+  .fantasy__header,
+  .fantasy-builder__header {
+    margin-bottom: 16px;
+  }
+
+  .fantasy__title,
+  .fantasy-builder__title {
+    margin: 0;
+    font-size: clamp(1.55rem, 7vw, 2rem) !important;
+    line-height: 1.08;
+  }
+
+  .fantasy__subtitle,
+  .fantasy-builder__subtitle,
+  .fantasy__text,
+  .fantasy-builder__text {
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+  }
+
+  .fantasy__section {
+    min-width: 0;
+  }
+
+  .fantasy__section-title,
+  .fantasy-builder__section-title {
+    font-size: 1.1rem !important;
+    line-height: 1.25;
+  }
+
+  .fantasy__section-header {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+
+  .fantasy__filters,
+  .fantasy__filter-label {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .fantasy__filter-label {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    color: var(--color-ink-dim);
+    font-weight: 700;
+  }
+
+  .fantasy__filter-label select {
+    width: 100%;
+    min-height: 46px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    background: var(--color-bg-soft);
+    color: var(--color-ink);
+    font-size: 16px;
+  }
+
+  .fantasy__gw-box {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+    padding: 12px !important;
+  }
+
+  .fantasy__gw-main,
+  .fantasy__gw-meta {
+    min-width: 0;
+  }
+
+  .fantasy__gw-meta {
+    display: flex !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start !important;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fantasy__gw-title,
+  .fantasy__gw-sub,
+  .fantasy__gw-deadline {
+    overflow-wrap: anywhere;
+  }
+
+  .fantasy__form {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .fantasy__input,
+  .fantasy__button,
+  .fantasy-builder__btn,
+  .fantasy-builder__btn-secondary,
+  .fantasy-builder__back {
+    min-height: 44px;
+  }
+
+  .fantasy__form .fantasy__button {
+    width: 100%;
+  }
+
+  .fantasy__team-header {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+
+  .fantasy__team-name-main {
+    overflow-wrap: anywhere;
+  }
+
+  .fantasy__team-badges {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: flex-start !important;
+    gap: 8px;
+  }
+
+  .fantasy__coach-card {
+    min-width: 0;
+    padding: 12px !important;
+  }
+
+  .fantasy-builder__coach-traits {
+    min-width: 0;
+  }
+
+  .fantasy-builder__coach-info {
+    min-width: 0;
+  }
+
+  .fantasy-builder__traits,
+  .fantasy-builder__item-traits {
+    flex-wrap: wrap;
+  }
+
+  /* Main fantasy lineup: keep the 3-2 court layout but scale it to phone size. */
+  .fantasy__court-wrapper,
+  .fantasy__lineup {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .fantasy__court {
+    width: min(100%, 370px) !important;
+    max-width: 370px !important;
+    height: 440px !important;
+  }
+
+  .fantasy__court-slot {
+    width: 29% !important;
+    max-width: 108px !important;
+    min-width: 0;
+  }
+
+  .fantasy__court-slot-card {
+    width: 100%;
+    min-width: 0;
+    height: 172px !important;
+    padding: 6px 4px !important;
+    border-radius: 11px !important;
+    font-size: .61rem !important;
+  }
+
+  .fantasy__court-slot-card > div:has(> img) {
+    width: 42px !important;
+    height: 42px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .fantasy__court-slot-header {
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .fantasy__court-slot-name {
+    max-width: 62px !important;
+    font-size: .7rem !important;
+  }
+
+  .fantasy__court-slot-meta,
+  .fantasy__court-slot-points {
+    max-width: 100%;
+    font-size: .56rem !important;
+  }
+
+  .fantasy__court-slot-card .fantasy-builder__trait-chip {
+    padding: 1px 4px !important;
+    font-size: .49rem !important;
+  }
+
+  .fantasy__actions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .fantasy__actions .fantasy__button {
+    width: 100%;
+    margin: 0 !important;
+  }
+
+  .fantasy-builder__legend {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .fantasy-builder__legend-item {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Builder / market. */
+  .fantasy-builder__header-top {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+
+  .fantasy-builder__budget {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    width: 100%;
+  }
+
+  .fantasy-builder__budget-pill {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 10px !important;
+    line-height: 1.3;
+  }
+
+  .fantasy-builder__list {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .fantasy-builder__item {
+    width: 100%;
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main right"
+      "middle right";
+    align-items: center !important;
+    gap: 8px 10px !important;
+    padding: 11px !important;
+  }
+
+  .fantasy-builder__item-main {
+    grid-area: main;
+    min-width: 0;
+    gap: 9px !important;
+    align-items: center !important;
+  }
+
+  .fantasy-builder__player-photo {
+    width: 54px !important;
+    height: 54px !important;
+    flex: 0 0 54px;
+  }
+
+  .fantasy-builder__item-main > div:last-child {
+    min-width: 0;
+  }
+
+  .fantasy-builder__item-name {
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+  }
+
+  .fantasy-builder__item-middle {
+    grid-area: middle;
+    min-width: 0;
+  }
+
+  .fantasy-builder__item-right {
+    grid-area: right;
+    min-width: 82px;
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px;
+  }
+
+  .fantasy-builder__price {
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .fantasy-builder__item-right .fantasy-builder__btn {
+    width: 100%;
+    padding-inline: 9px;
+  }
+
+  .fantasy__market-bars {
+    max-width: 150px;
+  }
+
+  .fantasy-builder__coach-card {
+    min-width: 0;
+    gap: 10px !important;
+    padding: 11px !important;
+  }
+
+  .fantasy-builder__coach-card > div:first-child {
+    min-width: 0;
+  }
+
+  /* Ranking and both history screens: filters fit, tables scroll intentionally. */
+  .fantasy__ranking {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fantasy__ranking-table {
+    min-width: 570px;
+    font-size: .82rem;
+  }
+
+  .fantasy__ranking-table th,
+  .fantasy__ranking-table td {
+    padding: 9px 8px !important;
+    white-space: nowrap;
+  }
+
+  .fantasy__section-card {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 12px !important;
+  }
+
+  .fantasy__section-card-header {
+    min-width: 0;
+  }
+
+  .fantasy__section-card-header h3,
+  .fantasy__section-card-header p {
+    overflow-wrap: anywhere;
+  }
+
+  .fantasy__link-button {
+    min-height: 36px;
+    padding: 4px 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fantasy__card,
+  .fantasy-builder__card {
+    padding: 11px !important;
+    border-radius: 15px;
+  }
+
+  .fantasy__title,
+  .fantasy-builder__title {
+    font-size: 1.5rem !important;
+  }
+
+  .fantasy__court {
+    width: min(100%, 350px) !important;
+    height: 420px !important;
+  }
+
+  .fantasy__court-slot {
+    width: 29.5% !important;
+  }
+
+  .fantasy__court-slot-card {
+    height: 164px !important;
+    font-size: .58rem !important;
+  }
+
+  .fantasy__court-slot-card > div:has(> img) {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .fantasy__court-slot-name {
+    max-width: 57px !important;
+    font-size: .66rem !important;
+  }
+
+  .fantasy-builder__legend {
+    grid-template-columns: 1fr;
+  }
+
+  .fantasy-builder__item {
+    grid-template-columns: minmax(0, 1fr) 82px;
+    padding: 9px !important;
+  }
+
+  .fantasy-builder__player-photo {
+    width: 48px !important;
+    height: 48px !important;
+    flex-basis: 48px;
+  }
+
+  .fantasy-builder__item-sub,
+  .fantasy-builder__trait-chip,
+  .fantasy__player-status {
+    font-size: .66rem !important;
+  }
+
+  .fantasy__ranking-table {
+    min-width: 540px;
+    font-size: .78rem;
+  }
+}
+
+@media (max-width: 365px) {
+  .fantasy__court {
+    height: 405px !important;
+  }
+
+  .fantasy__court-slot-card {
+    height: 156px !important;
+  }
+
+  .fantasy__court-slot-card > div:has(> img) {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .fantasy-builder__item {
+    grid-template-columns: minmax(0, 1fr) 76px;
+    gap: 7px !important;
+  }
+
+  .fantasy-builder__player-photo {
+    width: 44px !important;
+    height: 44px !important;
+    flex-basis: 44px;
+  }
+}
