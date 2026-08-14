@@ -1,54 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getMatches, getMatchStats } from "../lib/data";
+import { getMatches, getMatchStats, getPlayers, getTechs } from "../lib/data";
+import { useSeason } from "../context/SeasonContext.jsx";
 import DashboardHighlights from "../components/DashboardHighlights";
 
-// suma segura
 const num = (v) => Number(v || 0);
 
 export default function Home() {
+  const { activeSeason } = useSeason();
   const [matches, setMatches] = useState([]);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState(""); // 🔎 búsqueda por oponente
-  const [order, setOrder] = useState("desc"); // ⬆⬇ orden por fecha
+  const [q, setQ] = useState("");
+  const [order, setOrder] = useState("desc");
   const [techs, setTechs] = useState({});
   const [teamTotals, setTeamTotals] = useState({
-    games: 0,
-    pointsFor: 0,
-    pointsAgainst: 0,
-    wins: 0,
-    losses: 0,
-    maxPF: 0,
+    games: 0, pointsFor: 0, pointsAgainst: 0, wins: 0, losses: 0, maxPF: 0,
   });
 
   useEffect(() => {
     (async () => {
-      const BASE = import.meta.env.BASE_URL;
-      // Cargar técnicas (public/data/techs.json -> /data/techs.json)
-      try {
-        const res = await fetch(`${BASE}data/techs.json`, { cache: "no-store" });
-        if (res.ok) setTechs(await res.json());
-        else setTechs({});
-      } catch {
-        setTechs({});
-      }
+      setLoading(true);
+      const [seasonTechs, seasonPlayers, ms] = await Promise.all([
+        getTechs(),
+        getPlayers(),
+        getMatches(),
+      ]);
+      setTechs(seasonTechs || {});
+      setPlayers(seasonPlayers || []);
+      setMatches(ms || []);
 
-      // Cargar players (public/data/players.json -> /data/players.json)
-      try {
-        const resP = await fetch(`${BASE}data/players.json`, { cache: "no-store" });
-        if (resP.ok) setPlayers(await resP.json());
-        else setPlayers([]);
-      } catch {
-        setPlayers([]);
-      }
-
-      const ms = await getMatches();
-      setMatches(ms);
-
-      // Si el convertidor ya mete PF/PA/resultado en matches.json, usamos eso.
-      const havePF = ms.every(m => typeof m.gazal_pts !== "undefined");
-      const havePA = ms.every(m => typeof m.opp_pts !== "undefined");
+      const havePF = ms.every((m) => typeof m.gazal_pts !== "undefined");
+      const havePA = ms.every((m) => typeof m.opp_pts !== "undefined");
 
       let games = ms.length;
       let pointsFor = 0;
@@ -61,11 +44,9 @@ export default function Home() {
         for (const m of ms) {
           const pf = num(m.gazal_pts);
           const pa = havePA ? num(m.opp_pts) : 0;
-
           pointsFor += pf;
           pointsAgainst += pa;
           maxPF = Math.max(maxPF, pf);
-
           if (typeof m.result === "string") {
             if (m.result.toUpperCase() === "W") wins++;
             else if (m.result.toUpperCase() === "L") losses++;
@@ -75,14 +56,12 @@ export default function Home() {
           }
         }
       } else {
-        // Fallback: sumar PTS del equipo leyendo player_stats/<matchId>.json (solo PF)
         for (const m of ms) {
           const rows = await getMatchStats(m.id);
           const pf = rows.reduce((acc, r) => acc + num(r.pts), 0);
           pointsFor += pf;
           maxPF = Math.max(maxPF, pf);
         }
-        // No sabemos PA ni W/L sin la hoja del rival
       }
 
       setTeamTotals({ games, pointsFor, pointsAgainst, wins, losses, maxPF });
@@ -90,30 +69,17 @@ export default function Home() {
     })();
   }, []);
 
-  // 💡 Lista de partidos filtrada y ordenada
   const filteredMatches = useMemo(() => {
     const term = q.trim().toLowerCase();
     const f = term
-      ? matches.filter(m => (m.opponent || "").toLowerCase().includes(term))
+      ? matches.filter((m) => (m.opponent || "").toLowerCase().includes(term))
       : matches;
-
-    const s = [...f].sort((a, b) => {
-      const da = new Date(a.date).getTime() || 0;
-      const db = new Date(b.date).getTime() || 0;
-      return da - db; // asc por defecto
-    });
-
+    const s = [...f].sort((a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0));
     return order === "desc" ? s.reverse() : s;
   }, [matches, q, order]);
 
-  const avgPF = useMemo(
-    () => (teamTotals.games ? (teamTotals.pointsFor / teamTotals.games).toFixed(1) : "0.0"),
-    [teamTotals]
-  );
-  const avgPA = useMemo(
-    () => (teamTotals.games && teamTotals.pointsAgainst ? (teamTotals.pointsAgainst / teamTotals.games).toFixed(1) : "—"),
-    [teamTotals]
-  );
+  const avgPF = useMemo(() => teamTotals.games ? (teamTotals.pointsFor / teamTotals.games).toFixed(1) : "0.0", [teamTotals]);
+  const avgPA = useMemo(() => teamTotals.games && teamTotals.pointsAgainst ? (teamTotals.pointsAgainst / teamTotals.games).toFixed(1) : "—", [teamTotals]);
   const diffAvg = useMemo(() => {
     if (!teamTotals.games || !teamTotals.pointsAgainst) return "—";
     const d = teamTotals.pointsFor / teamTotals.games - teamTotals.pointsAgainst / teamTotals.games;
@@ -121,154 +87,67 @@ export default function Home() {
   }, [teamTotals]);
 
   const techTotals = useMemo(() => {
-    const entries = Object.entries(techs || {});
     let total = 0;
-
     let topPlayerId = null;
     let topValue = 0;
-
-    for (const [playerId, raw] of entries) {
-      const value =
-        typeof raw === "number"
-          ? raw
-          : raw && typeof raw === "object"
-          ? Number(raw.tech_fouls ?? 0)
-          : 0;
-
+    for (const [playerId, raw] of Object.entries(techs || {})) {
+      const value = typeof raw === "number" ? raw : Number(raw?.tech_fouls ?? 0);
       total += value;
-
-      if (value > topValue) {
-        topValue = value;
-        topPlayerId = playerId;
-      }
+      if (value > topValue) { topValue = value; topPlayerId = playerId; }
     }
-
-    // 🔑 AQUÍ está la clave
-    const topPlayerObj = players.find(
-      (p) => String(p.number) === String(topPlayerId)
-    );
-
-    return {
-      total,
-      topPlayerId,
-      topPlayer: topPlayerObj?.name ?? "—",
-      topValue,
-    };
+    const topPlayerObj = players.find((p) => String(p.number) === String(topPlayerId));
+    return { total, topPlayerId, topPlayer: topPlayerObj?.name ?? "—", topValue };
   }, [techs, players]);
 
   return (
     <section className="space-y-4">
-      {/* Bienvenida */}
-      <div className="card card--p" style={{marginBottom: 16}}>
-        <h2 style={{fontSize:'22px', fontWeight:700, marginBottom:6}}>
-          Bienvenido a <span style={{color:'var(--color-gold)'}}>Gazalbide Stats</span>
+      <div className="card card--p" style={{ marginBottom: 16 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+          Bienvenido a <span style={{ color: "var(--color-gold)" }}>Gazalbide Stats</span>
         </h2>
-        <p className="text-dim">
-          Consulta resultados, estadísticas de cada partido y ranking por métrica. Los datos se importan tras cada encuentro.
-        </p>
+        <p className="text-dim">Temporada {activeSeason.label} · resultados, estadísticas y rankings.</p>
       </div>
 
-      <DashboardHighlights />
-
-      {/* Dashboard */}
-      <div className="grid grid--3">
-        <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Nº de veces que se le ha salido el hombro a Imanol</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>4</div>
+      {!loading && matches.length === 0 ? (
+        <div className="card season-empty">
+          <strong>Temporada {activeSeason.label}</strong>
+          <span>{activeSeason.current ? "Todavía no hay partidos publicados. Los datos de 2025-2026 siguen disponibles en Histórico." : "No hay datos para esta temporada."}</span>
         </div>
-        <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Récord</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>
-            {teamTotals.wins || teamTotals.losses ? `${teamTotals.wins} - ${teamTotals.losses}` : "—"}
+      ) : (
+        <>
+          <DashboardHighlights />
+          <div className="grid grid--3">
+            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Nº de veces que se le ha salido el hombro a Imanol</div><div style={{fontSize:22,fontWeight:800}}>4</div></div>
+            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Récord</div><div style={{fontSize:22,fontWeight:800}}>{teamTotals.wins || teamTotals.losses ? `${teamTotals.wins} - ${teamTotals.losses}` : "—"}</div><div className="text-dim" style={{fontSize:12}}>Victorias – Derrotas</div></div>
+            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Técnicas (equipo)</div><div style={{fontSize:22,fontWeight:800}}>{techTotals.total}</div><div className="text-dim" style={{fontSize:12}}>Máximo jugador: {techTotals.topPlayerId ? `#${techTotals.topPlayerId} — ${techTotals.topPlayer} (${techTotals.topValue})` : "—"}</div></div>
+            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Media PF</div><div style={{fontSize:22,fontWeight:800}}>{avgPF}</div><div className="text-dim" style={{fontSize:12}}>Puntos a favor por partido</div></div>
+            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Media PA</div><div style={{fontSize:22,fontWeight:800}}>{avgPA}</div><div className="text-dim" style={{fontSize:12}}>Puntos en contra por partido</div></div>
+            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Diferencial medio</div><div style={{fontSize:22,fontWeight:800}}>{diffAvg}</div><div className="text-dim" style={{fontSize:12}}>PF/partido − PA/partido</div></div>
           </div>
-          <div className="text-dim" style={{fontSize:'12px'}}>Victorias – Derrotas</div>
-        </div>
-        <div className="card card--p">
-          <div className="text-dim" style={{ fontSize: "12px", marginBottom: 6 }}>
-            Técnicas (equipo)
-          </div>
-          
-          <div style={{ fontSize: "22px", fontWeight: 800 }}>
-            {techTotals.total}
-          </div>
-          
-          <div className="text-dim" style={{ fontSize: "12px" }}>
-            Máximo jugador: {techTotals.topPlayerId ? `#${techTotals.topPlayerId} — ${techTotals.topPlayer} (${techTotals.topValue})` : "—"}
-          </div>
-        </div>
+        </>
+      )}
 
-        <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Media PF</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>{avgPF}</div>
-          <div className="text-dim" style={{fontSize:'12px'}}>Puntos a favor por partido</div>
-        </div>
-        <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Media PA</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>{avgPA}</div>
-          <div className="text-dim" style={{fontSize:'12px'}}>Puntos en contra por partido</div>
-        </div>
-        <div className="card card--p">
-          <div className="text-dim" style={{fontSize:'12px', marginBottom:6}}>Diferencial medio</div>
-          <div style={{fontSize:'22px', fontWeight:800}}>{diffAvg}</div>
-          <div className="text-dim" style={{fontSize:'12px'}}>PF/partido − PA/partido</div>
-        </div>
-      </div>
-
-      {/* Lista de partidos */}
-      <h3 className="mt-6" style={{fontSize:'18px', fontWeight:700, color:'var(--color-gold)'}}>Partidos</h3>
-
-      {/* Controles de búsqueda/orden */}
-      {!loading && (
-        <div className="flex gap-2 mb-3" style={{marginBottom: 16}}>
-          <input
-            className="input flex-1"
-            placeholder="Buscar por oponente…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <select
-            className="input"
-            value={order}
-            onChange={(e) => setOrder(e.target.value)}
-            title="Orden por fecha"
-          >
+      <h3 className="mt-6" style={{ fontSize: 18, fontWeight: 700, color: "var(--color-gold)" }}>Partidos · {activeSeason.label}</h3>
+      {!loading && matches.length > 0 && (
+        <div className="flex gap-2 mb-3" style={{ marginBottom: 16 }}>
+          <input className="input flex-1" placeholder="Buscar por oponente…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <select className="input" value={order} onChange={(e) => setOrder(e.target.value)} title="Orden por fecha">
             <option value="desc">Fecha ↓ (recientes primero)</option>
             <option value="asc">Fecha ↑ (antiguos primero)</option>
           </select>
         </div>
       )}
 
-      {loading ? (
-        <div className="text-dim">Cargando…</div>
-      ) : filteredMatches.length === 0 ? (
-        <div className="card card--p text-center opacity-70">Sin resultados</div>
+      {loading ? <div className="text-dim">Cargando…</div> : filteredMatches.length === 0 ? (
+        <div className="card card--p text-center opacity-70">Sin partidos en {activeSeason.label}</div>
       ) : (
         <div className="grid grid--2">
-          {filteredMatches.map(m => (
-            <Link
-              key={m.id}
-              to={`/partido/${m.id}`}
-              className="card card--p"
-              title={`Ver estadísticas del ${m.date} vs ${m.opponent}`}
-            >
+          {filteredMatches.map((m) => (
+            <Link key={m.id} to={`/partido/${m.id}`} className="card card--p" title={`Ver estadísticas del ${m.date} vs ${m.opponent}`}>
               <div className="flex justify-between items-center">
-                <div>
-                  <div style={{fontSize:'18px', fontWeight:700}}>{m.date || "Fecha"}</div>
-                  <div className="text-dim">vs {m.opponent || "—"}</div>
-                </div>
-                <div style={{textAlign:'right'}}>
-                  {typeof m.gazal_pts !== "undefined" ? (
-                    <>
-                      <div style={{fontWeight:700}}>
-                        {m.gazal_pts}{typeof m.opp_pts !== "undefined" ? ` - ${m.opp_pts}` : ""}
-                      </div>
-                      <div className="text-dim" style={{fontSize:'12px'}}>
-                        {m.result ? (m.result === "W" ? "Victoria" : m.result === "L" ? "Derrota" : "Empate") : ""}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="badge">Ver</span>
-                  )}
+                <div><div style={{fontSize:18,fontWeight:700}}>{m.date || "Fecha"}</div><div className="text-dim">vs {m.opponent || "—"}</div></div>
+                <div style={{textAlign:"right"}}>
+                  {typeof m.gazal_pts !== "undefined" ? <><div style={{fontWeight:700}}>{m.gazal_pts}{typeof m.opp_pts !== "undefined" ? ` - ${m.opp_pts}` : ""}</div><div className="text-dim" style={{fontSize:12}}>{m.result ? (m.result === "W" ? "Victoria" : m.result === "L" ? "Derrota" : "Empate") : ""}</div></> : <span className="badge">Ver</span>}
                 </div>
               </div>
             </Link>

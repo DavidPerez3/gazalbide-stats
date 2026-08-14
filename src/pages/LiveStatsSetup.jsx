@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MAX_ROSTER_SIZE, MAX_ON_COURT } from "../features/live-stats/rules.js";
 import { saveLiveSetup } from "../features/live-stats/localSession.js";
+import { getPlayers } from "../lib/data.js";
+import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import "../live-stats.css";
+
+const playerKey = (player) => String(player.id ?? `num:${player.number}:${player.name}`);
 
 export default function LiveStatsSetup() {
   const navigate = useNavigate();
@@ -15,70 +19,59 @@ export default function LiveStatsSetup() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/players.json`)
-      .then((response) => {
-        if (!response.ok) throw new Error("No se pudo cargar la plantilla.");
-        return response.json();
-      })
+    getPlayers(CURRENT_SEASON_ID)
       .then((data) => setPlayers(data || []))
-      .catch((err) => setError(err.message));
+      .catch(() => setError("No se pudo cargar la plantilla de la temporada actual."));
   }, []);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const starterSet = useMemo(() => new Set(starters), [starters]);
 
-  function toggleRoster(number) {
+  function toggleRoster(id) {
     setError("");
-    if (selectedSet.has(number)) {
-      setSelected((prev) => prev.filter((value) => value !== number));
-      setStarters((prev) => prev.filter((value) => value !== number));
+    if (selectedSet.has(id)) {
+      setSelected((prev) => prev.filter((value) => value !== id));
+      setStarters((prev) => prev.filter((value) => value !== id));
       return;
     }
     if (selected.length >= MAX_ROSTER_SIZE) {
       setError(`Solo se pueden convocar ${MAX_ROSTER_SIZE} jugadores.`);
       return;
     }
-    setSelected((prev) => [...prev, number]);
+    setSelected((prev) => [...prev, id]);
   }
 
-  function toggleStarter(number) {
+  function toggleStarter(id) {
     setError("");
-    if (!selectedSet.has(number)) return;
-    if (starterSet.has(number)) {
-      setStarters((prev) => prev.filter((value) => value !== number));
+    if (!selectedSet.has(id)) return;
+    if (starterSet.has(id)) {
+      setStarters((prev) => prev.filter((value) => value !== id));
       return;
     }
     if (starters.length >= MAX_ON_COURT) {
       setError(`El quinteto inicial debe tener exactamente ${MAX_ON_COURT} jugadores.`);
       return;
     }
-    setStarters((prev) => [...prev, number]);
+    setStarters((prev) => [...prev, id]);
   }
 
   function startGame() {
     setError("");
-    if (selected.length < MAX_ON_COURT) {
-      setError("Debes convocar al menos 5 jugadores.");
-      return;
-    }
-    if (selected.length > MAX_ROSTER_SIZE) {
-      setError(`No puedes convocar más de ${MAX_ROSTER_SIZE} jugadores.`);
-      return;
-    }
-    if (starters.length !== MAX_ON_COURT) {
-      setError("Debes seleccionar exactamente 5 titulares.");
-      return;
-    }
+    if (selected.length < MAX_ON_COURT) return setError("Debes convocar al menos 5 jugadores.");
+    if (selected.length > MAX_ROSTER_SIZE) return setError(`No puedes convocar más de ${MAX_ROSTER_SIZE} jugadores.`);
+    if (starters.length !== MAX_ON_COURT) return setError("Debes seleccionar exactamente 5 titulares.");
 
     const roster = players
-      .filter((player) => selectedSet.has(String(player.number)))
+      .filter((player) => selectedSet.has(playerKey(player)))
       .map((player) => ({
-        id: String(player.number),
+        id: playerKey(player),
+        databaseId: player.id ?? null,
         number: String(player.number),
         name: player.name,
       }));
 
     saveLiveSetup({
+      seasonId: CURRENT_SEASON_ID,
       opponent: opponent.trim() || "Rival",
       matchDate,
       gazalSide,
@@ -94,9 +87,9 @@ export default function LiveStatsSetup() {
     <div className="live-setup">
       <header className="live-setup__header">
         <div>
-          <p className="live-kicker">Live Stats · preparación</p>
+          <p className="live-kicker">Live Stats · {CURRENT_SEASON_ID}</p>
           <h1>Convocatoria y quinteto inicial</h1>
-          <p className="text-dim">Máximo 12 convocados · exactamente 5 titulares.</p>
+          <p className="text-dim">Máximo 12 convocados · exactamente 5 titulares · solo plantilla actual.</p>
         </div>
         <div className="live-setup__counters">
           <strong>{selected.length}/12</strong><span>convocados</span>
@@ -112,29 +105,38 @@ export default function LiveStatsSetup() {
 
       {error && <div className="live-alert live-alert--error">{error}</div>}
 
-      <section className="live-roster-picker">
-        {players.map((player) => {
-          const number = String(player.number);
-          const isSelected = selectedSet.has(number);
-          const isStarter = starterSet.has(number);
-          return (
-            <article key={number} className={`live-roster-card${isSelected ? " live-roster-card--selected" : ""}${isStarter ? " live-roster-card--starter" : ""}`}>
-              <button type="button" className="live-roster-card__main" onClick={() => toggleRoster(number)}>
-                <span className="live-roster-card__number">#{number}</span>
-                <span className="live-roster-card__name">{player.name}</span>
-                <span className="live-roster-card__state">{isSelected ? "Convocado" : "Fuera"}</span>
-              </button>
-              <button type="button" className="live-roster-card__starter" disabled={!isSelected} onClick={() => toggleStarter(number)}>
-                {isStarter ? "★ Titular" : "☆ Titular"}
-              </button>
-            </article>
-          );
-        })}
-      </section>
-
-      <div className="live-setup__footer">
-        <button type="button" className="live-primary-action" onClick={startGame}>Entrar a Live Stats →</button>
-      </div>
+      {players.length === 0 ? (
+        <div className="card season-empty">
+          <strong>Plantilla {CURRENT_SEASON_ID} pendiente</strong>
+          <span>Antes de preparar un Live habrá que dar de alta la plantilla actual desde Admin. No se usarán jugadores de 2025-2026 como fallback.</span>
+        </div>
+      ) : (
+        <>
+          <section className="live-roster-picker">
+            {players.map((player) => {
+              const id = playerKey(player);
+              const number = String(player.number);
+              const isSelected = selectedSet.has(id);
+              const isStarter = starterSet.has(id);
+              return (
+                <article key={id} className={`live-roster-card${isSelected ? " live-roster-card--selected" : ""}${isStarter ? " live-roster-card--starter" : ""}`}>
+                  <button type="button" className="live-roster-card__main" onClick={() => toggleRoster(id)}>
+                    <span className="live-roster-card__number">#{number}</span>
+                    <span className="live-roster-card__name">{player.name}</span>
+                    <span className="live-roster-card__state">{isSelected ? "Convocado" : "Fuera"}</span>
+                  </button>
+                  <button type="button" className="live-roster-card__starter" disabled={!isSelected} onClick={() => toggleStarter(id)}>
+                    {isStarter ? "★ Titular" : "☆ Titular"}
+                  </button>
+                </article>
+              );
+            })}
+          </section>
+          <div className="live-setup__footer">
+            <button type="button" className="live-primary-action" onClick={startGame}>Entrar a Live Stats →</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

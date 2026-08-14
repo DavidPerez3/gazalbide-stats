@@ -1,17 +1,21 @@
 import { supabase } from "./supabaseClient.js";
 
-export async function getMatchesFromSupabase() {
-  const { data, error } = await supabase
+export async function getMatchesFromSupabase(seasonId) {
+  let query = supabase
     .from("matches")
     .select(
-      "id,date,opponent,source_file,source_sheet,gazal_pts,opp_pts,q_pf,q_pa,result,status"
+      "id,season,date,opponent,source_file,source_sheet,gazal_pts,opp_pts,q_pf,q_pa,result,status"
     )
     .order("date", { ascending: true });
 
+  if (seasonId) query = query.eq("season", seasonId);
+
+  const { data, error } = await query;
   if (error) throw error;
 
   return (data || []).map((match) => ({
     id: match.id,
+    season: match.season,
     date: match.date,
     opponent: match.opponent,
     file: match.source_file,
@@ -24,15 +28,23 @@ export async function getMatchesFromSupabase() {
   }));
 }
 
-export async function getPlayersFromSupabase() {
+export async function getPlayersFromSupabase(seasonId) {
+  if (!seasonId) return [];
+
   const { data, error } = await supabase
-    .from("players")
-    .select("number,name,sort_order")
+    .from("season_players")
+    .select("jersey_number,sort_order,active,player:players(id,name)")
+    .eq("season_id", seasonId)
+    .eq("active", true)
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
 
-  return (data || []).map(({ number, name }) => ({ number, name }));
+  return (data || []).map((row) => ({
+    id: row.player?.id,
+    number: row.jersey_number,
+    name: row.player?.name ?? "",
+  }));
 }
 
 export async function getMatchStatsFromSupabase(matchId) {
