@@ -109,14 +109,14 @@ export async function uploadPlayerPhoto(playerId, file) {
   if (!playerId || !file) return null;
 
   const prepared = await preparePlayerPhoto(file);
-  const path = `${playerId}/profile.webp`;
+  const path = `${playerId}/profile-${Date.now()}.webp`;
 
   const { error } = await supabase.storage
     .from(PLAYER_PHOTO_BUCKET)
     .upload(path, prepared, {
-      cacheControl: "3600",
+      cacheControl: "31536000",
       contentType: "image/webp",
-      upsert: true,
+      upsert: false,
     });
 
   if (error) throw error;
