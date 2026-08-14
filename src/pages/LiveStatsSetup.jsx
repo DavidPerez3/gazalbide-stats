@@ -6,6 +6,8 @@ import { getPlayers } from "../lib/data.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import "../live-stats.css";
 
+const playerKey = (player) => String(player.id ?? `num:${player.number}:${player.name}`);
+
 export default function LiveStatsSetup() {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
@@ -25,32 +27,32 @@ export default function LiveStatsSetup() {
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const starterSet = useMemo(() => new Set(starters), [starters]);
 
-  function toggleRoster(number) {
+  function toggleRoster(id) {
     setError("");
-    if (selectedSet.has(number)) {
-      setSelected((prev) => prev.filter((value) => value !== number));
-      setStarters((prev) => prev.filter((value) => value !== number));
+    if (selectedSet.has(id)) {
+      setSelected((prev) => prev.filter((value) => value !== id));
+      setStarters((prev) => prev.filter((value) => value !== id));
       return;
     }
     if (selected.length >= MAX_ROSTER_SIZE) {
       setError(`Solo se pueden convocar ${MAX_ROSTER_SIZE} jugadores.`);
       return;
     }
-    setSelected((prev) => [...prev, number]);
+    setSelected((prev) => [...prev, id]);
   }
 
-  function toggleStarter(number) {
+  function toggleStarter(id) {
     setError("");
-    if (!selectedSet.has(number)) return;
-    if (starterSet.has(number)) {
-      setStarters((prev) => prev.filter((value) => value !== number));
+    if (!selectedSet.has(id)) return;
+    if (starterSet.has(id)) {
+      setStarters((prev) => prev.filter((value) => value !== id));
       return;
     }
     if (starters.length >= MAX_ON_COURT) {
       setError(`El quinteto inicial debe tener exactamente ${MAX_ON_COURT} jugadores.`);
       return;
     }
-    setStarters((prev) => [...prev, number]);
+    setStarters((prev) => [...prev, id]);
   }
 
   function startGame() {
@@ -60,9 +62,10 @@ export default function LiveStatsSetup() {
     if (starters.length !== MAX_ON_COURT) return setError("Debes seleccionar exactamente 5 titulares.");
 
     const roster = players
-      .filter((player) => selectedSet.has(String(player.number)))
+      .filter((player) => selectedSet.has(playerKey(player)))
       .map((player) => ({
-        id: String(player.id ?? player.number),
+        id: playerKey(player),
+        databaseId: player.id ?? null,
         number: String(player.number),
         name: player.name,
       }));
@@ -111,17 +114,18 @@ export default function LiveStatsSetup() {
         <>
           <section className="live-roster-picker">
             {players.map((player) => {
+              const id = playerKey(player);
               const number = String(player.number);
-              const isSelected = selectedSet.has(number);
-              const isStarter = starterSet.has(number);
+              const isSelected = selectedSet.has(id);
+              const isStarter = starterSet.has(id);
               return (
-                <article key={`${number}-${player.name}`} className={`live-roster-card${isSelected ? " live-roster-card--selected" : ""}${isStarter ? " live-roster-card--starter" : ""}`}>
-                  <button type="button" className="live-roster-card__main" onClick={() => toggleRoster(number)}>
+                <article key={id} className={`live-roster-card${isSelected ? " live-roster-card--selected" : ""}${isStarter ? " live-roster-card--starter" : ""}`}>
+                  <button type="button" className="live-roster-card__main" onClick={() => toggleRoster(id)}>
                     <span className="live-roster-card__number">#{number}</span>
                     <span className="live-roster-card__name">{player.name}</span>
                     <span className="live-roster-card__state">{isSelected ? "Convocado" : "Fuera"}</span>
                   </button>
-                  <button type="button" className="live-roster-card__starter" disabled={!isSelected} onClick={() => toggleStarter(number)}>
+                  <button type="button" className="live-roster-card__starter" disabled={!isSelected} onClick={() => toggleStarter(id)}>
                     {isStarter ? "★ Titular" : "☆ Titular"}
                   </button>
                 </article>
