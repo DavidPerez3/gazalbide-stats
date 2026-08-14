@@ -22,6 +22,7 @@ import FantasyRanking from "./pages/FantasyRanking.jsx";
 import FantasyTeamHistory from "./pages/FantasyTeamHistory.jsx";
 
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { SeasonProvider } from "./context/SeasonContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 
 import "./index.css";
@@ -125,7 +126,9 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <AuthProvider>
-      <RouterProvider router={router} />
+      <SeasonProvider>
+        <RouterProvider router={router} />
+      </SeasonProvider>
     </AuthProvider>
   </React.StrictMode>
 );
