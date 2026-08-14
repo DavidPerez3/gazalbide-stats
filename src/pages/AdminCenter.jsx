@@ -14,8 +14,9 @@ const modules = [
     id: "players",
     icon: "👥",
     title: "Jugadores",
-    description: "Gestionar plantilla y datos de los jugadores.",
-    status: "Próximamente",
+    description: "Gestionar la plantilla 2026-2027, dorsales y fotos de perfil.",
+    status: "Operativo",
+    available: true,
   },
   {
     id: "stats",
@@ -46,6 +47,10 @@ export default function AdminCenter() {
   const navigate = useNavigate();
 
   const openModule = (module) => {
+    if (module.id === "players") {
+      navigate("/admin/players");
+      return;
+    }
     if (module.id === "live") {
       navigate("/admin/live/setup");
       return;
@@ -73,7 +78,7 @@ export default function AdminCenter() {
           <div className="admin-center__section-heading">
             <div>
               <h2 id="admin-modules-title">Módulos</h2>
-              <p>Fantasy está operativo y Live Stats ya tiene una primera versión local de prueba.</p>
+              <p>Plantilla, Fantasy y Live Stats ya tienen módulos propios dentro del rol admin.</p>
             </div>
           </div>
 
