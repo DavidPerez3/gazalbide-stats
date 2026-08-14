@@ -11,6 +11,14 @@ import {
   setSeasonPlayerActive,
   updateSeasonPlayer,
 } from "../lib/adminPlayersRepository.js";
+import {
+  addLocalRosterDraftPlayer,
+  clearLocalRosterDraft,
+  getLocalRosterDraft,
+  localDraftPhotoToFile,
+  setLocalRosterDraftPlayerActive,
+  updateLocalRosterDraftPlayer,
+} from "../lib/localRosterDraft.js";
 import "../admin-players.css";
 
 function errorText(error) {
@@ -73,6 +81,7 @@ export default function AdminPlayers() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [schemaPending, setSchemaPending] = useState(false);
+  const [localDraftCount, setLocalDraftCount] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -107,30 +116,35 @@ export default function AdminPlayers() {
     setError("");
 
     const fallbackHistorical = await loadHistoricalFallback();
+    const localDraft = getLocalRosterDraft();
+    setLocalDraftCount(localDraft.length);
 
     try {
       const seasonRoster = await getAdminSeasonRoster(CURRENT_SEASON_ID);
       let reusable = [];
-
       try {
         reusable = await getReusablePlayers(CURRENT_SEASON_ID);
       } catch (err) {
         if (!isStatsSchemaMissing(err)) throw err;
       }
 
-      setRoster(seasonRoster);
+      const seen = new Set(seasonRoster.map((player) => String(player.id)));
+      const combined = [
+        ...seasonRoster,
+        ...localDraft.filter((player) => !seen.has(String(player.id))),
+      ];
+      setRoster(combined);
       setReusablePlayers(reusable.length ? reusable : fallbackHistorical);
       setSchemaPending(false);
     } catch (err) {
       console.error("Error cargando plantilla Admin:", err);
       if (isStatsSchemaMissing(err)) {
         setSchemaPending(true);
-        setRoster([]);
-        // Aunque Supabase aún no esté migrado, el histórico 25/26 ya existe en JSON.
-        // Lo mostramos para que el selector no aparezca vacío desde el móvil.
+        setRoster(localDraft);
         setReusablePlayers(fallbackHistorical);
       } else {
         setError(errorText(err));
+        setRoster(localDraft);
         setReusablePlayers(fallbackHistorical);
       }
     } finally {
@@ -151,27 +165,37 @@ export default function AdminPlayers() {
 
   async function handleAdd(event) {
     event.preventDefault();
-    if (schemaPending) return;
-
     setSaving(true);
     setError("");
     setMessage("");
+
     try {
-      await addSeasonPlayer({
-        seasonId: CURRENT_SEASON_ID,
-        name: mode === "reuse" ? reusablePlayer?.name : name,
-        jerseyNumber: jersey,
-        reusePlayerId:
-          mode === "reuse" && reusablePlayer?.source !== "legacy-json"
-            ? reusablePlayer?.id
-            : null,
-        photoFile,
-      });
-      setMessage(
-        mode === "reuse"
-          ? `${reusablePlayer?.name || "Jugador"} añadido a ${CURRENT_SEASON_ID}.`
-          : `${name.trim()} añadido a ${CURRENT_SEASON_ID}.`
-      );
+      const chosenName = mode === "reuse" ? reusablePlayer?.name : name;
+
+      if (schemaPending) {
+        await addLocalRosterDraftPlayer({
+          name: chosenName,
+          jerseyNumber: jersey,
+          historicalPlayer: mode === "reuse" ? reusablePlayer : null,
+          photoFile,
+        });
+        setMessage(
+          `${String(chosenName || "Jugador").trim()} añadido al borrador local ${CURRENT_SEASON_ID}.`
+        );
+      } else {
+        await addSeasonPlayer({
+          seasonId: CURRENT_SEASON_ID,
+          name: chosenName,
+          jerseyNumber: jersey,
+          reusePlayerId:
+            mode === "reuse" && reusablePlayer?.source !== "legacy-json"
+              ? reusablePlayer?.id
+              : null,
+          photoFile,
+        });
+        setMessage(`${String(chosenName || "Jugador").trim()} añadido a ${CURRENT_SEASON_ID}.`);
+      }
+
       resetCreateForm();
       await load();
     } catch (err) {
@@ -203,15 +227,25 @@ export default function AdminPlayers() {
     setError("");
     setMessage("");
     try {
-      await updateSeasonPlayer({
-        seasonId: CURRENT_SEASON_ID,
-        playerId: player.id,
-        name: editName,
-        jerseyNumber: editJersey,
-        photoFile: editPhotoFile,
-        removePhoto,
-        previousPhotoPath: player.photo_path,
-      });
+      if (player.source === "local-draft") {
+        await updateLocalRosterDraftPlayer({
+          playerId: player.id,
+          name: editName,
+          jerseyNumber: editJersey,
+          photoFile: editPhotoFile,
+          removePhoto,
+        });
+      } else {
+        await updateSeasonPlayer({
+          seasonId: CURRENT_SEASON_ID,
+          playerId: player.id,
+          name: editName,
+          jerseyNumber: editJersey,
+          photoFile: editPhotoFile,
+          removePhoto,
+          previousPhotoPath: player.photo_path,
+        });
+      }
       setMessage(`${editName.trim()} actualizado.`);
       cancelEdit();
       await load();
@@ -229,7 +263,11 @@ export default function AdminPlayers() {
     setError("");
     setMessage("");
     try {
-      await setSeasonPlayerActive(CURRENT_SEASON_ID, player.id, next);
+      if (player.source === "local-draft") {
+        setLocalRosterDraftPlayerActive(player.id, next);
+      } else {
+        await setSeasonPlayerActive(CURRENT_SEASON_ID, player.id, next);
+      }
       setMessage(
         next
           ? `${player.name} vuelve a estar en la plantilla actual.`
@@ -244,7 +282,58 @@ export default function AdminPlayers() {
     }
   }
 
+  async function syncLocalDraft() {
+    if (schemaPending || !localDraftCount) return;
+    setSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const draft = getLocalRosterDraft();
+      const reusable = await getReusablePlayers(CURRENT_SEASON_ID);
+
+      for (const player of draft) {
+        const historicalMatch = reusable.find((candidate) => {
+          const sameName = String(candidate.name || "").trim().toLowerCase() ===
+            String(player.historical_name || player.name || "").trim().toLowerCase();
+          const sameNumber = player.historical_number == null ||
+            String(candidate.number) === String(player.historical_number);
+          return sameName && sameNumber;
+        });
+
+        const photoFileToUpload = await localDraftPhotoToFile(player.photo_path);
+        await addSeasonPlayer({
+          seasonId: CURRENT_SEASON_ID,
+          name: player.name,
+          jerseyNumber: player.number,
+          reusePlayerId: historicalMatch?.id || null,
+          photoFile: photoFileToUpload,
+        });
+        if (player.active === false) {
+          const latest = await getAdminSeasonRoster(CURRENT_SEASON_ID);
+          const inserted = latest.find(
+            (row) => row.name === player.name && String(row.number) === String(player.number)
+          );
+          if (inserted) await setSeasonPlayerActive(CURRENT_SEASON_ID, inserted.id, false);
+        }
+      }
+
+      clearLocalRosterDraft();
+      setMessage("Borrador local sincronizado con Supabase correctamente.");
+      await load();
+    } catch (err) {
+      console.error("Error sincronizando borrador local:", err);
+      setError(`No se ha podido sincronizar el borrador: ${errorText(err)}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const activeCount = roster.filter((player) => player.active).length;
+  const canSubmit =
+    !saving &&
+    String(jersey).trim() &&
+    (mode === "new" ? String(name).trim() : Boolean(reuseId));
 
   return (
     <div className="admin-players">
@@ -263,9 +352,20 @@ export default function AdminPlayers() {
 
       {schemaPending && (
         <div className="admin-players__notice">
-          <strong>Módulo preparado, migración pendiente.</strong>
+          <strong>Supabase pendiente · trabajando en modo local.</strong>
           <div className="admin-players__hint" style={{ marginTop: 5 }}>
-            Puedes consultar y seleccionar los jugadores de 2025-2026 desde los datos históricos. El guardado de la plantilla 2026-2027 se habilitará cuando ejecutemos las migraciones de Supabase.
+            Puedes crear ya la plantilla 2026-2027. Se guardará en este dispositivo y Live Stats podrá utilizarla. Cuando ejecutemos las migraciones, la sincronizaremos con Supabase.
+          </div>
+        </div>
+      )}
+
+      {!schemaPending && localDraftCount > 0 && (
+        <div className="admin-players__notice">
+          <strong>{localDraftCount} jugador{localDraftCount === 1 ? "" : "es"} pendiente{localDraftCount === 1 ? "" : "s"} de sincronizar.</strong>
+          <div className="admin-players__actions" style={{ marginTop: 10 }}>
+            <button type="button" className="admin-players__primary" onClick={syncLocalDraft} disabled={saving}>
+              {saving ? "Sincronizando…" : "Sincronizar con Supabase"}
+            </button>
           </div>
         </div>
       )}
@@ -324,7 +424,7 @@ export default function AdminPlayers() {
                     const selected = reusablePlayers.find(
                       (player) => String(player.id) === String(selectedId)
                     );
-                    if (selected?.number && !jersey) setJersey(String(selected.number));
+                    if (selected?.number) setJersey(String(selected.number));
                   }}
                   required
                 >
@@ -358,12 +458,8 @@ export default function AdminPlayers() {
           </div>
 
           <div className="admin-players__actions">
-            <button
-              type="submit"
-              className="admin-players__primary"
-              disabled={saving || schemaPending || (mode === "reuse" && !reuseId)}
-            >
-              {saving ? "Guardando…" : "Añadir jugador"}
+            <button type="submit" className="admin-players__primary" disabled={!canSubmit}>
+              {saving ? "Guardando…" : schemaPending ? "Añadir al borrador local" : "Añadir jugador"}
             </button>
           </div>
         </form>
@@ -377,11 +473,7 @@ export default function AdminPlayers() {
         {loading ? (
           <div className="text-dim">Cargando plantilla…</div>
         ) : roster.length === 0 ? (
-          <div className="text-dim">
-            {schemaPending
-              ? "La plantilla 2026-2027 se guardará aquí cuando ejecutemos las migraciones."
-              : "Todavía no hay jugadores en la plantilla actual."}
-          </div>
+          <div className="text-dim">Todavía no hay jugadores en la plantilla actual.</div>
         ) : (
           <div className="admin-players__roster">
             {roster.map((player) => {
@@ -399,6 +491,7 @@ export default function AdminPlayers() {
                     <div className="admin-player-row__meta">
                       {player.active ? "En plantilla" : "Fuera de la plantilla actual"}
                       {player.photo_path ? " · foto configurada" : " · sin foto"}
+                      {player.source === "local-draft" ? " · pendiente de sincronizar" : ""}
                     </div>
                   </div>
 

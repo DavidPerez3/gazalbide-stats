@@ -9,6 +9,7 @@ import {
   getSeasonIdForDate,
   normaliseSeasonId,
 } from "./seasons.js";
+import { getLocalRosterDraft } from "./localRosterDraft.js";
 
 const BASE = import.meta.env.BASE_URL;
 const STATS_SOURCE = String(import.meta.env.VITE_STATS_SOURCE || "json").toLowerCase();
@@ -99,6 +100,14 @@ export async function getMatches(seasonId) {
 
 export async function getPlayers(seasonId) {
   const resolved = resolveSeasonId(seasonId);
+
+  // While Supabase migrations are pending, the current-season roster can be
+  // prepared locally from the mobile PWA and is also consumed by Live Stats.
+  if (resolved === CURRENT_SEASON_ID) {
+    const localDraft = getLocalRosterDraft({ includeInactive: false });
+    if (localDraft.length) return localDraft;
+  }
+
   return fromConfiguredSource(
     () => getPlayersFromSupabase(resolved),
     () => derivePlayersFromSeasonMatches(resolved),
