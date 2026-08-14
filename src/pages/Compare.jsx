@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getMatches, getMatchStats } from "../lib/data";
+import { useSeason } from "../context/SeasonContext.jsx";
 
-// Helpers
 const pct = (m, a) => (a > 0 ? ((m / a) * 100).toFixed(1) : "0.0");
 const mmss = (secs) => {
   const s = Math.round(Number(secs) || 0);
@@ -11,7 +11,6 @@ const mmss = (secs) => {
   return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 };
 
-// Métricas y reglas (lowerIsBetter para TOV y PF)
 const COUNT_METRICS = [
   { key: "pts", label: "PTS" },
   { key: "reb", label: "REB" },
@@ -21,7 +20,7 @@ const COUNT_METRICS = [
   { key: "stl", label: "ROB" },
   { key: "blk", label: "BLK" },
   { key: "tov", label: "TOV", lowerIsBetter: true },
-  { key: "pf",  label: "PF",  lowerIsBetter: true },
+  { key: "pf", label: "PF", lowerIsBetter: true },
   { key: "pfd", label: "PFD" },
   { key: "plus_minus", label: "+/-" },
   { key: "pir", label: "PIR" },
@@ -40,29 +39,28 @@ function aggregateSeason(rows) {
   for (const { key } of COUNT_METRICS) agg[key] = 0;
 
   for (const r of rows) {
-    agg.min_secs  += Number(r.min || 0);
+    agg.min_secs += Number(r.min || 0);
     for (const { key } of COUNT_METRICS) agg[key] += Number(r[key] ?? 0);
-    agg.two_pm    += Number(r.two_pm   ?? 0);
-    agg.two_pa    += Number(r.two_pa   ?? 0);
-    agg.three_pm  += Number(r.three_pm ?? 0);
-    agg.three_pa  += Number(r.three_pa ?? 0);
-    agg.fgm       += Number(r.fgm      ?? 0);
-    agg.fga       += Number(r.fga      ?? 0);
-    agg.ftm       += Number(r.ftm      ?? 0);
-    agg.fta       += Number(r.fta      ?? 0);
+    agg.two_pm += Number(r.two_pm ?? 0);
+    agg.two_pa += Number(r.two_pa ?? 0);
+    agg.three_pm += Number(r.three_pm ?? 0);
+    agg.three_pa += Number(r.three_pa ?? 0);
+    agg.fgm += Number(r.fgm ?? 0);
+    agg.fga += Number(r.fga ?? 0);
+    agg.ftm += Number(r.ftm ?? 0);
+    agg.fta += Number(r.fta ?? 0);
   }
   return agg;
 }
 
-// Estilos para ganador y perdedor
 const styleWinner = {
-  background: "rgba(22,163,74,0.18)", // verde
+  background: "rgba(22,163,74,0.18)",
   boxShadow: "inset 0 0 0 1px rgba(22,163,74,0.45)",
   borderRadius: 8,
   transition: "background 160ms ease, box-shadow 160ms ease",
 };
 const styleLoser = {
-  background: "rgba(220,38,38,0.18)", // rojo
+  background: "rgba(220,38,38,0.18)",
   boxShadow: "inset 0 0 0 1px rgba(220,38,38,0.45)",
   borderRadius: 8,
   transition: "background 160ms ease, box-shadow 160ms ease",
@@ -70,7 +68,7 @@ const styleLoser = {
 
 export default function Compare() {
   const [searchParams] = useSearchParams();
-
+  const { activeSeason } = useSeason();
   const [loading, setLoading] = useState(true);
   const [playersMap, setPlayersMap] = useState(new Map());
   const [p1, setP1] = useState("");
@@ -78,8 +76,11 @@ export default function Compare() {
   const [mode, setMode] = useState("media");
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
     (async () => {
-      const matches = await getMatches();
+      const matches = await getMatches(activeSeason.id);
       const map = new Map();
       for (const m of matches) {
         const stats = await getMatchStats(m.id);
@@ -89,22 +90,26 @@ export default function Compare() {
           map.set(r.name, arr);
         }
       }
-      setPlayersMap(map);
-      setLoading(false);
+      if (!cancelled) {
+        setPlayersMap(map);
+        setP1("");
+        setP2("");
+        setLoading(false);
+      }
     })();
-  }, []);
+
+    return () => { cancelled = true; };
+  }, [activeSeason.id]);
 
   const players = useMemo(
     () => Array.from(playersMap.keys()).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })),
     [playersMap]
   );
 
-  // Solo preselecciona si hay query params
   useEffect(() => {
     if (!players.length) return;
     const qp1 = searchParams.get("p1");
     const qp2 = searchParams.get("p2");
-
     if (qp1 && players.includes(qp1)) setP1(qp1);
     if (qp2 && players.includes(qp2)) setP2(qp2);
   }, [players, searchParams]);
@@ -121,7 +126,6 @@ export default function Compare() {
     if (!p1 || !p2) return [];
     const list = [];
 
-    // Partidos
     list.push({
       label: "Partidos",
       aDisplay: String(agg1.games),
@@ -130,7 +134,6 @@ export default function Compare() {
       bCompare: agg2.games,
     });
 
-    // Minutos
     const aMin = mode === "media" ? (agg1.games ? agg1.min_secs / agg1.games : 0) : agg1.min_secs;
     const bMin = mode === "media" ? (agg2.games ? agg2.min_secs / agg2.games : 0) : agg2.min_secs;
     list.push({
@@ -141,7 +144,6 @@ export default function Compare() {
       bCompare: bMin,
     });
 
-    // Métricas base
     for (const { key, label, lowerIsBetter } of COUNT_METRICS) {
       const a = val(agg1, key);
       const b = val(agg2, key);
@@ -155,12 +157,11 @@ export default function Compare() {
       });
     }
 
-    // Porcentajes
     const pcts = [
-      { label: "FG%",  madeA: agg1.fgm, attA: agg1.fga, madeB: agg2.fgm, attB: agg2.fga },
-      { label: "2P%",  madeA: agg1.two_pm, attA: agg1.two_pa, madeB: agg2.two_pm, attB: agg2.two_pa },
-      { label: "3P%",  madeA: agg1.three_pm, attA: agg1.three_pa, madeB: agg2.three_pm, attB: agg2.three_pa },
-      { label: "FT%",  madeA: agg1.ftm, attA: agg1.fta, madeB: agg2.ftm, attB: agg2.fta },
+      { label: "FG%", madeA: agg1.fgm, attA: agg1.fga, madeB: agg2.fgm, attB: agg2.fga },
+      { label: "2P%", madeA: agg1.two_pm, attA: agg1.two_pa, madeB: agg2.two_pm, attB: agg2.two_pa },
+      { label: "3P%", madeA: agg1.three_pm, attA: agg1.three_pa, madeB: agg2.three_pm, attB: agg2.three_pa },
+      { label: "FT%", madeA: agg1.ftm, attA: agg1.fta, madeB: agg2.ftm, attB: agg2.fta },
     ];
 
     for (const p of pcts) {
@@ -178,35 +179,35 @@ export default function Compare() {
     return list;
   }, [p1, p2, agg1, agg2, mode]);
 
-  if (loading) return <section><div className="text-dim">Cargando…</div></section>;
+  if (loading) {
+    return <section className="stats-page"><div className="text-dim">Cargando…</div></section>;
+  }
 
   return (
-    <section className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 style={{ fontSize: 22, fontWeight: 700 }}>
-          <span style={{ color: "var(--color-gold)" }}>Comparar jugadores</span>
-        </h2>
-        <div className="flex items-center gap-3">
-          <label className="text-dim" htmlFor="mode">Modo:</label>
-          <select
-            id="mode"
-            className="input"
-            style={{ width: "auto" }}
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
-          >
-            <option value="media">Media</option>
-            <option value="total">Total</option>
-          </select>
+    <section className="stats-page compare-page">
+      <header className="stats-page__header">
+        <div className="stats-page__heading">
+          <h2>Comparar jugadores</h2>
+          <div className="stats-page__season">Temporada {activeSeason.label}</div>
         </div>
-      </div>
 
-      {/* Selectores */}
-      <div className="card" style={{ padding: 12, marginBottom: 16 }}>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label className="text-dim">Jugador A</label>
+        <div className="stats-page__controls stats-page__controls--single">
+          <div className="stats-field">
+            <label htmlFor="mode">Modo</label>
+            <select id="mode" className="input" value={mode} onChange={(e) => setMode(e.target.value)}>
+              <option value="media">Media</option>
+              <option value="total">Total</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <div className="card compare-selectors">
+        <div className="compare-selectors__grid">
+          <div className="compare-player-field">
+            <label htmlFor="compare-player-a">Jugador A</label>
             <select
+              id="compare-player-a"
               className="input"
               value={p1}
               onChange={(e) => {
@@ -214,7 +215,6 @@ export default function Compare() {
                 setP1(v);
                 if (v && v === p2) setP2("");
               }}
-              style={{ marginTop: 16 }}
             >
               <option value="">— Selecciona un jugador —</option>
               {players.map((n) => (
@@ -222,9 +222,11 @@ export default function Compare() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-dim">Jugador B</label>
+
+          <div className="compare-player-field">
+            <label htmlFor="compare-player-b">Jugador B</label>
             <select
+              id="compare-player-b"
               className="input"
               value={p2}
               onChange={(e) => {
@@ -232,7 +234,6 @@ export default function Compare() {
                 setP2(v);
                 if (v && v === p1) setP1("");
               }}
-              style={{ marginTop: 16 }}
             >
               <option value="">— Selecciona un jugador —</option>
               {players.map((n) => (
@@ -243,10 +244,9 @@ export default function Compare() {
         </div>
       </div>
 
-      {/* Tabla comparativa */}
       {p1 && p2 ? (
-        <div className="card" style={{ padding: 8, overflowX: "auto" }}>
-          <table className="table">
+        <div className="card stats-table-card">
+          <table className="table compare-table">
             <thead>
               <tr>
                 <th>Métrica</th>
@@ -259,7 +259,6 @@ export default function Compare() {
                 const aWins = r.lowerIsBetter ? r.aCompare < r.bCompare : r.aCompare > r.bCompare;
                 const bWins = r.lowerIsBetter ? r.bCompare < r.aCompare : r.bCompare > r.aCompare;
                 const tie = !aWins && !bWins;
-
                 const aStyle = tie ? {} : (aWins ? styleWinner : styleLoser);
                 const bStyle = tie ? {} : (bWins ? styleWinner : styleLoser);
 
@@ -274,12 +273,15 @@ export default function Compare() {
             </tbody>
           </table>
 
-          <div className="text-dim" style={{ fontSize: 12, marginTop: 8 }}>
-            Verde = mejor valor · Rojo = peor valor · (TOV y PF: menor es mejor)
+          <div className="compare-legend">
+            Verde = mejor valor · Rojo = peor valor · TOV y PF: menor es mejor.
           </div>
         </div>
       ) : (
-        <div className="text-dim">Elige dos jugadores para ver la comparación.</div>
+        <div className="card stats-empty-card">
+          <strong>Elige dos jugadores</strong>
+          <span className="text-dim">Selecciona un jugador A y un jugador B para ver la comparación.</span>
+        </div>
       )}
     </section>
   );
