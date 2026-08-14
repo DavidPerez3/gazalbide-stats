@@ -1,8 +1,9 @@
-const CACHE_NAME = "gazalbide-stats-v1";
+const CACHE_NAME = "gazalbide-stats-v2";
 const APP_SHELL = [
   "/gazalbide-stats/",
   "/gazalbide-stats/manifest.webmanifest",
-  "/gazalbide-stats/logo.png"
+  "/gazalbide-stats/logo.png",
+  "/gazalbide-stats/pwa-icon-v2.svg"
 ];
 
 self.addEventListener("install", (event) => {
