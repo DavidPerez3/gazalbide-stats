@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { getMatches, getMatchStats } from "../lib/data";
+import { getMatches, getMatchStats, getTechs } from "../lib/data";
+import { useSeason } from "../context/SeasonContext.jsx";
 import StatLegend from "../components/StatLegend";
 
-// Helper para formatear minutos
 const fmt = (secs) => {
   const s = Math.round(Number(secs) || 0);
   const m = Math.floor(s / 60);
@@ -10,12 +10,8 @@ const fmt = (secs) => {
   return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 };
 
-// Definición de métricas disponibles
 const METRICS = [
-  // Tiempo
   { key: "min", label: "MIN", type: "time" },
-
-  // Conteos generales
   { key: "pts", label: "PTS", type: "count" },
   { key: "reb", label: "REB", type: "count" },
   { key: "oreb", label: "OREB", type: "count" },
@@ -30,8 +26,6 @@ const METRICS = [
   { key: "pir", label: "PIR", type: "count" },
   { key: "eff", label: "EFF", type: "count" },
   { key: "tech", label: "TECH", type: "count", source: "techs" },
-
-  // Tiro (conteos)
   { key: "fgm", label: "FGM", type: "count" },
   { key: "fga", label: "FGA", type: "count" },
   { key: "two_pm", label: "2PM", type: "count" },
@@ -40,76 +34,46 @@ const METRICS = [
   { key: "three_pa", label: "3PA", type: "count" },
   { key: "ftm", label: "FTM", type: "count" },
   { key: "fta", label: "FTA", type: "count" },
-
-  // Porcentajes (siempre sobre totales de temporada)
   { key: "fg_pct", label: "FG%", type: "pct", made: "fgm", att: "fga" },
   { key: "two_pct", label: "2P%", type: "pct", made: "two_pm", att: "two_pa" },
   { key: "three_pct", label: "3P%", type: "pct", made: "three_pm", att: "three_pa" },
   { key: "ft_pct", label: "FT%", type: "pct", made: "ftm", att: "fta" },
 ];
 
-// Claves que agregamos siempre
 const SUM_KEYS = [
   "min", "pts", "reb", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf", "pfd",
-  "plus_minus", "pir", "eff",
-  "fgm", "fga", "two_pm", "two_pa", "three_pm", "three_pa", "ftm", "fta",
+  "plus_minus", "pir", "eff", "fgm", "fga", "two_pm", "two_pa", "three_pm", "three_pa", "ftm", "fta",
 ];
 
 export default function Ranking() {
+  const { activeSeason } = useSeason();
   const [metric, setMetric] = useState("pts");
   const [mode, setMode] = useState("media");
   const [rows, setRows] = useState([]);
   const [techs, setTechs] = useState({});
 
-
-  // Cargar y agregar datos por jugador
   useEffect(() => {
     (async () => {
-      const BASE = import.meta.env.BASE_URL;
-      try {
-        const res = await fetch(`${BASE}data/techs.json`, { cache: "no-store" });
-        setTechs(res.ok ? await res.json() : {});
-      } catch {
-        setTechs({});
-      }
+      setTechs(await getTechs());
       const matches = await getMatches();
       const agg = new Map();
-
       for (const m of matches) {
         const stats = await getMatchStats(m.id);
         for (const r of stats) {
           const key = `${r.number}::${r.name}`;
-          const cur = agg.get(key) || {
-            name: r.name,
-            number: r.number,
-            games: 0,
-          };
-
-          for (const k of SUM_KEYS) {
-            cur[k] = (cur[k] || 0) + Number(r[k] || 0);
-          }
-
-          cur.games = (cur.games || 0) + 1;
+          const cur = agg.get(key) || { name: r.name, number: r.number, games: 0 };
+          for (const k of SUM_KEYS) cur[k] = (cur[k] || 0) + Number(r[k] || 0);
+          cur.games += 1;
           agg.set(key, cur);
         }
       }
-
       setRows(Array.from(agg.values()));
     })();
   }, []);
 
   const meta = METRICS.find((x) => x.key === metric) || METRICS[0];
 
-  const getTech = (num) => {
-    const v = techs?.[String(num)];
-    if (typeof v === "number") return v;
-    if (v && typeof v === "object") return Number(v.tech_fouls ?? 0);
-    return 0;
-  };
-
   const ranking = useMemo(() => {
-    const isNumericId = (k) => /^\d+$/.test(String(k));
-
     const getTechLocal = (id) => {
       const v = techs?.[String(id)];
       if (typeof v === "number") return v;
@@ -117,172 +81,83 @@ export default function Ranking() {
       return 0;
     };
 
-    // ===============================
-    // CASO TÉCNICAS (incluye staff en TOTAL, no en MEDIA)
-    // ===============================
     if (meta.source === "techs") {
       const baseRows = rows.map((r) => {
         const total = getTechLocal(r.number);
-
-        const valueNum =
-          mode === "media"
-            ? r.games
-              ? total / r.games
-              : 0
-            : total;
-
-        const display =
-          mode === "media" ? Number(valueNum || 0).toFixed(2) : String(Number(valueNum || 0));
-
-        return {
-          ...r,
-          valueNum: Number(valueNum || 0),
-          display,
-          made: 0,
-          att: 0,
-        };
+        const valueNum = mode === "media" ? (r.games ? total / r.games : 0) : total;
+        return { ...r, valueNum, display: mode === "media" ? valueNum.toFixed(2) : String(valueNum), made: 0, att: 0 };
       });
+      if (mode === "media") return baseRows.sort((a, b) => b.valueNum - a.valueNum).slice(0, 50);
 
-      // En MEDIA no metemos staff (no tiene games)
-      if (mode === "media") {
-        return baseRows
-          .sort((a, b) => b.valueNum - a.valueNum)
-          .slice(0, 50);
-      }
-
-      // TOTAL: añadimos staff/extras
       const knownNumbers = new Set(rows.map((r) => String(r.number)));
-
       const extraRows = Object.keys(techs || {})
-        .filter((k) => !isNumericId(k) || !knownNumbers.has(String(k)))
-        .map((k) => {
-          const total = getTechLocal(k);
-          const valueNum = Number(total || 0);
-
-          return {
-            number: "—",
-            name: k,
-            games: 0,
-            valueNum,
-            display: String(valueNum),
-            made: 0,
-            att: 0,
-            _isStaff: true,
-          };
-        });
-
-      return [...baseRows, ...extraRows]
-        .sort((a, b) => b.valueNum - a.valueNum)
-        .slice(0, 50);
+        .filter((k) => !/^\d+$/.test(String(k)) || !knownNumbers.has(String(k)))
+        .map((k) => ({ number: "—", name: k, games: 0, valueNum: getTechLocal(k), display: String(getTechLocal(k)), made: 0, att: 0, _isStaff: true }));
+      return [...baseRows, ...extraRows].sort((a, b) => b.valueNum - a.valueNum).slice(0, 50);
     }
 
-    // ===============================
-    // RESTO DE MÉTRICAS
-    // ===============================
-    return rows
-      .map((r) => {
-        let valueNum = 0;
-        let display = "";
-        let made = 0;
-        let att = 0;
-
-        if (meta.type === "pct") {
-          made = Number(r[meta.made] || 0);
-          att = Number(r[meta.att] || 0);
-          valueNum = att ? made / att : 0;
-          display = `${(valueNum * 100).toFixed(1)}%`;
-        } else if (meta.type === "time") {
-          const base = mode === "media" ? (r.games ? r.min / r.games : 0) : r.min;
-          valueNum = base;
-          display = fmt(base);
-        } else {
-          const base = mode === "media" ? (r.games ? r[meta.key] / r.games : 0) : r[meta.key];
-          valueNum = Number(base || 0);
-          display = mode === "media" ? valueNum.toFixed(2) : String(valueNum);
-        }
-
-        return { ...r, valueNum, display, made, att };
-      })
-      .sort((a, b) => b.valueNum - a.valueNum)
-      .slice(0, 50);
+    return rows.map((r) => {
+      let valueNum = 0;
+      let display = "";
+      let made = 0;
+      let att = 0;
+      if (meta.type === "pct") {
+        made = Number(r[meta.made] || 0);
+        att = Number(r[meta.att] || 0);
+        valueNum = att ? made / att : 0;
+        display = `${(valueNum * 100).toFixed(1)}%`;
+      } else if (meta.type === "time") {
+        valueNum = mode === "media" ? (r.games ? r.min / r.games : 0) : r.min;
+        display = fmt(valueNum);
+      } else {
+        valueNum = Number(mode === "media" ? (r.games ? r[meta.key] / r.games : 0) : r[meta.key] || 0);
+        display = mode === "media" ? valueNum.toFixed(2) : String(valueNum);
+      }
+      return { ...r, valueNum, display, made, att };
+    }).sort((a, b) => b.valueNum - a.valueNum).slice(0, 50);
   }, [rows, meta, mode, techs]);
 
   const isPct = meta.type === "pct";
-  const valueHeader = isPct
-    ? `${meta.label} (Temporada)`
-    : `${mode === "media" ? "Media" : "Total"} ${meta.label}`;
+  const valueHeader = isPct ? `${meta.label} (${activeSeason.label})` : `${mode === "media" ? "Media" : "Total"} ${meta.label}`;
 
   return (
     <section>
       <div className="flex justify-between items-center mb-4">
-        <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--color-gold)" }}>
-          Ranking
-        </h2>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--color-gold)" }}>Ranking</h2>
+          <div className="text-dim" style={{ fontSize: 12 }}>Temporada {activeSeason.label}</div>
+        </div>
         <div className="flex items-center gap-3">
           <label className="text-dim" htmlFor="metric">Métrica:</label>
-          <select
-            id="metric"
-            className="input"
-            style={{ width: "auto" }}
-            value={metric}
-            onChange={(e) => setMetric(e.target.value)}
-          >
-            {METRICS.map((m) => (
-              <option key={m.key} value={m.key}>
-                {m.label}
-              </option>
-            ))}
+          <select id="metric" className="input" style={{ width: "auto" }} value={metric} onChange={(e) => setMetric(e.target.value)}>
+            {METRICS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
           </select>
-
           <label className="text-dim" htmlFor="mode">Modo:</label>
-          <select
-            id="mode"
-            className="input"
-            style={{ width: "auto", opacity: isPct ? 0.5 : 1 }}
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
-            disabled={isPct}
-          >
-            <option value="media">Media</option>
-            <option value="total">Total</option>
+          <select id="mode" className="input" style={{ width: "auto", opacity: isPct ? 0.5 : 1 }} value={mode} onChange={(e) => setMode(e.target.value)} disabled={isPct}>
+            <option value="media">Media</option><option value="total">Total</option>
           </select>
         </div>
       </div>
 
-      <div className="card" style={{ padding: "8px", overflowX: "auto" }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Jugador</th>
-              <th>{valueHeader}</th>
-              <th>Partidos</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranking.map((r, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td>
-                  {r._isStaff ? `${r.name} (staff)` : `#${r.number} — ${r.name}`}
-                </td>
-                {isPct ? (
-                  <td>
-                    <div>{r.display}</div>
-                    <div className="text-dim" style={{ fontSize: 12 }}>
-                      {r.made}/{r.att}
-                    </div>
-                  </td>
-                ) : (
-                  <td>{r.display}</td>
-                )}
-                <td>{r.games}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
+      {rows.length === 0 ? (
+        <div className="card season-empty"><strong>Sin ranking todavía</strong><span>No hay estadísticas publicadas en {activeSeason.label}.</span></div>
+      ) : (
+        <div className="card" style={{ padding: 8, overflowX: "auto" }}>
+          <table className="table">
+            <thead><tr><th>#</th><th>Jugador</th><th>{valueHeader}</th><th>Partidos</th></tr></thead>
+            <tbody>
+              {ranking.map((r, i) => (
+                <tr key={`${r.name}-${i}`}>
+                  <td>{i + 1}</td>
+                  <td>{r._isStaff ? `${r.name} (staff)` : `#${r.number} — ${r.name}`}</td>
+                  <td>{isPct ? <><div>{r.display}</div><div className="text-dim" style={{fontSize:12}}>{r.made}/{r.att}</div></> : r.display}</td>
+                  <td>{r.games}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <StatLegend defaultOpen={false} />
     </section>
   );
