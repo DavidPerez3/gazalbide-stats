@@ -1,0 +1,245 @@
+.admin-players {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 28px;
+}
+
+.admin-players__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-players__eyebrow {
+  margin: 0 0 4px;
+  color: var(--color-gold);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-players__header h1 {
+  margin: 0;
+  font-size: clamp(1.55rem, 5vw, 2rem);
+}
+
+.admin-players__header p {
+  margin: 6px 0 0;
+}
+
+.admin-players__back {
+  min-height: 44px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 12px;
+  padding: 9px 13px;
+  color: var(--color-gold);
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+}
+
+.admin-players__notice {
+  padding: 14px;
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 14px;
+  background: rgba(250, 204, 21, 0.07);
+}
+
+.admin-players__notice--error {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.admin-players__form-card,
+.admin-players__roster-card {
+  padding: 16px;
+}
+
+.admin-players__section-title {
+  margin: 0 0 12px;
+  font-size: 1.08rem;
+}
+
+.admin-players__mode {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 14px;
+}
+
+.admin-players__mode button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.admin-players__mode button.is-active {
+  color: #111;
+  background: var(--color-gold);
+  font-weight: 800;
+}
+
+.admin-players__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(110px, 0.5fr);
+  gap: 12px;
+}
+
+.admin-players__fields label,
+.admin-player-edit label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.admin-players__photo-field {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(212, 175, 55, 0.28);
+}
+
+.admin-players__photo-field input[type="file"] {
+  width: 100%;
+  font-size: 0.82rem;
+}
+
+.admin-players__hint {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.admin-players__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.admin-players__primary,
+.admin-players__secondary,
+.admin-players__danger {
+  min-height: 42px;
+  border-radius: 11px;
+  padding: 9px 13px;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.admin-players__primary {
+  border: 1px solid var(--color-gold);
+  background: var(--color-gold);
+  color: #111;
+}
+
+.admin-players__secondary {
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--color-gold);
+}
+
+.admin-players__danger {
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fca5a5;
+}
+
+.admin-players button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-players__roster {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-player-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-player-row--inactive {
+  opacity: 0.62;
+}
+
+.admin-player-row__name {
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.admin-player-row__meta {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.admin-player-row__buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-player-edit {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 130px;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-player-edit__photo {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .admin-players__fields,
+  .admin-player-edit {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-players__photo-field,
+  .admin-player-edit__photo {
+    grid-column: auto;
+  }
+
+  .admin-player-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-player-row__buttons {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .admin-player-row__buttons button {
+    flex: 1 1 120px;
+  }
+}
