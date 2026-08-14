@@ -1,0 +1,58 @@
+.player-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 20px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  position: relative;
+}
+
+.player-profile-hero::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -90px;
+  top: -100px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.07);
+  pointer-events: none;
+}
+
+.player-profile-hero__copy {
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.player-profile-hero__season {
+  color: var(--color-gold);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.player-profile-hero h1 {
+  margin: 0;
+  font-size: clamp(1.65rem, 6vw, 2.35rem);
+  line-height: 1.06;
+}
+
+.player-profile-hero h1 span {
+  color: var(--color-gold);
+}
+
+.player-profile-hero p {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 560px) {
+  .player-profile-hero {
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+  }
+}
