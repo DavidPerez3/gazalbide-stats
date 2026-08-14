@@ -96,6 +96,7 @@ export function createInitialGameState({ roster, starterIds, matchDate, period =
     score: { gazalbide: 0, opponent: 0 },
     teamFouls: {},
     players,
+    // Order is meaningful: these five ids are the five visual court slots.
     onCourtIds: [...starterIds],
     pendingSubstitutionFor: [],
     lastEvent: null,
@@ -108,6 +109,7 @@ function ensureKnownPlayer(state, playerId) {
   }
 }
 
+// Legacy support for local sessions created before atomic substitutions.
 function applySubOut(state, playerId) {
   ensureKnownPlayer(state, playerId);
   if (!state.onCourtIds.includes(playerId)) return state;
@@ -153,6 +155,46 @@ function applySubIn(state, playerId) {
   };
 }
 
+function applySubstitution(state, event) {
+  const incomingId = event.player_id;
+  const outgoingId = event.related_player_id ?? event.metadata?.outgoingPlayerId;
+  ensureKnownPlayer(state, incomingId);
+  ensureKnownPlayer(state, outgoingId);
+
+  if (incomingId === outgoingId) return state;
+
+  const incoming = state.players[incomingId];
+  const outgoing = state.players[outgoingId];
+  const slotIndex = state.onCourtIds.indexOf(outgoingId);
+
+  if (slotIndex < 0) {
+    throw new Error("El jugador que sale no está actualmente en pista.");
+  }
+  if (state.onCourtIds.includes(incomingId)) {
+    throw new Error("El jugador que entra ya está en pista.");
+  }
+  if (!isPlayerEligible(incoming.status)) {
+    throw new Error("El jugador que entra está eliminado o descalificado.");
+  }
+
+  const onCourtIds = [...state.onCourtIds];
+  onCourtIds[slotIndex] = incomingId;
+
+  return {
+    ...state,
+    onCourtIds,
+    pendingSubstitutionFor: state.pendingSubstitutionFor.filter((id) => id !== outgoingId),
+    players: {
+      ...state.players,
+      [incomingId]: { ...incoming, status: PLAYER_STATUS.ON_COURT },
+      [outgoingId]: {
+        ...outgoing,
+        status: isPlayerEligible(outgoing.status) ? PLAYER_STATUS.BENCH : outgoing.status,
+      },
+    },
+  };
+}
+
 function applyPlayerFoul(state, event) {
   ensureKnownPlayer(state, event.player_id);
   const foulKind = event.foul_kind ?? event.metadata?.foulKind;
@@ -167,21 +209,21 @@ function applyPlayerFoul(state, event) {
     profile: state.ruleProfile,
   });
 
-  let onCourtIds = state.onCourtIds;
   let pendingSubstitutionFor = state.pendingSubstitutionFor;
   let status = player.status;
 
   if (disciplinaryStatus) {
     status = disciplinaryStatus;
-    if (onCourtIds.includes(event.player_id)) {
-      onCourtIds = onCourtIds.filter((id) => id !== event.player_id);
+    // Keep the player occupying the visual court slot until a replacement is
+    // dragged onto them. This preserves the five fixed slots and makes the
+    // mandatory substitution explicit.
+    if (state.onCourtIds.includes(event.player_id)) {
       pendingSubstitutionFor = [...new Set([...pendingSubstitutionFor, event.player_id])];
     }
   }
 
   return {
     ...state,
-    onCourtIds,
     pendingSubstitutionFor,
     players: {
       ...state.players,
@@ -208,7 +250,9 @@ export function applyLiveEvent(previousState, event) {
   if (!event || event.is_void) return previousState;
   let state = previousState;
 
-  if (event.event_type === LIVE_EVENT.SUB_OUT) {
+  if (event.event_type === LIVE_EVENT.SUBSTITUTION) {
+    state = applySubstitution(state, event);
+  } else if (event.event_type === LIVE_EVENT.SUB_OUT) {
     state = applySubOut(state, event.player_id);
   } else if (event.event_type === LIVE_EVENT.SUB_IN) {
     state = applySubIn(state, event.player_id);
@@ -251,7 +295,11 @@ export function deriveGameState(initialState, events = []) {
 }
 
 export function canStartClock(state) {
-  return state.onCourtIds.length === LIVE_STATS_CONFIG.maxOnCourt && state.pendingSubstitutionFor.length === 0;
+  return (
+    state.onCourtIds.length === LIVE_STATS_CONFIG.maxOnCourt &&
+    state.pendingSubstitutionFor.length === 0 &&
+    state.onCourtIds.every((id) => isPlayerEligible(state.players[id]?.status))
+  );
 }
 
 export function startClock(state) {
