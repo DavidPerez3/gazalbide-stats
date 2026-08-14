@@ -52,14 +52,37 @@ async function getMatchesFromJson(seasonId) {
   return matches.filter((match) => match.season === seasonId);
 }
 
+async function getLegacyPhotoMap() {
+  try {
+    const fantasyPlayers = await getJson("data/fantasy_players.json");
+    const map = new Map();
+    for (const player of fantasyPlayers || []) {
+      const key = `${String(player.number)}::${String(player.name || "").trim().toLowerCase()}`;
+      if (player.image) map.set(key, player.image);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
 async function derivePlayersFromSeasonMatches(seasonId) {
   const matches = await getMatchesFromJson(seasonId);
   const unique = new Map();
+  const legacyPhotos = seasonId === LEGACY_SEASON_ID ? await getLegacyPhotoMap() : new Map();
+
   for (const match of matches) {
     const stats = await getJson(`data/player_stats/${match.id}.json`);
     for (const row of stats || []) {
       const key = `${row.number}::${row.name}`;
-      if (!unique.has(key)) unique.set(key, { number: row.number, name: row.name });
+      if (!unique.has(key)) {
+        const photoKey = `${String(row.number)}::${String(row.name || "").trim().toLowerCase()}`;
+        unique.set(key, {
+          number: row.number,
+          name: row.name,
+          photo_path: legacyPhotos.get(photoKey) || null,
+        });
+      }
     }
   }
   return Array.from(unique.values()).sort((a, b) => Number(a.number) - Number(b.number));
