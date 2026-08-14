@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import AdminPage from "./AdminPage.jsx";
 import "../admin.css";
 
@@ -35,17 +36,26 @@ const modules = [
     id: "live",
     icon: "⚡",
     title: "Live Stats",
-    description: "Modelo de eventos preparado. Siguiente: estado local e interfaz horizontal.",
-    status: "Modelo preparado",
+    description: "Preparar convocatoria y registrar el partido en horizontal con almacenamiento local.",
+    status: "Prueba local",
+    available: true,
   },
 ];
 
 export default function AdminCenter() {
-  const openFantasy = () => {
-    document.getElementById("admin-fantasy")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const navigate = useNavigate();
+
+  const openModule = (module) => {
+    if (module.id === "live") {
+      navigate("/admin/live/setup");
+      return;
+    }
+    if (module.id === "fantasy") {
+      document.getElementById("admin-fantasy")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
   };
 
   return (
@@ -63,7 +73,7 @@ export default function AdminCenter() {
           <div className="admin-center__section-heading">
             <div>
               <h2 id="admin-modules-title">Módulos</h2>
-              <p>Fantasy ya está operativo. El resto se habilitará conforme avance el roadmap.</p>
+              <p>Fantasy está operativo y Live Stats ya tiene una primera versión local de prueba.</p>
             </div>
           </div>
 
@@ -74,14 +84,8 @@ export default function AdminCenter() {
                 className={`admin-module${module.available ? " admin-module--available" : ""}`}
               >
                 <div className="admin-module__top">
-                  <span className="admin-module__icon" aria-hidden="true">
-                    {module.icon}
-                  </span>
-                  <span
-                    className={`admin-module__status${
-                      module.available ? " admin-module__status--ready" : ""
-                    }`}
-                  >
+                  <span className="admin-module__icon" aria-hidden="true">{module.icon}</span>
+                  <span className={`admin-module__status${module.available ? " admin-module__status--ready" : ""}`}>
                     {module.status}
                   </span>
                 </div>
@@ -90,8 +94,8 @@ export default function AdminCenter() {
                 <p className="admin-module__description">{module.description}</p>
 
                 {module.available ? (
-                  <button type="button" className="admin-module__action" onClick={openFantasy}>
-                    Abrir gestión <span aria-hidden="true">↓</span>
+                  <button type="button" className="admin-module__action" onClick={() => openModule(module)}>
+                    Abrir {module.id === "live" ? "Live Stats" : "gestión"} <span aria-hidden="true">→</span>
                   </button>
                 ) : (
                   <span className="admin-module__pending">Aún no disponible</span>
