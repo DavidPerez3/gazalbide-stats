@@ -50,7 +50,7 @@ export default function PlayerProfilePage() {
           </p>
         </div>
       </section>
-      <Player />
+      <Player key={`${activeSeasonId}:${decodedName}`} />
     </>
   );
 }
