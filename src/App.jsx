@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
+import "./mobile-polish.css";
 
 export default function App() {
   const { pathname } = useLocation();
