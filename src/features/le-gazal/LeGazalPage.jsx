@@ -9,6 +9,7 @@ import LeGazalBonusModal from "./components/LeGazalBonusModal";
 import LeGazalDebugPanel from "./components/LeGazalDebugPanel";
 import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
 import "./leGazal.css";
+import "./leGazalMobile.css";
 
 function getDebugEnabled(search) {
   const routeParams = new URLSearchParams(search);
@@ -35,6 +36,7 @@ export default function LeGazalPage() {
     coinBurstKey,
     grid,
     isSpinning,
+    stoppedColumns,
     openRules,
     result,
     rulesOpen,
@@ -78,6 +80,7 @@ export default function LeGazalPage() {
                 <LeGazalGrid
                   grid={grid}
                   isSpinning={isSpinning}
+                  stoppedColumns={stoppedColumns}
                   winningCellKeys={result ? result.winningCellKeys : []}
                   coinBurstKey={coinBurstKey}
                   amountWon={activeWin}
