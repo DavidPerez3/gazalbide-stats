@@ -25,6 +25,10 @@ update public.matches
 set season = '2025-2026'
 where season in ('2025-26', '2025/26', '25/26');
 
+update public.matches
+set season = '2026-2027'
+where season in ('2026-27', '2026/27', '26/27');
+
 alter table public.matches
   alter column season set default '2026-2027';
 
