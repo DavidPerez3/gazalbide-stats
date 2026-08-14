@@ -1,5 +1,5 @@
 // Shared Live Stats domain contract.
-// Keep this aligned with supabase/migrations/002_live_stats_core.sql.
+// Keep this aligned with the Supabase Live Stats migrations.
 
 import {
   MAX_BENCH_SIZE,
@@ -20,36 +20,32 @@ export const LIVE_STATS_CONFIG = Object.freeze({
 });
 
 export const LIVE_EVENT = Object.freeze({
-  // Gazalbide shooting
   FT_MADE: "FT_MADE",
   FT_MISSED: "FT_MISSED",
   TWO_MADE: "TWO_MADE",
   TWO_MISSED: "TWO_MISSED",
   THREE_MADE: "THREE_MADE",
   THREE_MISSED: "THREE_MISSED",
-
-  // Gazalbide box score
   OREB: "OREB",
   DREB: "DREB",
   AST: "AST",
   TOV: "TOV",
   STL: "STL",
   BLK: "BLK",
-  // PF always requires metadata.foulKind.
   PF: "PF",
   PFD: "PFD",
 
-  // Gazalbide lineup
+  // SUBSTITUTION is the preferred atomic event. player_id = incoming,
+  // related_player_id = outgoing. SUB_IN/SUB_OUT stay for old local sessions.
+  SUBSTITUTION: "SUBSTITUTION",
   SUB_IN: "SUB_IN",
   SUB_OUT: "SUB_OUT",
 
-  // Opponent: intentionally aggregate only
   OPP_SCORE_1: "OPP_SCORE_1",
   OPP_SCORE_2: "OPP_SCORE_2",
   OPP_SCORE_3: "OPP_SCORE_3",
   OPP_TEAM_FOUL: "OPP_TEAM_FOUL",
 
-  // System
   PERIOD_START: "PERIOD_START",
   PERIOD_END: "PERIOD_END",
   CLOCK_SET: "CLOCK_SET",
@@ -70,6 +66,7 @@ export const GAZALBIDE_EVENT_TYPES = Object.freeze([
   LIVE_EVENT.BLK,
   LIVE_EVENT.PF,
   LIVE_EVENT.PFD,
+  LIVE_EVENT.SUBSTITUTION,
   LIVE_EVENT.SUB_IN,
   LIVE_EVENT.SUB_OUT,
 ]);
@@ -101,7 +98,6 @@ const TEAM_FOUL_DELTA = Object.freeze({
   [LIVE_EVENT.OPP_TEAM_FOUL]: { gazalbide: 0, opponent: 1 },
 });
 
-// Deltas for Gazalbide's individual box score. Opponent events never produce player stats.
 export const PLAYER_STAT_DELTA = Object.freeze({
   [LIVE_EVENT.FT_MADE]: { pts: 1, ftm: 1, fta: 1 },
   [LIVE_EVENT.FT_MISSED]: { fta: 1 },
@@ -122,6 +118,9 @@ export const PLAYER_STAT_DELTA = Object.freeze({
 export const CLOCK_STOP_EVENT_TYPES = Object.freeze([
   LIVE_EVENT.PF,
   LIVE_EVENT.OPP_TEAM_FOUL,
+  LIVE_EVENT.SUBSTITUTION,
+  LIVE_EVENT.SUB_IN,
+  LIVE_EVENT.SUB_OUT,
   LIVE_EVENT.PERIOD_END,
 ]);
 

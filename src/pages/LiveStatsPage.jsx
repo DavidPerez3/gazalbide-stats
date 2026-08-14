@@ -24,23 +24,27 @@ import {
   loadLiveSetup,
   saveLiveEvents,
 } from "../features/live-stats/localSession.js";
+import { usePointerDrag } from "../features/live-stats/usePointerDrag.js";
 import "../live-stats.css";
 
 const ACTIONS = [
-  [LIVE_EVENT.FT_MADE, "1 ✓"],
-  [LIVE_EVENT.FT_MISSED, "1 ✕"],
-  [LIVE_EVENT.TWO_MADE, "2 ✓"],
-  [LIVE_EVENT.TWO_MISSED, "2 ✕"],
-  [LIVE_EVENT.THREE_MADE, "3 ✓"],
-  [LIVE_EVENT.THREE_MISSED, "3 ✕"],
-  [LIVE_EVENT.OREB, "REB O"],
-  [LIVE_EVENT.DREB, "REB D"],
-  [LIVE_EVENT.AST, "AST"],
-  [LIVE_EVENT.TOV, "PÉR"],
-  [LIVE_EVENT.STL, "ROB"],
-  [LIVE_EVENT.BLK, "TAP"],
-  [LIVE_EVENT.PFD, "F REC"],
+  { type: LIVE_EVENT.FT_MADE, label: "1 ✓", tone: "made" },
+  { type: LIVE_EVENT.FT_MISSED, label: "1 ✕", tone: "miss" },
+  { type: LIVE_EVENT.TWO_MADE, label: "2 ✓", tone: "made" },
+  { type: LIVE_EVENT.TWO_MISSED, label: "2 ✕", tone: "miss" },
+  { type: LIVE_EVENT.THREE_MADE, label: "3 ✓", tone: "made" },
+  { type: LIVE_EVENT.THREE_MISSED, label: "3 ✕", tone: "miss" },
+  { type: LIVE_EVENT.OREB, label: "REB O" },
+  { type: LIVE_EVENT.DREB, label: "REB D" },
+  { type: LIVE_EVENT.AST, label: "AST" },
+  { type: LIVE_EVENT.TOV, label: "PÉR" },
+  { type: LIVE_EVENT.STL, label: "ROB" },
+  { type: LIVE_EVENT.BLK, label: "TAP" },
+  { type: LIVE_EVENT.PFD, label: "F REC" },
+  { type: LIVE_EVENT.PF, label: "FALTA", tone: "foul" },
 ];
+
+const ACTION_LABEL = Object.fromEntries(ACTIONS.map((action) => [action.type, action.label]));
 
 function formatClock(ms) {
   const safe = Math.max(0, Math.round(ms));
@@ -50,8 +54,24 @@ function formatClock(ms) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function sortBench(a, b) {
+  return String(a.number).localeCompare(String(b.number), "es", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 function describeEvent(event, players, opponent) {
   if (!event) return "Sin acciones todavía";
+
+  if (event.event_type === LIVE_EVENT.SUBSTITUTION) {
+    const incoming = players[event.player_id];
+    const outgoing = players[event.related_player_id];
+    if (incoming && outgoing) {
+      return `Entra #${incoming.number} ${incoming.name} por #${outgoing.number} ${outgoing.name}`;
+    }
+  }
+
   const player = event.player_id ? players[event.player_id] : null;
   const who = player ? `#${player.number} ${player.name}` : opponent;
   const labels = {
@@ -87,10 +107,10 @@ export default function LiveStatsPage() {
   const initialStateRef = useRef(null);
   const [events, setEvents] = useState(() => loadLiveEvents());
   const [gameState, setGameState] = useState(null);
-  const [activePlayerId, setActivePlayerId] = useState(null);
   const [foulPlayerId, setFoulPlayerId] = useState(null);
-  const [subOutId, setSubOutId] = useState(null);
   const [error, setError] = useState("");
+
+  const { drag, startDrag } = usePointerDrag(handleDrop);
 
   useEffect(() => {
     if (!setup) return;
@@ -100,12 +120,8 @@ export default function LiveStatsPage() {
       matchDate: setup.matchDate,
     });
     initialStateRef.current = initial;
-    const restored = deriveGameState(initial, events);
-    setGameState(restored);
-    setActivePlayerId(restored.onCourtIds[0] || null);
-    // Only restore the event log. A reopened scorer always starts with the clock stopped.
-    setGameState((current) => (current ? stopClock(current) : current));
-  }, []); // setup is immutable during a live session
+    setGameState(stopClock(deriveGameState(initial, events)));
+  }, []);
 
   useEffect(() => {
     if (!gameState?.clockRunning) return undefined;
@@ -113,11 +129,7 @@ export default function LiveStatsPage() {
       setGameState((current) => {
         if (!current?.clockRunning) return current;
         const nextClock = Math.max(0, current.clockMs - 100);
-        return {
-          ...current,
-          clockMs: nextClock,
-          clockRunning: nextClock > 0,
-        };
+        return { ...current, clockMs: nextClock, clockRunning: nextClock > 0 };
       });
     }, 100);
     return () => window.clearInterval(id);
@@ -128,22 +140,26 @@ export default function LiveStatsPage() {
       <div className="live-empty card card--p">
         <h1>No hay un partido Live preparado</h1>
         <p className="text-dim">Primero selecciona convocatoria y quinteto inicial.</p>
-        <button className="live-primary-action" onClick={() => navigate("/admin/live/setup")}>Preparar partido</button>
+        <button className="live-primary-action" onClick={() => navigate("/admin/live/setup")}>
+          Preparar partido
+        </button>
       </div>
     );
   }
 
-  if (!gameState) return <p>Cargando Live Stats...</p>;
+  if (!gameState) return <p className="live-loading">Cargando Live Stats...</p>;
 
   const currentFouls = gameState.teamFouls[gameState.period] || { gazalbide: 0, opponent: 0 };
   const onCourt = gameState.onCourtIds.map((id) => gameState.players[id]).filter(Boolean);
-  const bench = Object.values(gameState.players).filter(
-    (player) => !gameState.onCourtIds.includes(player.id) && isPlayerEligible(player.status)
-  );
-  const activePlayer = activePlayerId ? gameState.players[activePlayerId] : null;
+  const bench = Object.values(gameState.players)
+    .filter((player) => !gameState.onCourtIds.includes(player.id) && isPlayerEligible(player.status))
+    .sort(sortBench);
   const foulKinds = getFoulKindsForProfile(gameState.ruleProfile);
 
-  function appendEvent(eventType, { playerId = null, foulKind = null, metadata = {} } = {}) {
+  function appendEvent(
+    eventType,
+    { playerId = null, relatedPlayerId = null, foulKind = null, metadata = {} } = {}
+  ) {
     setError("");
     const event = {
       id: crypto.randomUUID(),
@@ -154,6 +170,7 @@ export default function LiveStatsPage() {
       subject: getEventSubject(eventType),
       event_type: eventType,
       player_id: playerId,
+      related_player_id: relatedPlayerId,
       foul_kind: foulKind,
       metadata,
       is_void: false,
@@ -172,56 +189,38 @@ export default function LiveStatsPage() {
     }
   }
 
-  function addPlayerAction(type) {
-    if (!activePlayerId) {
-      setError("Selecciona primero un jugador de pista.");
+  function handleDrop(item, target) {
+    if (!gameState || !target?.playerId) return;
+
+    if (item.kind === "action") {
+      if (target.kind !== "player" || target.zone !== "court") return;
+      const player = gameState.players[target.playerId];
+      if (!player || !isPlayerEligible(player.status)) {
+        setError("Ese jugador debe ser sustituido y ya no puede recibir acciones.");
+        return;
+      }
+      if (item.eventType === LIVE_EVENT.PF) {
+        setFoulPlayerId(target.playerId);
+      } else {
+        appendEvent(item.eventType, { playerId: target.playerId });
+      }
       return;
     }
-    appendEvent(type, { playerId: activePlayerId });
+
+    if (item.kind === "player" && target.kind === "player" && item.zone !== target.zone) {
+      const incomingId = item.zone === "bench" ? item.playerId : target.playerId;
+      const outgoingId = item.zone === "court" ? item.playerId : target.playerId;
+      appendEvent(LIVE_EVENT.SUBSTITUTION, {
+        playerId: incomingId,
+        relatedPlayerId: outgoingId,
+      });
+    }
   }
 
   function addFoul(kind) {
     if (!foulPlayerId) return;
-    const next = appendEvent(LIVE_EVENT.PF, { playerId: foulPlayerId, foulKind: kind });
+    appendEvent(LIVE_EVENT.PF, { playerId: foulPlayerId, foulKind: kind });
     setFoulPlayerId(null);
-    if (next?.players[foulPlayerId]?.status === PLAYER_STATUS.FOULED_OUT || next?.players[foulPlayerId]?.status === PLAYER_STATUS.DISQUALIFIED) {
-      setActivePlayerId(next.onCourtIds[0] || null);
-    }
-  }
-
-  function substitute(inId) {
-    setError("");
-    let state = stopClock(gameState);
-    let nextEvents = [...events];
-    const push = (eventType, playerId) => {
-      const event = {
-        id: crypto.randomUUID(),
-        client_sequence: nextEvents.length + 1,
-        client_created_at: new Date().toISOString(),
-        period: state.period,
-        clock_ms: state.clockMs,
-        subject: "gazalbide",
-        event_type: eventType,
-        player_id: playerId,
-        foul_kind: null,
-        metadata: {},
-        is_void: false,
-      };
-      state = applyLiveEvent(state, event);
-      nextEvents.push(event);
-    };
-
-    try {
-      if (subOutId && state.onCourtIds.includes(subOutId)) push(LIVE_EVENT.SUB_OUT, subOutId);
-      push(LIVE_EVENT.SUB_IN, inId);
-      setGameState(state);
-      setEvents(nextEvents);
-      saveLiveEvents(nextEvents);
-      setSubOutId(null);
-      setActivePlayerId(inId);
-    } catch (err) {
-      setError(err.message || "No se pudo completar el cambio.");
-    }
   }
 
   function undoLast() {
@@ -231,11 +230,8 @@ export default function LiveStatsPage() {
     setEvents(nextEvents);
     saveLiveEvents(nextEvents);
     setGameState(stopClock(reconstructed));
-    if (!reconstructed.onCourtIds.includes(activePlayerId)) {
-      setActivePlayerId(reconstructed.onCourtIds[0] || null);
-    }
-    setSubOutId(null);
     setFoulPlayerId(null);
+    setError("");
   }
 
   function toggleClock() {
@@ -257,7 +253,6 @@ export default function LiveStatsPage() {
       period: nextPeriodNumber,
       clockMs: periodMs,
     }));
-    setSubOutId(null);
   }
 
   function restartSetup() {
@@ -266,86 +261,188 @@ export default function LiveStatsPage() {
     navigate("/admin/live/setup");
   }
 
+  const actionDragging = drag?.item?.kind === "action";
+  const playerDragging = drag?.item?.kind === "player";
+
   return (
-    <div className="live-page">
+    <div className="live-page live-page--drag">
       <div className="live-portrait-warning">
-        <strong>Gira el móvil</strong><span>Live Stats está diseñado para usarse en horizontal.</span>
+        <strong>Gira el móvil</strong>
+        <span>Live Stats está diseñado para usarse en horizontal.</span>
       </div>
 
-      <header className="live-scoreboard">
-        <div className="live-team"><span>GAZALBIDE</span><strong>{gameState.score.gazalbide}</strong><small>Faltas Q{gameState.period}: {currentFouls.gazalbide}</small></div>
-        <div className="live-clock">
-          <button type="button" onClick={toggleClock} className={gameState.clockRunning ? "live-clock__button live-clock__button--running" : "live-clock__button"}>
-            <strong>{formatClock(gameState.clockMs)}</strong><span>{gameState.clockRunning ? "PAUSAR" : "INICIAR"}</span>
-          </button>
-          <div className="live-period">Q{gameState.period}<button type="button" onClick={nextPeriod}>Siguiente →</button></div>
+      <header className="live-scoreboard live-scoreboard--compact">
+        <div className="live-team">
+          <span>GAZALBIDE</span>
+          <strong>{gameState.score.gazalbide}</strong>
+          <small>Faltas Q{gameState.period}: {currentFouls.gazalbide}</small>
         </div>
-        <div className="live-team live-team--opponent"><span>{setup.opponent.toUpperCase()}</span><strong>{gameState.score.opponent}</strong><small>Faltas Q{gameState.period}: {currentFouls.opponent}</small></div>
+        <div className="live-clock">
+          <button
+            type="button"
+            onClick={toggleClock}
+            className={gameState.clockRunning ? "live-clock__button live-clock__button--running" : "live-clock__button"}
+          >
+            <strong>{formatClock(gameState.clockMs)}</strong>
+            <span>{gameState.clockRunning ? "PAUSAR" : "INICIAR"}</span>
+          </button>
+          <div className="live-period">
+            Q{gameState.period}
+            <button type="button" onClick={nextPeriod}>Siguiente →</button>
+          </div>
+        </div>
+        <div className="live-team live-team--opponent">
+          <span>{setup.opponent.toUpperCase()}</span>
+          <strong>{gameState.score.opponent}</strong>
+          <small>Faltas Q{gameState.period}: {currentFouls.opponent}</small>
+        </div>
       </header>
 
-      {error && <div className="live-alert live-alert--error">{error}</div>}
-      {gameState.pendingSubstitutionFor.length > 0 && <div className="live-alert live-alert--warning">Cambio obligatorio: hay menos de 5 jugadores elegibles en pista.</div>}
+      {(error || gameState.pendingSubstitutionFor.length > 0) && (
+        <div className={`live-inline-alert${error ? " live-inline-alert--error" : ""}`}>
+          {error || "Cambio obligatorio: arrastra un jugador del banquillo sobre el jugador eliminado."}
+        </div>
+      )}
 
-      <div className="live-console">
-        <section className="live-court-panel">
-          <div className="live-panel-title"><span>EN PISTA</span><small>Toca un jugador para anotar</small></div>
-          <div className="live-on-court">
-            {onCourt.map((player) => (
-              <article key={player.id} className={`live-player-card${activePlayerId === player.id ? " live-player-card--active" : ""}`}>
-                <button className="live-player-card__select" type="button" onClick={() => setActivePlayerId(player.id)}>
-                  <strong>#{player.number}</strong><span>{player.name}</span>
-                  <small>{player.stats.pts} PTS · {player.stats.reb} REB · {player.stats.ast} AST</small>
-                  <small className={player.stats.pf >= 4 ? "live-fouls live-fouls--danger" : "live-fouls"}>F {player.stats.pf}/5</small>
-                </button>
-                <button className="live-player-card__sub" type="button" onClick={() => setSubOutId(player.id)}>{subOutId === player.id ? "Seleccionado para salir" : "Cambio"}</button>
-              </article>
-            ))}
+      <div className="live-console live-console--drag">
+        <section className="live-court-panel live-court-panel--drag">
+          <div className="live-panel-title">
+            <span>PISTA</span>
+            <small>{actionDragging ? "Suelta la acción sobre el jugador" : "Arrastra jugador ↔ banquillo para cambiar"}</small>
           </div>
 
-          <div className="live-bench-title">BANQUILLO · {bench.length}</div>
-          <div className="live-bench">
-            {bench.map((player) => (
-              <button key={player.id} type="button" className="live-bench-player" onClick={() => substitute(player.id)} disabled={!subOutId && gameState.onCourtIds.length >= 5 && gameState.pendingSubstitutionFor.length === 0}>
-                <strong>#{player.number}</strong><span>{player.name}</span><small>Entra</small>
+          <div className="live-on-court live-on-court--slots">
+            {onCourt.map((player, index) => {
+              const unavailable = !isPlayerEligible(player.status);
+              const canReceivePlayer = playerDragging && drag.item.zone === "bench";
+              return (
+                <article
+                  key={`${index}-${player.id}`}
+                  className={`live-player-card live-player-card--draggable${actionDragging && !unavailable ? " live-player-card--drop-ready" : ""}${canReceivePlayer ? " live-player-card--swap-ready" : ""}${unavailable ? " live-player-card--unavailable" : ""}`}
+                  data-live-drop="player"
+                  data-zone="court"
+                  data-player-id={player.id}
+                  onPointerDown={(event) => startDrag(event, {
+                    kind: "player",
+                    zone: "court",
+                    playerId: player.id,
+                    label: `#${player.number} ${player.name}`,
+                  })}
+                >
+                  <div className="live-player-card__slot">{index + 1}</div>
+                  <strong>#{player.number}</strong>
+                  <span>{player.name}</span>
+                  <div className="live-player-card__stats">
+                    <b>{player.stats.pts}</b><small>PTS</small>
+                    <b>{player.stats.reb}</b><small>REB</small>
+                    <b>{player.stats.ast}</b><small>AST</small>
+                  </div>
+                  <div className={player.stats.pf >= 4 ? "live-fouls live-fouls--danger" : "live-fouls"}>
+                    F {player.stats.pf}/5
+                  </div>
+                  {unavailable && (
+                    <div className="live-player-card__status">
+                      {player.status === PLAYER_STATUS.DISQUALIFIED ? "DESCALIFICADO" : "ELIMINADO"}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="live-bench-title">
+            <span>BANQUILLO · {bench.length}</span>
+            <small>{playerDragging && drag.item.zone === "court" ? "Suelta sobre el jugador que entra" : "Ordenado por dorsal"}</small>
+          </div>
+          <div className="live-bench live-bench--drag">
+            {bench.map((player) => {
+              const canReceivePlayer = playerDragging && drag.item.zone === "court";
+              return (
+                <article
+                  key={player.id}
+                  className={`live-bench-player live-bench-player--draggable${canReceivePlayer ? " live-bench-player--swap-ready" : ""}`}
+                  data-live-drop="player"
+                  data-zone="bench"
+                  data-player-id={player.id}
+                  onPointerDown={(event) => startDrag(event, {
+                    kind: "player",
+                    zone: "bench",
+                    playerId: player.id,
+                    label: `#${player.number} ${player.name}`,
+                  })}
+                >
+                  <strong>#{player.number}</strong>
+                  <span>{player.name}</span>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="live-actions-panel live-actions-panel--drag">
+          <div className="live-panel-title live-panel-title--actions">
+            <span>ACCIONES</span>
+            <small>Arrastra una acción hasta el jugador</small>
+          </div>
+          <div className="live-actions-grid live-actions-grid--drag">
+            {ACTIONS.map((action) => (
+              <button
+                type="button"
+                key={action.type}
+                className={`live-drag-action${action.tone ? ` live-drag-action--${action.tone}` : ""}`}
+                onPointerDown={(event) => startDrag(event, {
+                  kind: "action",
+                  eventType: action.type,
+                  label: action.label,
+                })}
+              >
+                {action.label}
               </button>
             ))}
           </div>
+          <div className="live-drag-help">Acción → jugador · Jugador ↔ jugador para cambios</div>
         </section>
 
-        <section className="live-actions-panel">
-          <div className="live-active-player">
-            <span>JUGADOR ACTIVO</span>
-            <strong>{activePlayer ? `#${activePlayer.number} ${activePlayer.name}` : "Selecciona jugador"}</strong>
-            {activePlayer && <small>{activePlayer.stats.pts} PTS · {activePlayer.stats.reb} REB · {activePlayer.stats.ast} AST · {activePlayer.stats.pf} PF</small>}
-          </div>
-          <div className="live-actions-grid">
-            {ACTIONS.map(([type, label]) => <button type="button" key={type} onClick={() => addPlayerAction(type)}>{label}</button>)}
-            <button type="button" className="live-action-foul" onClick={() => activePlayerId && setFoulPlayerId(activePlayerId)}>FALTA</button>
-          </div>
-        </section>
-
-        <aside className="live-opponent-panel">
-          <div className="live-panel-title"><span>RIVAL</span><small>Solo marcador y faltas</small></div>
+        <aside className="live-opponent-panel live-opponent-panel--drag">
+          <div className="live-panel-title"><span>RIVAL</span><small>Agregado</small></div>
           <div className="live-opponent-actions">
             <button type="button" onClick={() => appendEvent(LIVE_EVENT.OPP_SCORE_1)}>+1</button>
             <button type="button" onClick={() => appendEvent(LIVE_EVENT.OPP_SCORE_2)}>+2</button>
             <button type="button" onClick={() => appendEvent(LIVE_EVENT.OPP_SCORE_3)}>+3</button>
             <button type="button" className="live-opponent-foul" onClick={() => appendEvent(LIVE_EVENT.OPP_TEAM_FOUL)}>+ FALTA</button>
           </div>
-          <div className="live-last-action"><span>ÚLTIMA ACCIÓN</span><strong>{describeEvent(gameState.lastEvent, gameState.players, setup.opponent)}</strong><small>Q{gameState.period} · {formatClock(gameState.lastEvent?.clock_ms ?? gameState.clockMs)}</small></div>
-          <button type="button" className="live-undo" onClick={undoLast} disabled={!events.length}>↶ DESHACER</button>
-          <button type="button" className="live-reset" onClick={restartSetup}>Nuevo partido local</button>
+          <div className="live-last-action">
+            <span>ÚLTIMA ACCIÓN</span>
+            <strong>{describeEvent(gameState.lastEvent, gameState.players, setup.opponent)}</strong>
+            <small>Q{gameState.period} · {formatClock(gameState.lastEvent?.clock_ms ?? gameState.clockMs)}</small>
+          </div>
+          <div className="live-side-actions">
+            <button type="button" className="live-undo" onClick={undoLast} disabled={!events.length}>↶ DESHACER</button>
+            <button type="button" className="live-reset" onClick={restartSetup}>Nuevo partido</button>
+          </div>
         </aside>
       </div>
 
+      {drag && (
+        <div
+          className={`live-drag-ghost live-drag-ghost--${drag.item.kind}`}
+          style={{ left: drag.x, top: drag.y }}
+          aria-hidden="true"
+        >
+          {drag.item.kind === "action" ? drag.item.label : drag.item.label}
+        </div>
+      )}
+
       {foulPlayerId && (
         <div className="live-modal-backdrop" role="presentation" onClick={() => setFoulPlayerId(null)}>
-          <div className="live-foul-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div className="live-foul-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <span>TIPO DE FALTA</span>
             <h2>#{gameState.players[foulPlayerId]?.number} {gameState.players[foulPlayerId]?.name}</h2>
             <p>Cualquier opción suma también +1 PF total y +1 falta de equipo.</p>
             <div className="live-foul-options">
-              {foulKinds.map((kind) => <button key={kind} type="button" onClick={() => addFoul(kind)}>{FOUL_LABEL[kind]}</button>)}
+              {foulKinds.map((kind) => (
+                <button key={kind} type="button" onClick={() => addFoul(kind)}>{FOUL_LABEL[kind]}</button>
+              ))}
             </div>
             <button className="live-modal-cancel" type="button" onClick={() => setFoulPlayerId(null)}>Cancelar</button>
           </div>
