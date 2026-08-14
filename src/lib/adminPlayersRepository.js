@@ -59,7 +59,7 @@ export async function getReusablePlayers(seasonId) {
     }));
 }
 
-async function savePhoto(playerId, file) {
+async function savePhoto(playerId, file, previousPhotoPath = null) {
   if (!file) return null;
   const photoPath = await uploadPlayerPhoto(playerId, file);
   const { error } = await supabase
@@ -67,6 +67,15 @@ async function savePhoto(playerId, file) {
     .update({ photo_path: photoPath, updated_at: new Date().toISOString() })
     .eq("id", playerId);
   if (error) throw error;
+
+  if (previousPhotoPath && previousPhotoPath !== photoPath) {
+    try {
+      await removePlayerPhoto(previousPhotoPath);
+    } catch (cleanupError) {
+      console.warn("No se pudo eliminar la foto anterior:", cleanupError);
+    }
+  }
+
   return photoPath;
 }
 
@@ -159,7 +168,7 @@ export async function updateSeasonPlayer({
       .eq("id", playerId);
     if (error) throw error;
   } else if (photoFile) {
-    await savePhoto(playerId, photoFile);
+    await savePhoto(playerId, photoFile, previousPhotoPath);
   }
 }
 
