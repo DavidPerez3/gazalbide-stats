@@ -53,9 +53,13 @@ export default function Ranking() {
   const [techs, setTechs] = useState({});
 
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
-      setTechs(await getTechs());
-      const matches = await getMatches();
+      const [seasonTechs, matches] = await Promise.all([
+        getTechs(activeSeason.id),
+        getMatches(activeSeason.id),
+      ]);
       const agg = new Map();
       for (const m of matches) {
         const stats = await getMatchStats(m.id);
@@ -67,9 +71,15 @@ export default function Ranking() {
           agg.set(key, cur);
         }
       }
-      setRows(Array.from(agg.values()));
+
+      if (!cancelled) {
+        setTechs(seasonTechs);
+        setRows(Array.from(agg.values()));
+      }
     })();
-  }, []);
+
+    return () => { cancelled = true; };
+  }, [activeSeason.id]);
 
   const meta = METRICS.find((x) => x.key === metric) || METRICS[0];
 
@@ -121,36 +131,62 @@ export default function Ranking() {
   const valueHeader = isPct ? `${meta.label} (${activeSeason.label})` : `${mode === "media" ? "Media" : "Total"} ${meta.label}`;
 
   return (
-    <section>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--color-gold)" }}>Ranking</h2>
-          <div className="text-dim" style={{ fontSize: 12 }}>Temporada {activeSeason.label}</div>
+    <section className="stats-page ranking-page">
+      <header className="stats-page__header">
+        <div className="stats-page__heading">
+          <h2>Ranking</h2>
+          <div className="stats-page__season">Temporada {activeSeason.label}</div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-dim" htmlFor="metric">Métrica:</label>
-          <select id="metric" className="input" style={{ width: "auto" }} value={metric} onChange={(e) => setMetric(e.target.value)}>
-            {METRICS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-          </select>
-          <label className="text-dim" htmlFor="mode">Modo:</label>
-          <select id="mode" className="input" style={{ width: "auto", opacity: isPct ? 0.5 : 1 }} value={mode} onChange={(e) => setMode(e.target.value)} disabled={isPct}>
-            <option value="media">Media</option><option value="total">Total</option>
-          </select>
+
+        <div className="stats-page__controls">
+          <div className="stats-field">
+            <label htmlFor="metric">Métrica</label>
+            <select id="metric" className="input" value={metric} onChange={(e) => setMetric(e.target.value)}>
+              {METRICS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+            </select>
+          </div>
+
+          <div className="stats-field">
+            <label htmlFor="mode">Modo</label>
+            <select
+              id="mode"
+              className="input"
+              style={{ opacity: isPct ? 0.5 : 1 }}
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              disabled={isPct}
+            >
+              <option value="media">Media</option>
+              <option value="total">Total</option>
+            </select>
+          </div>
         </div>
-      </div>
+      </header>
 
       {rows.length === 0 ? (
-        <div className="card season-empty"><strong>Sin ranking todavía</strong><span>No hay estadísticas publicadas en {activeSeason.label}.</span></div>
+        <div className="card stats-empty-card">
+          <strong>Sin ranking todavía</strong>
+          <span className="text-dim">No hay estadísticas publicadas en {activeSeason.label}.</span>
+        </div>
       ) : (
-        <div className="card" style={{ padding: 8, overflowX: "auto" }}>
-          <table className="table">
-            <thead><tr><th>#</th><th>Jugador</th><th>{valueHeader}</th><th>Partidos</th></tr></thead>
+        <div className="card stats-table-card">
+          <table className="table ranking-table">
+            <thead>
+              <tr><th>#</th><th>Jugador</th><th>{valueHeader}</th><th>Partidos</th></tr>
+            </thead>
             <tbody>
               {ranking.map((r, i) => (
                 <tr key={`${r.name}-${i}`}>
                   <td>{i + 1}</td>
                   <td>{r._isStaff ? `${r.name} (staff)` : `#${r.number} — ${r.name}`}</td>
-                  <td>{isPct ? <><div>{r.display}</div><div className="text-dim" style={{fontSize:12}}>{r.made}/{r.att}</div></> : r.display}</td>
+                  <td>
+                    {isPct ? (
+                      <>
+                        <div>{r.display}</div>
+                        <div className="text-dim" style={{ fontSize: 12 }}>{r.made}/{r.att}</div>
+                      </>
+                    ) : r.display}
+                  </td>
                   <td>{r.games}</td>
                 </tr>
               ))}
@@ -158,6 +194,7 @@ export default function Ranking() {
           </table>
         </div>
       )}
+
       <StatLegend defaultOpen={false} />
     </section>
   );
