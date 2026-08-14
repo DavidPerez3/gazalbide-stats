@@ -1,0 +1,15 @@
+.live-actions-grid--drag{grid-template-columns:repeat(4,minmax(0,1fr));}
+
+.live-clock-main{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:120px;gap:3px}
+.live-clock-adjust{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;width:100%}
+.live-clock-adjust button{border:1px solid #303030;background:#171717;color:#aaa;border-radius:6px;padding:3px 4px;font-size:.5rem;font-weight:800;cursor:pointer}
+.live-clock-adjust button:active{background:#232323;color:#fff}
+.live-clock-zero{color:#ffb04a!important}
+.live-period button.live-period__next-ready{color:var(--color-gold);font-weight:900}
+.live-player-minutes{margin-top:2px;font-size:.52rem;color:#8d8d8d;font-weight:800}
+
+@media(orientation:landscape) and (max-height:600px){
+  .live-clock-main{min-width:112px;gap:2px}
+  .live-clock-adjust button{font-size:.46rem;padding:2px 3px}
+  .live-player-minutes{font-size:.48rem}
+}
