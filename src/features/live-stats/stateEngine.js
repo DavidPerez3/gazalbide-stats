@@ -132,7 +132,12 @@ function applySubIn(state, playerId) {
   return {
     ...state,
     onCourtIds: [...state.onCourtIds, playerId],
-    pendingSubstitutionFor: state.pendingSubstitutionFor.filter((id) => id !== playerId),
+    // If a player was automatically removed because of fouling out/disqualification,
+    // the next legal SUB_IN fills one mandatory replacement slot.
+    pendingSubstitutionFor:
+      state.pendingSubstitutionFor.length > 0
+        ? state.pendingSubstitutionFor.slice(1)
+        : state.pendingSubstitutionFor,
     players: {
       ...state.players,
       [playerId]: { ...player, status: PLAYER_STATUS.ON_COURT },
