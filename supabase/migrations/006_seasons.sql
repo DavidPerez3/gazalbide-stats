@@ -21,7 +21,6 @@ on conflict (id) do update set
   ends_on = excluded.ends_on,
   is_current = excluded.is_current;
 
--- Normalize the legacy value created by migration 001.
 update public.matches
 set season = '2025-2026'
 where season in ('2025-26', '2025/26', '25/26');
@@ -36,7 +35,13 @@ alter table public.matches
   add constraint matches_season_fkey
   foreign key (season) references public.seasons(id) on update cascade on delete restrict;
 
--- A player is a persistent identity. Dorsal and membership belong to a season.
+-- players.number was originally globally unique. From now on the canonical dorsal
+-- belongs to season_players so the same number can be reused by a different player
+-- in another season, and the same player can change number between seasons.
+alter table public.players drop constraint if exists players_number_key;
+comment on column public.players.number is
+  'Legacy/default jersey number. Canonical season-specific number lives in season_players.jersey_number.';
+
 create table if not exists public.season_players (
   season_id text not null references public.seasons(id) on delete cascade,
   player_id bigint not null references public.players(id) on delete restrict,
@@ -49,7 +54,6 @@ create table if not exists public.season_players (
   unique (season_id, jersey_number)
 );
 
--- Preserve every legacy player in the 2025-2026 archive.
 insert into public.season_players (season_id, player_id, jersey_number, active, sort_order)
 select '2025-2026', p.id, p.number, true, p.sort_order
 from public.players p
@@ -64,12 +68,10 @@ alter table public.seasons enable row level security;
 alter table public.season_players enable row level security;
 
 drop policy if exists "seasons_public_read" on public.seasons;
-create policy "seasons_public_read"
-  on public.seasons for select using (true);
+create policy "seasons_public_read" on public.seasons for select using (true);
 
 drop policy if exists "season_players_public_read" on public.season_players;
-create policy "season_players_public_read"
-  on public.season_players for select using (true);
+create policy "season_players_public_read" on public.season_players for select using (true);
 
 drop policy if exists "seasons_admin_all" on public.seasons;
 create policy "seasons_admin_all"
