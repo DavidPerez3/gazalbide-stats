@@ -159,8 +159,6 @@ function applyPlayerFoul(state, event) {
   if (!foulKind) throw new Error("Debes indicar el tipo de falta del jugador.");
 
   const player = state.players[event.player_id];
-  // Every foul subtype remains one PF overall and one team foul for the bonus.
-  // The exact subtype is also counted independently for future rankings.
   const stats = addDelta(player.stats, getFoulStatDelta(foulKind));
   const foulKinds = [...player.foulKinds, foulKind];
   const disciplinaryStatus = deriveDisciplinaryStatus({
@@ -216,7 +214,7 @@ export function applyLiveEvent(previousState, event) {
     state = applySubIn(state, event.player_id);
   } else if (event.event_type === LIVE_EVENT.PF) {
     state = applyPlayerFoul(state, event);
-  } else {
+  } else if (event.subject === "gazalbide" || event.player_id) {
     state = applyPlayerStat(state, event);
   }
 
