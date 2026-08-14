@@ -14,6 +14,7 @@ import {
   validateLineup,
   validateRoster,
 } from "./rules.js";
+import { getFoulStatDelta } from "./foulStats.js";
 
 const EMPTY_STATS = Object.freeze({
   pts: 0,
@@ -34,6 +35,15 @@ const EMPTY_STATS = Object.freeze({
   blk: 0,
   pf: 0,
   pfd: 0,
+  pf_defensive: 0,
+  pf_offensive: 0,
+  pf_technical: 0,
+  pf_unsportsmanlike: 0,
+  pf_disqualifying: 0,
+  pf_technical_cat_1: 0,
+  pf_technical_cat_2: 0,
+  pf_disruptive: 0,
+  pf_flagrant: 0,
 });
 
 function addDelta(base, delta) {
@@ -132,8 +142,6 @@ function applySubIn(state, playerId) {
   return {
     ...state,
     onCourtIds: [...state.onCourtIds, playerId],
-    // If a player was automatically removed because of fouling out/disqualification,
-    // the next legal SUB_IN fills one mandatory replacement slot.
     pendingSubstitutionFor:
       state.pendingSubstitutionFor.length > 0
         ? state.pendingSubstitutionFor.slice(1)
@@ -151,7 +159,9 @@ function applyPlayerFoul(state, event) {
   if (!foulKind) throw new Error("Debes indicar el tipo de falta del jugador.");
 
   const player = state.players[event.player_id];
-  const stats = addDelta(player.stats, getPlayerStatDelta(LIVE_EVENT.PF));
+  // Every foul subtype remains one PF overall and one team foul for the bonus.
+  // The exact subtype is also counted independently for future rankings.
+  const stats = addDelta(player.stats, getFoulStatDelta(foulKind));
   const foulKinds = [...player.foulKinds, foulKind];
   const disciplinaryStatus = deriveDisciplinaryStatus({
     totalFouls: stats.pf,
@@ -214,6 +224,7 @@ export function applyLiveEvent(previousState, event) {
   const foulDelta = getTeamFoulDelta(event.event_type);
   const period = event.period ?? state.period;
   const currentPeriodFouls = state.teamFouls[period] || { gazalbide: 0, opponent: 0 };
+  const eventClockMs = Number.isFinite(event.clock_ms) ? event.clock_ms : state.clockMs;
 
   state = {
     ...state,
@@ -221,7 +232,7 @@ export function applyLiveEvent(previousState, event) {
     clockMs:
       event.event_type === LIVE_EVENT.CLOCK_SET && Number.isFinite(event.metadata?.clockMs)
         ? event.metadata.clockMs
-        : state.clockMs,
+        : eventClockMs,
     clockRunning: eventStopsClock(event.event_type) ? false : state.clockRunning,
     score: addDelta(state.score, scoreDelta),
     teamFouls: {
