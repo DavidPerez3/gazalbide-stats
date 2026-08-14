@@ -124,6 +124,20 @@ const router = createHashRouter([
   },
 ]);
 
+// Android can interpret capture="environment" as "camera only". In the
+// player admin we want the regular system picker so the user can choose
+// gallery/photos or camera. Strip the hint just before the picker opens.
+function allowGalleryForAdminPlayerPhotos(event) {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  if (input.type !== "file" || !input.hasAttribute("capture")) return;
+  if (!input.closest(".admin-players")) return;
+  input.removeAttribute("capture");
+}
+
+document.addEventListener("pointerdown", allowGalleryForAdminPlayerPhotos, true);
+document.addEventListener("click", allowGalleryForAdminPlayerPhotos, true);
+
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
