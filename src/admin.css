@@ -1,0 +1,214 @@
+.admin-center {
+  padding: 2rem 0 0;
+}
+
+.admin-center__hero {
+  padding: 1.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(25, 25, 25, 0.98), rgba(15, 15, 15, 0.98));
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-center__eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--color-gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-center__title {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  line-height: 1.1;
+}
+
+.admin-center__subtitle {
+  margin: 0.75rem 0 0;
+  max-width: 680px;
+  color: var(--color-ink-dim);
+  line-height: 1.5;
+}
+
+.admin-center__modules {
+  margin-top: 1.25rem;
+}
+
+.admin-center__section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-center__section-heading h2,
+.admin-center__section-heading p {
+  margin: 0;
+}
+
+.admin-center__section-heading h2 {
+  font-size: 1.2rem;
+}
+
+.admin-center__section-heading p {
+  margin-top: 0.3rem;
+  color: var(--color-ink-dim);
+  font-size: 0.9rem;
+}
+
+.admin-center__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-module {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  padding: 1rem;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 14px;
+  background: rgba(20, 20, 20, 0.82);
+}
+
+.admin-module--available {
+  border-color: rgba(212, 175, 55, 0.48);
+  background: rgba(29, 25, 14, 0.82);
+}
+
+.admin-module__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-module__icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 1.25rem;
+}
+
+.admin-module__status {
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--color-ink-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.admin-module__status--ready {
+  background: rgba(212, 175, 55, 0.13);
+  color: var(--color-gold);
+}
+
+.admin-module__title {
+  margin: 0.9rem 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.admin-module__description {
+  margin: 0;
+  color: var(--color-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.admin-module__action,
+.admin-module__pending {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.admin-module__action {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-gold);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-module__action:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.admin-module__pending {
+  color: #777;
+  font-size: 0.78rem;
+}
+
+.admin-center__fantasy {
+  scroll-margin-top: 76px;
+}
+
+.admin-center__fantasy .admin {
+  padding-top: 1.25rem;
+}
+
+.admin-center__fantasy .admin__card {
+  border: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+@media (max-width: 900px) {
+  .admin-center__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-center {
+    padding-top: 0.75rem;
+  }
+
+  .admin-center__hero {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .admin-center__subtitle {
+    font-size: 0.9rem;
+  }
+
+  .admin-center__grid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .admin-module {
+    min-height: 0;
+    padding: 0.9rem;
+  }
+
+  .admin-module__action {
+    width: 100%;
+  }
+
+  .admin-center__fantasy .admin {
+    padding-top: 0.85rem;
+  }
+
+  .admin-center__fantasy .admin__card {
+    padding: 1rem;
+  }
+}
