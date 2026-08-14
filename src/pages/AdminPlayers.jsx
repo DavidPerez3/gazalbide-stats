@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlayerPhoto from "../components/PlayerPhoto.jsx";
-import { CURRENT_SEASON_ID } from "../lib/seasons.js";
+import { getPlayers } from "../lib/data.js";
+import { CURRENT_SEASON_ID, LEGACY_SEASON_ID } from "../lib/seasons.js";
 import {
   addSeasonPlayer,
   getAdminSeasonRoster,
@@ -17,6 +18,14 @@ function errorText(error) {
     return "Ese dorsal ya está asignado a otro jugador en esta temporada.";
   }
   return error?.message || "Se ha producido un error inesperado.";
+}
+
+function legacyReusablePlayers(players) {
+  return (players || []).map((player) => ({
+    ...player,
+    id: `legacy:${String(player.number)}:${String(player.name || "")}`,
+    source: "legacy-json",
+  }));
 }
 
 function PhotoInput({ file, onChange, player = null }) {
@@ -84,25 +93,45 @@ export default function AdminPlayers() {
     [reusablePlayers, reuseId]
   );
 
+  async function loadHistoricalFallback() {
+    try {
+      return legacyReusablePlayers(await getPlayers(LEGACY_SEASON_ID));
+    } catch (err) {
+      console.error("Error cargando jugadores históricos desde JSON:", err);
+      return [];
+    }
+  }
+
   async function load() {
     setLoading(true);
     setError("");
+
+    const fallbackHistorical = await loadHistoricalFallback();
+
     try {
-      const [seasonRoster, reusable] = await Promise.all([
-        getAdminSeasonRoster(CURRENT_SEASON_ID),
-        getReusablePlayers(CURRENT_SEASON_ID),
-      ]);
+      const seasonRoster = await getAdminSeasonRoster(CURRENT_SEASON_ID);
+      let reusable = [];
+
+      try {
+        reusable = await getReusablePlayers(CURRENT_SEASON_ID);
+      } catch (err) {
+        if (!isStatsSchemaMissing(err)) throw err;
+      }
+
       setRoster(seasonRoster);
-      setReusablePlayers(reusable);
+      setReusablePlayers(reusable.length ? reusable : fallbackHistorical);
       setSchemaPending(false);
     } catch (err) {
       console.error("Error cargando plantilla Admin:", err);
       if (isStatsSchemaMissing(err)) {
         setSchemaPending(true);
         setRoster([]);
-        setReusablePlayers([]);
+        // Aunque Supabase aún no esté migrado, el histórico 25/26 ya existe en JSON.
+        // Lo mostramos para que el selector no aparezca vacío desde el móvil.
+        setReusablePlayers(fallbackHistorical);
       } else {
         setError(errorText(err));
+        setReusablePlayers(fallbackHistorical);
       }
     } finally {
       setLoading(false);
@@ -132,7 +161,10 @@ export default function AdminPlayers() {
         seasonId: CURRENT_SEASON_ID,
         name: mode === "reuse" ? reusablePlayer?.name : name,
         jerseyNumber: jersey,
-        reusePlayerId: mode === "reuse" ? reusablePlayer?.id : null,
+        reusePlayerId:
+          mode === "reuse" && reusablePlayer?.source !== "legacy-json"
+            ? reusablePlayer?.id
+            : null,
         photoFile,
       });
       setMessage(
@@ -233,7 +265,7 @@ export default function AdminPlayers() {
         <div className="admin-players__notice">
           <strong>Módulo preparado, migración pendiente.</strong>
           <div className="admin-players__hint" style={{ marginTop: 5 }}>
-            Cuando recuperemos la conexión de la base de datos y ejecutemos las migraciones de Supabase, esta pantalla quedará operativa sin más cambios de interfaz.
+            Puedes consultar y seleccionar los jugadores de 2025-2026 desde los datos históricos. El guardado de la plantilla 2026-2027 se habilitará cuando ejecutemos las migraciones de Supabase.
           </div>
         </div>
       )}
@@ -286,7 +318,14 @@ export default function AdminPlayers() {
                 <select
                   className="input"
                   value={reuseId}
-                  onChange={(event) => setReuseId(event.target.value)}
+                  onChange={(event) => {
+                    const selectedId = event.target.value;
+                    setReuseId(selectedId);
+                    const selected = reusablePlayers.find(
+                      (player) => String(player.id) === String(selectedId)
+                    );
+                    if (selected?.number && !jersey) setJersey(String(selected.number));
+                  }}
                   required
                 >
                   <option value="">— Selecciona —</option>
@@ -340,7 +379,7 @@ export default function AdminPlayers() {
         ) : roster.length === 0 ? (
           <div className="text-dim">
             {schemaPending
-              ? "La plantilla aparecerá aquí al ejecutar las migraciones."
+              ? "La plantilla 2026-2027 se guardará aquí cuando ejecutemos las migraciones."
               : "Todavía no hay jugadores en la plantilla actual."}
           </div>
         ) : (
