@@ -18,10 +18,13 @@ export function SeasonProvider({ children }) {
   const [activeSeasonId, setActiveSeasonIdState] = useState(getInitialSeason);
 
   const setActiveSeasonId = (seasonId) => {
-    if (!SEASONS.some((season) => season.id === seasonId)) return;
+    if (!SEASONS.some((season) => season.id === seasonId) || seasonId === activeSeasonId) return;
     setActiveSeasonIdState(seasonId);
     try {
       window.localStorage.setItem(STORAGE_KEY, seasonId);
+      // Existing statistics screens load their aggregates on mount. Reloading here keeps
+      // every legacy screen season-consistent until they are progressively migrated to hooks.
+      window.location.reload();
     } catch {
       // Context state still works if persistence is unavailable.
     }
