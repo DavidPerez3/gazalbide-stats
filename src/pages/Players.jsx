@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { getPlayers } from "../lib/data";
 import { useSeason } from "../context/SeasonContext.jsx";
+import PlayerPhoto from "../components/PlayerPhoto.jsx";
 
 export default function Players() {
   const { activeSeason } = useSeason();
@@ -10,11 +11,19 @@ export default function Players() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPlayers().then((data) => {
-      setPlayers(data || []);
-      setLoading(false);
-    });
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    getPlayers(activeSeason.id)
+      .then((data) => {
+        if (!cancelled) setPlayers(data || []);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSeason.id]);
 
   const filtered = useMemo(() => {
     const f = players.filter((p) =>
@@ -43,10 +52,13 @@ export default function Players() {
           <input className="input mb-4" placeholder="Buscar por nombre o dorsal..." value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="grid grid--3">
             {filtered.map((p) => (
-              <div key={`${p.number}-${p.name}`} className="card card--p flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="badge">#{p.number}</span>
-                  <div style={{fontWeight:600}}>{p.name}</div>
+              <div key={`${p.number}-${p.name}`} className="card card--p flex justify-between items-center" style={{gap:12}}>
+                <div className="flex items-center gap-3" style={{minWidth:0}}>
+                  <PlayerPhoto player={p} size="card" />
+                  <div style={{minWidth:0}}>
+                    <div className="badge" style={{width:"fit-content",marginBottom:5}}>#{p.number}</div>
+                    <div style={{fontWeight:700,overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+                  </div>
                 </div>
                 <Link to={`/jugador/${encodeURIComponent(p.name)}`}>Ver detalle</Link>
               </div>

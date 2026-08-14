@@ -11,7 +11,7 @@ const dataDir = path.join(rootDir, "public", "data");
 const statsDir = path.join(dataDir, "player_stats");
 
 const databaseUrl = process.env.SUPABASE_DB_URL;
-const season = process.env.STATS_SEASON || "2025-26";
+const season = process.env.STATS_SEASON || "2025-2026";
 
 if (!databaseUrl) {
   console.error("Falta SUPABASE_DB_URL.");
@@ -57,6 +57,75 @@ function num(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+async function relationExists(client, qualifiedName) {
+  const result = await client.query("select to_regclass($1) is not null as exists", [qualifiedName]);
+  return Boolean(result.rows[0]?.exists);
+}
+
+async function upsertLegacyPlayer(client, player, index, hasSeasonPlayers) {
+  const jersey = String(player.number);
+  const sortOrder = Number.isInteger(player.sortOrder) ? player.sortOrder : index;
+  let playerId = null;
+
+  if (hasSeasonPlayers) {
+    const member = await client.query(
+      `select p.id
+         from public.season_players sp
+         join public.players p on p.id = sp.player_id
+        where sp.season_id = $1 and sp.jersey_number = $2
+        limit 1`,
+      [season, jersey]
+    );
+    playerId = member.rows[0]?.id || null;
+  }
+
+  if (!playerId) {
+    const existing = await client.query(
+      hasSeasonPlayers
+        ? `select id from public.players where number = $1 and name = $2 order by id limit 1`
+        : `select id from public.players where number = $1 order by id limit 1`,
+      hasSeasonPlayers ? [jersey, player.name] : [jersey]
+    );
+    playerId = existing.rows[0]?.id || null;
+  }
+
+  if (playerId) {
+    await client.query(
+      `update public.players
+          set name = $2,
+              active = true,
+              sort_order = $3,
+              updated_at = now()
+        where id = $1`,
+      [playerId, player.name, sortOrder]
+    );
+  } else {
+    const inserted = await client.query(
+      `insert into public.players (number, name, active, sort_order, updated_at)
+       values ($1, $2, true, $3, now())
+       returning id`,
+      [jersey, player.name, sortOrder]
+    );
+    playerId = inserted.rows[0].id;
+  }
+
+  if (hasSeasonPlayers) {
+    await client.query(
+      `insert into public.season_players
+        (season_id, player_id, jersey_number, active, sort_order, updated_at)
+       values ($1, $2, $3, true, $4, now())
+       on conflict (season_id, player_id) do update set
+         jersey_number = excluded.jersey_number,
+         active = true,
+         sort_order = excluded.sort_order,
+         updated_at = now()`,
+      [season, playerId, jersey, sortOrder]
+    );
+  }
+
+  return playerId;
+}
+
 async function main() {
   const client = new Client({
     connectionString: databaseUrl,
@@ -72,20 +141,12 @@ async function main() {
   try {
     await client.query("begin");
 
+    const hasSeasonPlayers = await relationExists(client, "public.season_players");
     const playerIdByNumber = new Map();
+
     for (const [index, player] of players.entries()) {
-      const result = await client.query(
-        `insert into public.players (number, name, active, sort_order, updated_at)
-         values ($1, $2, true, $3, now())
-         on conflict (number) do update set
-           name = excluded.name,
-           active = excluded.active,
-           sort_order = excluded.sort_order,
-           updated_at = now()
-         returning id`,
-        [String(player.number), player.name, Number.isInteger(player.sortOrder) ? player.sortOrder : index]
-      );
-      playerIdByNumber.set(String(player.number), result.rows[0].id);
+      const playerId = await upsertLegacyPlayer(client, player, index, hasSeasonPlayers);
+      playerIdByNumber.set(String(player.number), playerId);
     }
 
     for (const match of matches) {
@@ -207,6 +268,7 @@ async function main() {
     await client.query("commit");
 
     console.log("✅ Migración histórica completada");
+    console.log(`Temporada importada: ${season}`);
     console.log(`JSON -> jugadores detectados: ${players.length}`);
     console.log(`JSON -> partidos detectados: ${matches.length}`);
     console.log(`JSON -> filas stats importadas: ${importedStats}`);

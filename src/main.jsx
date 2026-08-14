@@ -6,7 +6,7 @@ import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
 import Match from "./pages/Match.jsx";
 import Players from "./pages/Players.jsx";
-import Player from "./pages/Player.jsx";
+import PlayerProfilePage from "./pages/PlayerProfilePage.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Compare from "./pages/Compare.jsx";
 import LeGazalPage from "./pages/LeGazalPage.jsx";
@@ -14,6 +14,7 @@ import LeGazalPage from "./pages/LeGazalPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
+import AdminPlayers from "./pages/AdminPlayers.jsx";
 import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
 import LiveStatsPage from "./pages/LiveStatsPage.jsx";
 import FantasyBuilder from "./pages/FantasyBuilder.jsx";
@@ -38,7 +39,7 @@ const router = createHashRouter([
       { index: true, element: <Home /> },
       { path: "partido/:id", element: <Match /> },
       { path: "jugadores", element: <Players /> },
-      { path: "jugador/:name", element: <Player /> },
+      { path: "jugador/:name", element: <PlayerProfilePage /> },
       { path: "ranking", element: <Ranking /> },
       { path: "compare", element: <Compare /> },
       { path: "le-gazal", element: <LeGazalPage /> },
@@ -92,6 +93,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute adminOnly={true}>
             <AdminCenter />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin/players",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <AdminPlayers />
           </PrivateRoute>
         ),
       },

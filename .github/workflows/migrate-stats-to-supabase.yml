@@ -2,9 +2,6 @@ name: Migrate stats to Supabase
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - ".github/workflows/migrate-stats-to-supabase.yml"
 
 permissions:
   contents: read
@@ -18,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      STATS_SEASON: "2025-26"
+      STATS_SEASON: "2025-2026"
 
     steps:
       - name: Checkout
@@ -42,7 +39,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-      - name: Apply stats schema
+      # 001 must exist before the historical importer can write players/matches/stats.
+      - name: Apply base stats schema
         env:
           PGSSLMODE: require
         run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/001_stats_core.sql
@@ -52,6 +50,22 @@ jobs:
 
       - name: Import historical JSON data
         run: node scripts/migrate_stats_via_postgres.mjs
+
+      # Migrations 002+ are applied after the import. This matters for 006_seasons.sql,
+      # which creates the 2025-2026 season membership from the imported legacy players.
+      - name: Apply remaining migrations in order
+        env:
+          PGSSLMODE: require
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in supabase/migrations/*.sql; do
+            if [ "$(basename "$migration")" = "001_stats_core.sql" ]; then
+              continue
+            fi
+            echo "Applying $migration"
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
 
       - name: Confirm no repository data changed
         shell: bash
