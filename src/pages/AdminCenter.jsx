@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import AdminPage from "./AdminPage.jsx";
+import FantasyPriceProposalPanel from "../components/FantasyPriceProposalPanel.jsx";
 import "../admin.css";
 
 const modules = [
@@ -112,6 +113,11 @@ export default function AdminCenter() {
       </div>
 
       <section id="admin-fantasy" className="admin-center__fantasy" aria-label="Gestión Fantasy">
+        <div className="admin">
+          <div className="container">
+            <FantasyPriceProposalPanel />
+          </div>
+        </div>
         <AdminPage />
       </section>
     </div>
