@@ -1,15 +1,17 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
+import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
 import "./mobile-polish.css";
 
 export default function App() {
   const { pathname } = useLocation();
   const isLiveScorer = pathname === "/admin/live";
   const isLeGazal = pathname.startsWith("/le-gazal");
+  const isFantasy = pathname.startsWith("/fantasy");
   const hidesSeasonTabs =
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/fantasy") ||
+    isFantasy ||
     isLeGazal ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
@@ -39,6 +41,7 @@ export default function App() {
   return (
     <div className="h-100">
       <Navbar />
+      {isFantasy && <FantasyEconomySummary />}
       {!hidesSeasonTabs && <SeasonTabs />}
       <main className="main">
         <div className="container">
