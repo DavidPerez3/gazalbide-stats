@@ -12,7 +12,9 @@ import {
 import { getLocalRosterDraft } from "./localRosterDraft.js";
 
 const BASE = import.meta.env.BASE_URL;
-const STATS_SOURCE = String(import.meta.env.VITE_STATS_SOURCE || "json").toLowerCase();
+// Supabase is now the canonical stats source. VITE_STATS_SOURCE=json remains available
+// as an explicit emergency/legacy override while the static files are still kept.
+const STATS_SOURCE = String(import.meta.env.VITE_STATS_SOURCE || "supabase").toLowerCase();
 const SEASON_STORAGE_KEY = "gazalbide.activeSeason";
 
 function resolveSeasonId(seasonId) {
@@ -101,8 +103,8 @@ export async function getMatches(seasonId) {
 export async function getPlayers(seasonId) {
   const resolved = resolveSeasonId(seasonId);
 
-  // While Supabase migrations are pending, the current-season roster can be
-  // prepared locally from the mobile PWA and is also consumed by Live Stats.
+  // The current-season mobile draft remains usable until it is explicitly synced
+  // to Supabase. Once synced, the draft is cleared and the canonical roster wins.
   if (resolved === CURRENT_SEASON_ID) {
     const localDraft = getLocalRosterDraft({ includeInactive: false });
     if (localDraft.length) return localDraft;
