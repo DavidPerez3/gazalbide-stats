@@ -6,6 +6,10 @@ import { computeLineupPoints } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID, SEASONS } from "../lib/seasons.js";
 import { loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
 
+function eligibilityKey(teamId, gameweekId) {
+  return `${teamId}:${gameweekId}`;
+}
+
 export default function FantasyRanking() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -96,6 +100,29 @@ export default function FantasyRanking() {
 
         const gwMap = new Map(gameweeks.map((g) => [g.id, g]));
 
+        // Desde 2026-2027, la elegibilidad económica de Supabase es la fuente
+        // autoritativa para decidir si una alineación puntúa. El RPC solo expone
+        // team/gameweek/valid_lineup, no presupuestos ni saldos de rivales.
+        const usesAuthoritativeEligibility =
+          selectedSeasonId === CURRENT_SEASON_ID;
+        const eligibilityByTeamGameweek = new Map();
+
+        if (usesAuthoritativeEligibility) {
+          const { data: eligibilityRows, error: eligibilityError } =
+            await supabase.rpc("get_fantasy_scoring_eligibility", {
+              p_season_id: selectedSeasonId,
+            });
+
+          if (eligibilityError) throw eligibilityError;
+
+          for (const row of eligibilityRows || []) {
+            eligibilityByTeamGameweek.set(
+              eligibilityKey(row.fantasy_team_id, row.gameweek_id),
+              row.valid_lineup === true
+            );
+          }
+        }
+
         // opciones de jornada para el dropdown
         const gwOptions = gameweeks
           .slice()
@@ -169,38 +196,47 @@ export default function FantasyRanking() {
           const statsMap = statsByGw.get(gw.id);
           if (!statsMap) continue;
 
-          // Jugadores tal cual vienen de la DB (strings tipo ["00","13","25","8","10"])
-          const rawPlayers = Array.isArray(lineup.players) ? lineup.players : [];
-                  
-          // ¿Hay algún hueco? (en la DB usas "-1" para huecos)
-          const hasEmptySlot = rawPlayers.some((v) => v === "-1");
-                  
-          // Regla: exactamente 5 jugadores reales y ningún hueco
-          if (rawPlayers.length !== 5 || hasEmptySlot) {
-            // Este equipo NO puntúa esta jornada
-            continue;
+          let points = 0;
+          const economyValid = eligibilityByTeamGameweek.get(
+            eligibilityKey(lineup.fantasy_team_id, lineup.gameweek_id)
+          );
+
+          if (!usesAuthoritativeEligibility || economyValid === true) {
+            // Histórico/legacy: conserva exactamente la regla anterior. En la
+            // temporada actual, esta rama solo se ejecuta si Supabase ya ha
+            // validado jugadores, capitán, entrenador, snapshot y presupuesto.
+            const rawPlayers = Array.isArray(lineup.players)
+              ? lineup.players
+              : [];
+            const hasEmptySlot = rawPlayers.some((v) => v === "-1");
+
+            if (rawPlayers.length !== 5 || hasEmptySlot) {
+              continue;
+            }
+
+            const nums = rawPlayers
+              .map((n) => Number(n))
+              .filter((n) => !Number.isNaN(n));
+            if (nums.length !== 5) {
+              continue;
+            }
+
+            const captainNumber =
+              lineup.captain_number != null
+                ? Number(lineup.captain_number)
+                : null;
+            const coachCode = lineup.coach_code || null;
+
+            points = computeLineupPoints({
+              playersNums: nums,
+              statsMap,
+              captainNumber,
+              coachCode,
+              traitConfig,
+            });
           }
-          
-          // Para calcular puntos, convertimos a Number (statsMap usa números)
-          const nums = rawPlayers
-            .map((n) => Number(n))
-            .filter((n) => !Number.isNaN(n));
-          if (nums.length !== 5) {
-            // Por seguridad, si algo raro pasa, tampoco puntuamos
-            continue;
-          }
-          
-          const captainNumber =
-            lineup.captain_number != null ? Number(lineup.captain_number) : null;
-          const coachCode = lineup.coach_code || null;
-          
-          const points = computeLineupPoints({
-            playersNums: nums,
-            statsMap,
-            captainNumber,
-            coachCode,
-            traitConfig,
-          });
+          // En 2026-2027, economyValid false o ausente cuenta como una jornada
+          // de 0 puntos. Así saltarse una jornada no desaparece del ranking.
 
           // Acumulado total
           const totalRow = teamRowMapTotal.get(lineup.fantasy_team_id);
