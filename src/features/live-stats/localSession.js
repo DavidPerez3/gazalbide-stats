@@ -1,8 +1,17 @@
+import {
+  queueLiveSessionSync,
+  queueLiveStateSync,
+} from "./supabaseSync.js";
+
 const SETUP_KEY = "gazalbide.live.setup.v1";
 const EVENTS_KEY = "gazalbide.live.events.v1";
 const RUNTIME_KEY = "gazalbide.live.runtime.v1";
 const IDENTITY_KEY = "gazalbide.live.identity.v1";
 const CLIENT_KEY = "gazalbide.live.client.v1";
+const SYNC_PENDING_KEY = "gazalbide.live.sync-pending.v1";
+const REMOTE_RUNTIME_INTERVAL_MS = 5000;
+
+let lastRemoteRuntimeSyncAt = 0;
 
 function readJson(key, fallback) {
   try {
@@ -28,6 +37,31 @@ function getNextSequenceFromEvents(events) {
     0
   );
   return maxSequence + 1;
+}
+
+function eventSyncVersion(events) {
+  const list = Array.isArray(events) ? events : [];
+  const maxSequence = list.reduce(
+    (max, event) => Math.max(max, Number(event?.client_sequence || 0)),
+    0
+  );
+  const voidCount = list.filter((event) => event?.is_void).length;
+  return `${list.length}:${maxSequence}:${voidCount}`;
+}
+
+function markSyncPending() {
+  localStorage.setItem(SYNC_PENDING_KEY, "1");
+}
+
+function clearSyncPendingIfCurrent(version) {
+  const current = readJson(EVENTS_KEY, []);
+  if (eventSyncVersion(current) === version) {
+    localStorage.removeItem(SYNC_PENDING_KEY);
+  }
+}
+
+function hasSyncPending() {
+  return localStorage.getItem(SYNC_PENDING_KEY) === "1";
 }
 
 function persistIdentity(identity) {
@@ -72,6 +106,26 @@ function migrateStoredEvents(events, identity) {
   }));
 }
 
+function preserveRemovedEventsAsVoided(events) {
+  const incoming = Array.isArray(events) ? events : [];
+  const previous = readJson(EVENTS_KEY, []);
+  if (!Array.isArray(previous) || previous.length === 0) return incoming;
+
+  const incomingIds = new Set(incoming.map((event) => event?.id).filter(Boolean));
+  const removed = previous
+    .filter((event) => event?.id && !incomingIds.has(event.id))
+    .map((event) => event.is_void
+      ? event
+      : {
+          ...event,
+          is_void: true,
+          voided_at: new Date().toISOString(),
+          void_reason: "undo",
+        });
+
+  return [...incoming, ...removed];
+}
+
 function normaliseEventsForSave(events, identity) {
   if (!Array.isArray(events)) return [];
   if (!identity) return events;
@@ -102,6 +156,10 @@ function normaliseEventsForSave(events, identity) {
     return event;
   });
 
+  normalised.sort(
+    (a, b) => Number(a.client_sequence || 0) - Number(b.client_sequence || 0)
+  );
+
   const inferredNext = getNextSequenceFromEvents(normalised);
   persistIdentity({
     ...identity,
@@ -109,6 +167,16 @@ function normaliseEventsForSave(events, identity) {
   });
 
   return normalised;
+}
+
+function queuePendingEvents(setup, events, gameState = null) {
+  if (!setup) return;
+  const version = eventSyncVersion(events);
+  markSyncPending();
+
+  void queueLiveSessionSync({ setup, events, gameState }).then((result) => {
+    if (result?.ok) clearSyncPendingIfCurrent(version);
+  });
 }
 
 export function saveLiveSetup(setup) {
@@ -119,8 +187,11 @@ export function saveLiveSetup(setup) {
   localStorage.setItem(SETUP_KEY, JSON.stringify(enrichedSetup));
   localStorage.removeItem(EVENTS_KEY);
   localStorage.removeItem(RUNTIME_KEY);
+  localStorage.removeItem(SYNC_PENDING_KEY);
   persistIdentity({ matchId, clientId, nextClientSequence: 1 });
 
+  // Fire-and-forget: entering Live Stats must never depend on the network.
+  queuePendingEvents(enrichedSetup, []);
   return enrichedSetup;
 }
 
@@ -162,9 +233,13 @@ export function allocateLiveEventIdentity() {
 }
 
 export function saveLiveEvents(events) {
-  const identity = getLiveSessionIdentity();
-  const normalised = normaliseEventsForSave(events, identity);
+  const setup = loadLiveSetup();
+  const identity = ensureLiveSessionIdentity(setup);
+  const withVoids = preserveRemovedEventsAsVoided(events);
+  const normalised = normaliseEventsForSave(withVoids, identity);
+
   localStorage.setItem(EVENTS_KEY, JSON.stringify(normalised));
+  queuePendingEvents(setup, normalised);
   return normalised;
 }
 
@@ -178,6 +253,7 @@ export function loadLiveEvents() {
 
   if (identity && JSON.stringify(migrated) !== JSON.stringify(value)) {
     localStorage.setItem(EVENTS_KEY, JSON.stringify(migrated));
+    markSyncPending();
   }
 
   return migrated;
@@ -193,10 +269,27 @@ export function saveLiveRuntime(state) {
     JSON.stringify({
       period: state.period,
       clockMs: state.clockMs,
+      clockRunning: Boolean(state.clockRunning),
       playedMs,
       savedAt: new Date().toISOString(),
     })
   );
+
+  const setup = loadLiveSetup();
+  if (!setup) return;
+
+  const now = Date.now();
+  const shouldCheckpoint =
+    !state.clockRunning || now - lastRemoteRuntimeSyncAt >= REMOTE_RUNTIME_INTERVAL_MS;
+  if (!shouldCheckpoint) return;
+
+  lastRemoteRuntimeSyncAt = now;
+  if (hasSyncPending()) {
+    const pendingEvents = readJson(EVENTS_KEY, []);
+    queuePendingEvents(setup, pendingEvents, state);
+  } else {
+    void queueLiveStateSync({ setup, gameState: state });
+  }
 }
 
 export function loadLiveRuntime() {
@@ -209,4 +302,5 @@ export function clearLiveSession() {
   localStorage.removeItem(EVENTS_KEY);
   localStorage.removeItem(RUNTIME_KEY);
   localStorage.removeItem(IDENTITY_KEY);
+  localStorage.removeItem(SYNC_PENDING_KEY);
 }
