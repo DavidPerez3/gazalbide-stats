@@ -9,7 +9,9 @@ import {
   FOUL_LABEL,
   PLAYER_STATUS,
   getFoulKindsForProfile,
+  getTeamFoulsForPeriod,
   isPlayerEligible,
+  isTeamInPenalty,
 } from "../features/live-stats/rules.js";
 import {
   addPlayedTime,
@@ -64,6 +66,11 @@ function formatPlayedTime(ms) {
   const minutes = Math.floor(safe / 60);
   const seconds = safe % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatFoulPeriod(period) {
+  const safePeriod = Math.max(1, Number(period || 1));
+  return safePeriod <= 4 ? `Q${safePeriod}` : `Q4+OT${safePeriod - 4}`;
 }
 
 function sortBench(a, b) {
@@ -201,7 +208,18 @@ export default function LiveStatsPage() {
 
   if (!gameState) return <p className="live-loading">Cargando Live Stats...</p>;
 
-  const currentFouls = gameState.teamFouls[gameState.period] || { gazalbide: 0, opponent: 0 };
+  const currentFouls = getTeamFoulsForPeriod(gameState.teamFouls, gameState.period);
+  const gazalbideInPenalty = isTeamInPenalty(
+    gameState.teamFouls,
+    gameState.period,
+    "gazalbide"
+  );
+  const opponentInPenalty = isTeamInPenalty(
+    gameState.teamFouls,
+    gameState.period,
+    "opponent"
+  );
+  const foulPeriodLabel = formatFoulPeriod(gameState.period);
   const onCourt = gameState.onCourtIds.map((id) => gameState.players[id]).filter(Boolean);
   const bench = Object.values(gameState.players)
     .filter((player) => !gameState.onCourtIds.includes(player.id) && isPlayerEligible(player.status))
@@ -407,7 +425,10 @@ export default function LiveStatsPage() {
         <div className="live-team">
           <span>GAZALBIDE</span>
           <strong>{gameState.score.gazalbide}</strong>
-          <small>Faltas Q{gameState.period}: {currentFouls.gazalbide}</small>
+          <small>
+            Faltas {foulPeriodLabel}: {currentFouls.gazalbide}
+            {gazalbideInPenalty ? " · BONUS RIVAL" : ""}
+          </small>
         </div>
         <div className="live-clock">
           <div className="live-clock-main">
@@ -440,7 +461,10 @@ export default function LiveStatsPage() {
         <div className="live-team live-team--opponent">
           <span>{setup.opponent.toUpperCase()}</span>
           <strong>{gameState.score.opponent}</strong>
-          <small>Faltas Q{gameState.period}: {currentFouls.opponent}</small>
+          <small>
+            Faltas {foulPeriodLabel}: {currentFouls.opponent}
+            {opponentInPenalty ? " · BONUS GAZALBIDE" : ""}
+          </small>
         </div>
       </header>
 
