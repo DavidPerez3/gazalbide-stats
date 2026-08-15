@@ -1,0 +1,158 @@
+name: Patch Fantasy 26-27 flow
+
+on:
+  push:
+    branches:
+      - feat/fantasy-2627-flow
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fantasy-2627-flow
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply season-aware Fantasy patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one match in {path}, found {count}: {old[:100]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          # Fantasy home: current-season team + current-season market only.
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              'import { computeLineupBreakdown } from "../lib/fantasyScoring.js";\n',
+              'import { computeLineupBreakdown } from "../lib/fantasyScoring.js";\nimport { CURRENT_SEASON_ID } from "../lib/seasons.js";\n',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '.from("fantasy_teams")\n        .select("*")\n        .eq("user_id", user.id)\n        .maybeSingle();',
+              '.from("fantasy_teams")\n        .select("*")\n        .eq("user_id", user.id)\n        .eq("season_id", CURRENT_SEASON_ID)\n        .maybeSingle();',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '.from("gameweeks")\n        .select("*")\n        .eq("status", "scheduled")',
+              '.from("gameweeks")\n        .select("*")\n        .eq("season_id", CURRENT_SEASON_ID)\n        .eq("status", "scheduled")',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '.insert({\n        user_id: user.id,\n        name: teamName.trim(),\n      })',
+              '.insert({\n        user_id: user.id,\n        name: teamName.trim(),\n        season_id: CURRENT_SEASON_ID,\n      })',
+          )
+
+          # Builder: never pick a historical team or historical gameweek.
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              'import { supabase } from "../lib/supabaseClient.js";\n',
+              'import { supabase } from "../lib/supabaseClient.js";\nimport { CURRENT_SEASON_ID } from "../lib/seasons.js";\n',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '.from("fantasy_teams")\n          .select("*")\n          .eq("user_id", user.id)\n          .single();',
+              '.from("fantasy_teams")\n          .select("*")\n          .eq("user_id", user.id)\n          .eq("season_id", CURRENT_SEASON_ID)\n          .single();',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '.from("gameweeks")\n          .select("*")\n          .eq("status", "scheduled")',
+              '.from("gameweeks")\n          .select("*")\n          .eq("season_id", CURRENT_SEASON_ID)\n          .eq("status", "scheduled")',
+          )
+
+          # Admin: creating a gameweek is what opens the 26/27 market.
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              'import { supabase } from "../lib/supabaseClient.js";\n',
+              'import { supabase } from "../lib/supabaseClient.js";\nimport { CURRENT_SEASON_ID } from "../lib/seasons.js";\n',
+          )
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '.from("gameweeks")\n        .select("*")\n        .order("date", { ascending: false });',
+              '.from("gameweeks")\n        .select("*")\n        .eq("season_id", CURRENT_SEASON_ID)\n        .order("date", { ascending: false });',
+          )
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '.from("fantasy_teams")\n      .select("id, cervezas");',
+              '.from("fantasy_teams")\n      .select("id, cervezas")\n      .eq("season_id", CURRENT_SEASON_ID);',
+          )
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '        stats_file: statsFile,\n      })',
+              '        stats_file: statsFile,\n        season_id: CURRENT_SEASON_ID,\n      })',
+          )
+
+          # Personal Fantasy history defaults to the current season, avoiding two-team ambiguity.
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              'import { computeLineupBreakdown } from "../lib/fantasyScoring.js";\n',
+              'import { computeLineupBreakdown } from "../lib/fantasyScoring.js";\nimport { CURRENT_SEASON_ID } from "../lib/seasons.js";\n',
+          )
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              '.from("fantasy_teams")\n          .select("*")\n          .eq("user_id", user.id);',
+              '.from("fantasy_teams")\n          .select("*")\n          .eq("user_id", user.id)\n          .eq("season_id", CURRENT_SEASON_ID);',
+          )
+
+          # Ranking: preserve access to last season while keeping seasons isolated.
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              'import { computeLineupPoints } from "../lib/fantasyScoring.js";\n',
+              'import { computeLineupPoints } from "../lib/fantasyScoring.js";\nimport { CURRENT_SEASON_ID, SEASONS } from "../lib/seasons.js";\n',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '  const [selectedGwId, setSelectedGwId] = useState("all");\n',
+              '  const [selectedGwId, setSelectedGwId] = useState("all");\n  const [selectedSeasonId, setSelectedSeasonId] = useState(CURRENT_SEASON_ID);\n',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '      setLoading(true);\n      setErrorMsg(null);\n',
+              '      setLoading(true);\n      setErrorMsg(null);\n      setSelectedGwId("all");\n',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '.from("fantasy_teams")\n          .select("*");',
+              '.from("fantasy_teams")\n          .select("*")\n          .eq("season_id", selectedSeasonId);',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '  }, [user, BASE]);\n',
+              '  }, [user, BASE, selectedSeasonId]);\n',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '''                {gameweekOptions.length > 0 && (\n                  <div className="fantasy__filters">\n                    <label className="fantasy__filter-label">\n                      Jornada:{" "}\n                      <select\n                        value={selectedGwId}\n                        onChange={(e) => setSelectedGwId(e.target.value)}\n                      >\n                        <option value="all">Todas</option>\n                        {gameweekOptions.map((gw) => (\n                          <option key={gw.id} value={gw.id}>\n                            {gw.label}\n                          </option>\n                        ))}\n                      </select>\n                    </label>\n                  </div>\n                )}\n''',
+              '''                <div className="fantasy__filters">\n                  <label className="fantasy__filter-label">\n                    Temporada:{" "}\n                    <select\n                      value={selectedSeasonId}\n                      onChange={(e) => setSelectedSeasonId(e.target.value)}\n                    >\n                      {SEASONS.map((season) => (\n                        <option key={season.id} value={season.id}>\n                          {season.label}\n                        </option>\n                      ))}\n                    </select>\n                  </label>\n                  {gameweekOptions.length > 0 && (\n                    <label className="fantasy__filter-label">\n                      Jornada:{" "}\n                      <select\n                        value={selectedGwId}\n                        onChange={(e) => setSelectedGwId(e.target.value)}\n                      >\n                        <option value="all">Todas</option>\n                        {gameweekOptions.map((gw) => (\n                          <option key={gw.id} value={gw.id}>\n                            {gw.label}\n                          </option>\n                        ))}\n                      </select>\n                    </label>\n                  )}\n                </div>\n''',
+          )
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Remove one-off patch workflow
+        run: rm .github/workflows/patch-fantasy-2627.yml
+
+      - name: Commit patched frontend
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/FantasyHome.jsx src/pages/FantasyBuilder.jsx src/pages/AdminPage.jsx src/pages/FantasyHistory.jsx src/pages/FantasyRanking.jsx .github/workflows/patch-fantasy-2627.yml
+          git commit -m "feat(fantasy): isolate 26-27 market flow by season"
+          git push origin HEAD:feat/fantasy-2627-flow
