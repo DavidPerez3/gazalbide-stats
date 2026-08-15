@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
 import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
+import FantasyLeGazalOffer from "./components/FantasyLeGazalOffer.jsx";
 import "./mobile-polish.css";
 
 export default function App() {
@@ -9,6 +10,7 @@ export default function App() {
   const isLiveScorer = pathname === "/admin/live";
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isFantasy = pathname.startsWith("/fantasy");
+  const isFantasyHome = pathname === "/fantasy";
   const hidesSeasonTabs =
     pathname.startsWith("/admin") ||
     isFantasy ||
@@ -42,6 +44,7 @@ export default function App() {
     <div className="h-100">
       <Navbar />
       {isFantasy && <FantasyEconomySummary />}
+      {isFantasyHome && <FantasyLeGazalOffer />}
       {!hidesSeasonTabs && <SeasonTabs />}
       <main className="main">
         <div className="container">
