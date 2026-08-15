@@ -33,7 +33,7 @@ export async function getPlayersFromSupabase(seasonId) {
 
   const { data, error } = await supabase
     .from("season_players")
-    .select("jersey_number,sort_order,active,player:players(id,name,photo_path)")
+    .select("jersey_number,sort_order,active,player:players!season_players_player_id_fkey(id,name,photo_path)")
     .eq("season_id", seasonId)
     .eq("active", true)
     .order("sort_order", { ascending: true });
