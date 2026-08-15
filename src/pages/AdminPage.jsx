@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
+import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 
 // Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
 function slugifyOpponent(str) {
@@ -95,7 +96,8 @@ async function autoFillLineupsForGameweek(gameweekId, { setInfoMsg, setErrorMsg,
     // 2) Cargar equipos con su presupuesto
     const { data: teams, error: teamError } = await supabase
       .from("fantasy_teams")
-      .select("id, cervezas");
+      .select("id, cervezas")
+      .eq("season_id", CURRENT_SEASON_ID);
 
     if (teamError) {
       console.error("Error cargando equipos fantasy:", teamError);
@@ -243,6 +245,7 @@ export default function AdminPage() {
       const { data, error } = await supabase
         .from("gameweeks")
         .select("*")
+        .eq("season_id", CURRENT_SEASON_ID)
         .order("date", { ascending: false });
 
       if (error) {
@@ -297,6 +300,7 @@ export default function AdminPage() {
         deadline: deadlineIso,
         match_id: finalMatchId,
         stats_file: statsFile,
+        season_id: CURRENT_SEASON_ID,
       })
       .select("*")
       .single();
