@@ -9,36 +9,78 @@ export function fantasyNumberKey(value) {
 }
 
 export async function getFantasySeasonStatus(seasonId) {
-  const [settingsResult, rosterResult, marketResult] = await Promise.all([
-    supabase
-      .from("fantasy_season_settings")
-      .select("season_id, base_budget, market_ready")
-      .eq("season_id", seasonId)
-      .maybeSingle(),
-    supabase
-      .from("season_players")
-      .select("player_id")
-      .eq("season_id", seasonId)
-      .eq("active", true),
-    supabase
-      .from("fantasy_player_market")
-      .select("player_id")
-      .eq("season_id", seasonId)
-      .eq("enabled", true),
-  ]);
+  const [settingsResult, rosterResult, marketResult, staffResult, traitsResult] =
+    await Promise.all([
+      supabase
+        .from("fantasy_season_settings")
+        .select("season_id, base_budget, market_ready")
+        .eq("season_id", seasonId)
+        .maybeSingle(),
+      supabase
+        .from("season_players")
+        .select("player_id")
+        .eq("season_id", seasonId)
+        .eq("active", true),
+      supabase
+        .from("fantasy_player_market")
+        .select("player_id")
+        .eq("season_id", seasonId)
+        .eq("enabled", true),
+      supabase
+        .from("season_staff")
+        .select("staff_id")
+        .eq("season_id", seasonId)
+        .eq("active", true)
+        .eq("fantasy_enabled", true),
+      supabase
+        .from("fantasy_traits")
+        .select("code")
+        .eq("season_id", seasonId)
+        .eq("enabled", true),
+    ]);
 
   if (settingsResult.error) throw settingsResult.error;
   if (rosterResult.error) throw rosterResult.error;
   if (marketResult.error) throw marketResult.error;
+  if (staffResult.error) throw staffResult.error;
+  if (traitsResult.error) throw traitsResult.error;
 
   const settings = settingsResult.data;
+  const activePlayerIds = new Set((rosterResult.data || []).map((row) => row.player_id));
+  const activePlayers = activePlayerIds.size;
+  const pricedPlayers = (marketResult.data || []).filter((row) =>
+    activePlayerIds.has(row.player_id)
+  ).length;
+  const fantasyStaff = staffResult.data?.length ?? 0;
+  const enabledTraits = traitsResult.data?.length ?? 0;
+
+  const checks = {
+    roster: activePlayers > 0,
+    prices: activePlayers > 0 && pricedPlayers === activePlayers,
+    staff: fantasyStaff > 0,
+    traits: enabledTraits > 0,
+  };
+
   return {
     seasonId,
     baseBudget: Number(settings?.base_budget ?? 80),
     marketReady: Boolean(settings?.market_ready),
-    activePlayers: rosterResult.data?.length ?? 0,
-    pricedPlayers: marketResult.data?.length ?? 0,
+    activePlayers,
+    pricedPlayers,
+    fantasyStaff,
+    enabledTraits,
+    checks,
+    canActivate: Object.values(checks).every(Boolean),
   };
+}
+
+export async function setFantasySeasonReady({ seasonId, ready }) {
+  const { data, error } = await supabase.rpc("set_fantasy_market_ready", {
+    p_season_id: seasonId,
+    p_ready: Boolean(ready),
+  });
+  if (error) throw error;
+  return data;
 }
 
 async function loadSeasonPerformance(seasonId, playerIds) {

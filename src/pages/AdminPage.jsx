@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
-import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments } from "../lib/fantasyMarket.js";
+import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments, setFantasySeasonReady } from "../lib/fantasyMarket.js";
 
 // Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
 function slugifyOpponent(str) {
@@ -31,6 +31,7 @@ export default function AdminPage() {
   const [playerTraitDrafts, setPlayerTraitDrafts] = useState({});
   const [staffTraitDrafts, setStaffTraitDrafts] = useState({});
   const [savingTraits, setSavingTraits] = useState(false);
+  const [togglingMarketReady, setTogglingMarketReady] = useState(false);
 
   const [name, setName] = useState("");
   const [opponent, setOpponent] = useState("");
@@ -118,6 +119,37 @@ export default function AdminPage() {
     }
   }
 
+  async function handleToggleMarketReady() {
+    if (!marketStatus) return;
+
+    const nextReady = !marketStatus.marketReady;
+    setErrorMsg(null);
+    setInfoMsg(null);
+    setTogglingMarketReady(true);
+
+    try {
+      await setFantasySeasonReady({
+        seasonId: CURRENT_SEASON_ID,
+        ready: nextReady,
+      });
+      const refreshed = await getFantasySeasonStatus(CURRENT_SEASON_ID);
+      setMarketStatus(refreshed);
+      setInfoMsg(
+        nextReady
+          ? `Fantasy ${CURRENT_SEASON_ID} marcada como preparada. No se ha creado ninguna jornada.`
+          : `Fantasy ${CURRENT_SEASON_ID} bloqueada para crear nuevas jornadas.`
+      );
+    } catch (error) {
+      console.error("Error cambiando preparación Fantasy:", error);
+      setErrorMsg(
+        "No se ha podido cambiar el estado de Fantasy: " +
+          (error.message || "error desconocido")
+      );
+    } finally {
+      setTogglingMarketReady(false);
+    }
+  }
+
   async function handleSaveMarketPrices() {
     setErrorMsg(null);
     setInfoMsg(null);
@@ -162,7 +194,7 @@ export default function AdminPage() {
       }))
     );
     setMarketStatus(await getFantasySeasonStatus(CURRENT_SEASON_ID));
-    setInfoMsg("Precios Fantasy guardados. El mercado sigue bloqueado hasta terminar la configuración de temporada.");
+    setInfoMsg("Precios Fantasy guardados. Las jornadas ya creadas conservan su snapshot de precios.");
   }
 
   async function handleCreateGameweek(e) {
@@ -239,6 +271,33 @@ export default function AdminPage() {
   const adminName =
     profile?.username || user?.email?.split("@")[0] || "admin";
 
+  const readinessItems = [
+    {
+      key: "roster",
+      label: "Plantilla",
+      ok: Boolean(marketStatus?.checks?.roster),
+      detail: `${marketStatus?.activePlayers ?? 0} jugadores activos`,
+    },
+    {
+      key: "prices",
+      label: "Precios",
+      ok: Boolean(marketStatus?.checks?.prices),
+      detail: `${marketStatus?.pricedPlayers ?? 0}/${marketStatus?.activePlayers ?? 0} con precio`,
+    },
+    {
+      key: "staff",
+      label: "Entrenadores",
+      ok: Boolean(marketStatus?.checks?.staff),
+      detail: `${marketStatus?.fantasyStaff ?? 0} habilitados en Fantasy`,
+    },
+    {
+      key: "traits",
+      label: "Rasgos",
+      ok: Boolean(marketStatus?.checks?.traits),
+      detail: `${marketStatus?.enabledTraits ?? 0} rasgos habilitados`,
+    },
+  ];
+
   return (
     <div className="admin">
       <div className="container">
@@ -259,6 +318,81 @@ export default function AdminPage() {
               {infoMsg}
             </p>
           )}
+
+          {/* Preparación general de la temporada Fantasy */}
+          <section className="admin__section">
+            <h2 className="admin__section-title">Preparación Fantasy {CURRENT_SEASON_ID}</h2>
+            <p className="admin__text">
+              Este control solo permite o bloquea la creación de nuevas jornadas. Activarlo no crea una jornada ni abre un deadline por sí solo.
+            </p>
+
+            <div style={{ display: "grid", gap: "0.5rem", marginTop: "0.75rem" }}>
+              {readinessItems.map((item) => (
+                <div
+                  key={item.key}
+                  className="admin__list-item"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.75rem",
+                    padding: "0.65rem 0.75rem",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <strong>{item.label}</strong>
+                    <div className="admin__text" style={{ margin: "0.15rem 0 0", fontSize: "0.85rem" }}>
+                      {item.detail}
+                    </div>
+                  </div>
+                  <span
+                    aria-label={item.ok ? "Correcto" : "Pendiente"}
+                    title={item.ok ? "Correcto" : "Pendiente"}
+                    style={{
+                      flexShrink: 0,
+                      width: 28,
+                      height: 28,
+                      borderRadius: "999px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      background: item.ok ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.18)",
+                      color: item.ok ? "#34D399" : "#FCA5A5",
+                    }}
+                  >
+                    {item.ok ? "✓" : "!"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="admin__text" style={{ marginTop: "0.75rem" }}>
+              Estado: <strong>{marketStatus?.marketReady ? "preparada" : "bloqueada"}</strong>.
+              {marketStatus?.marketReady
+                ? " Ya puedes crear una jornada cuando quieras abrir el mercado."
+                : marketStatus?.canActivate
+                ? " La configuración mínima está completa y puedes activarla."
+                : " Completa los elementos pendientes antes de activarla."}
+            </p>
+
+            <button
+              type="button"
+              className="admin__button"
+              onClick={handleToggleMarketReady}
+              disabled={
+                togglingMarketReady ||
+                !marketStatus ||
+                (!marketStatus.marketReady && !marketStatus.canActivate)
+              }
+            >
+              {togglingMarketReady
+                ? "Actualizando..."
+                : marketStatus?.marketReady
+                ? "Bloquear creación de jornadas"
+                : `Activar Fantasy ${CURRENT_SEASON_ID}`}
+            </button>
+          </section>
 
           {/* Rasgos Fantasy de la temporada */}
           <section className="admin__section">
