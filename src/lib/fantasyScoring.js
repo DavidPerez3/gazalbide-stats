@@ -42,13 +42,55 @@ const LEGACY_COACH_TRAITS = {
 };
 
 const LEGACY_TRAITS = {
-  A: { code: "A", label: "Alcohólico", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
-  L: { code: "L", label: "Ludópata", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
-  S: { code: "S", label: "Sexólogo", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
-  V: { code: "V", label: "Vieja guardia", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
-  J: { code: "J", label: "Joven promesa", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
-  C: { code: "C", label: "Boost Covela", activation_type: "coach_match", multiplier: 2, required_count: 1 },
-  P: { code: "P", label: "Primos", activation_type: "lineup_count", multiplier: 1.5, required_count: 2 },
+  A: {
+    code: "A",
+    label: "Alcohólico",
+    activation_type: "coach_match",
+    multiplier: 1.5,
+    required_count: 1,
+  },
+  L: {
+    code: "L",
+    label: "Ludópata",
+    activation_type: "coach_match",
+    multiplier: 1.5,
+    required_count: 1,
+  },
+  S: {
+    code: "S",
+    label: "Sexólogo",
+    activation_type: "coach_match",
+    multiplier: 1.5,
+    required_count: 1,
+  },
+  V: {
+    code: "V",
+    label: "Vieja guardia",
+    activation_type: "coach_match",
+    multiplier: 1.5,
+    required_count: 1,
+  },
+  J: {
+    code: "J",
+    label: "Joven promesa",
+    activation_type: "coach_match",
+    multiplier: 1.5,
+    required_count: 1,
+  },
+  C: {
+    code: "C",
+    label: "Boost Covela",
+    activation_type: "coach_match",
+    multiplier: 2,
+    required_count: 1,
+  },
+  P: {
+    code: "P",
+    label: "Primos",
+    activation_type: "lineup_count",
+    multiplier: 1.5,
+    required_count: 2,
+  },
 };
 
 function getPlayerTraits(num, row, traitConfig) {
@@ -76,13 +118,15 @@ function getTraitDefinition(code, traitConfig) {
       required_count: Number(configured.required_count ?? 1),
     };
   }
-  return LEGACY_TRAITS[code] || {
-    code,
-    label: code,
-    activation_type: "coach_match",
-    multiplier: 1,
-    required_count: 1,
-  };
+  return (
+    LEGACY_TRAITS[code] || {
+      code,
+      label: code,
+      activation_type: "coach_match",
+      multiplier: 1,
+      required_count: 1,
+    }
+  );
 }
 
 function buildSynergyContext(playersNums, statsMap, coachCode, traitConfig) {
@@ -133,6 +177,26 @@ function computePlayerSynergies(num, ctx) {
   return { factor, synergies };
 }
 
+export function isStructurallyValidLineup({
+  playersNums,
+  captainNumber = null,
+  coachCode = null,
+}) {
+  if (!Array.isArray(playersNums) || playersNums.length !== 5) return false;
+
+  const normalizedPlayers = playersNums.map((value) => Number(value));
+  if (normalizedPlayers.some((value) => Number.isNaN(value) || value < 0)) {
+    return false;
+  }
+
+  if (new Set(normalizedPlayers).size !== 5) return false;
+  if (captainNumber == null || Number.isNaN(Number(captainNumber))) return false;
+  if (!normalizedPlayers.includes(Number(captainNumber))) return false;
+  if (!coachCode || !String(coachCode).trim()) return false;
+
+  return true;
+}
+
 export function computeLineupBreakdown({
   playersNums,
   statsMap,
@@ -140,7 +204,13 @@ export function computeLineupBreakdown({
   coachCode = null,
   traitConfig = null,
 }) {
-  if (!Array.isArray(playersNums) || playersNums.length === 0) {
+  if (
+    !isStructurallyValidLineup({
+      playersNums,
+      captainNumber,
+      coachCode,
+    })
+  ) {
     return { totalPoints: 0, baseTotal: 0, bonusTotal: 0, players: [] };
   }
 
