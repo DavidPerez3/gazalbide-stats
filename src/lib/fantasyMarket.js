@@ -2,6 +2,11 @@ import { supabase } from "./supabaseClient.js";
 import { resolvePlayerPhotoSrc } from "./playerPhotos.js";
 import { resolveStaffPhotoSrc } from "./staffPhotos.js";
 
+// Compatibilidad temporal con FantasyHome: esa pantalla todavía referencia
+// TRAIT_LABELS como identificador global. Mantenerlo definido evita que el
+// primer render rompa mientras se cargan los rasgos; después se rellena con
+// las etiquetas reales de Supabase en loadFantasyTraitConfig().
+globalThis.TRAIT_LABELS ||= {};
 
 export function fantasyNumberKey(value) {
   const n = Number(value);
@@ -266,6 +271,13 @@ export async function loadFantasyTraitConfig(seasonId) {
     required_count: Number(row.required_count),
   }));
   const traits = Object.fromEntries(traitList.map((row) => [row.code, row]));
+
+  // FantasyHome todavía renderiza una leyenda legacy mediante TRAIT_LABELS.
+  // Mantener este alias sincronizado con Supabase evita hardcodear etiquetas y
+  // permite que cualquier cambio en Admin se refleje tras recargar la app.
+  globalThis.TRAIT_LABELS = Object.fromEntries(
+    traitList.map((row) => [row.code, row.label])
+  );
 
   const numberByPlayerId = new Map(
     (rosterResult.data || []).map((row) => [row.player_id, fantasyNumberKey(row.jersey_number)])
