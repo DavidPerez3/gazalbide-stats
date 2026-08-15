@@ -60,7 +60,7 @@ function ensureLiveSessionIdentity(setup) {
   return identity;
 }
 
-function normaliseStoredEvents(events, identity) {
+function migrateStoredEvents(events, identity) {
   if (!Array.isArray(events)) return [];
   if (!identity) return events;
 
@@ -70,6 +70,45 @@ function normaliseStoredEvents(events, identity) {
     client_id: event.client_id || identity.clientId,
     client_sequence: Number(event.client_sequence || index + 1),
   }));
+}
+
+function normaliseEventsForSave(events, identity) {
+  if (!Array.isArray(events)) return [];
+  if (!identity) return events;
+
+  let nextClientSequence = Math.max(1, Number(identity.nextClientSequence || 1));
+
+  const normalised = events.map((event) => {
+    const belongsToCurrentClient =
+      event.match_id === identity.matchId &&
+      event.client_id === identity.clientId &&
+      Number(event.client_sequence || 0) > 0;
+
+    const clientSequence = belongsToCurrentClient
+      ? Number(event.client_sequence)
+      : nextClientSequence++;
+
+    const nextEvent = {
+      ...event,
+      match_id: identity.matchId,
+      client_id: identity.clientId,
+      client_sequence: clientSequence,
+    };
+
+    // Existing callers keep the same event objects in React state. Mutating the
+    // object here keeps that in-memory state aligned with the canonical local
+    // copy without forcing every event producer to duplicate identity logic.
+    Object.assign(event, nextEvent);
+    return event;
+  });
+
+  const inferredNext = getNextSequenceFromEvents(normalised);
+  persistIdentity({
+    ...identity,
+    nextClientSequence: Math.max(nextClientSequence, inferredNext),
+  });
+
+  return normalised;
 }
 
 export function saveLiveSetup(setup) {
@@ -124,8 +163,9 @@ export function allocateLiveEventIdentity() {
 
 export function saveLiveEvents(events) {
   const identity = getLiveSessionIdentity();
-  const normalised = normaliseStoredEvents(events, identity);
+  const normalised = normaliseEventsForSave(events, identity);
   localStorage.setItem(EVENTS_KEY, JSON.stringify(normalised));
+  return normalised;
 }
 
 export function loadLiveEvents() {
@@ -134,13 +174,13 @@ export function loadLiveEvents() {
 
   const setup = readJson(SETUP_KEY, null);
   const identity = ensureLiveSessionIdentity(setup);
-  const normalised = normaliseStoredEvents(value, identity);
+  const migrated = migrateStoredEvents(value, identity);
 
-  if (identity && JSON.stringify(normalised) !== JSON.stringify(value)) {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(normalised));
+  if (identity && JSON.stringify(migrated) !== JSON.stringify(value)) {
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(migrated));
   }
 
-  return normalised;
+  return migrated;
 }
 
 export function saveLiveRuntime(state) {
