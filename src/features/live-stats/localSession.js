@@ -31,18 +31,18 @@ function getOrCreateClientId() {
   return clientId;
 }
 
-function getNextSequenceFromEvents(events) {
-  const maxSequence = (Array.isArray(events) ? events : []).reduce(
-    (max, event) => Math.max(max, Number(event?.client_sequence || 0)),
-    0
-  );
+function getNextSequenceFromEvents(events, clientId = null) {
+  const maxSequence = (Array.isArray(events) ? events : []).reduce((max, event) => {
+    if (clientId && event?.client_id && event.client_id !== clientId) return max;
+    return Math.max(max, Number(event?.client_sequence || 0));
+  }, 0);
   return maxSequence + 1;
 }
 
 function eventSyncVersion(events) {
   const list = Array.isArray(events) ? events : [];
   const maxSequence = list.reduce(
-    (max, event) => Math.max(max, Number(event?.client_sequence || 0)),
+    (max, event) => Math.max(max, Number(event?.server_sequence || event?.client_sequence || 0)),
     0
   );
   const voidCount = list.filter((event) => event?.is_void).length;
@@ -78,7 +78,7 @@ function ensureLiveSessionIdentity(setup) {
   const nextClientSequence = Math.max(
     1,
     Number(stored?.nextClientSequence || 1),
-    getNextSequenceFromEvents(events)
+    getNextSequenceFromEvents(events, clientId)
   );
 
   const identity = { matchId, clientId, nextClientSequence };
@@ -130,24 +130,26 @@ function normaliseEventsForSave(events, identity) {
   if (!Array.isArray(events)) return [];
   if (!identity) return events;
 
-  let nextClientSequence = Math.max(1, Number(identity.nextClientSequence || 1));
+  let nextClientSequence = Math.max(
+    1,
+    Number(identity.nextClientSequence || 1),
+    getNextSequenceFromEvents(events, identity.clientId)
+  );
 
   const normalised = events.map((event) => {
-    const belongsToCurrentClient =
+    const hasPersistentIdentity =
       event.match_id === identity.matchId &&
-      event.client_id === identity.clientId &&
+      Boolean(event.client_id) &&
       Number(event.client_sequence || 0) > 0;
 
-    const clientSequence = belongsToCurrentClient
-      ? Number(event.client_sequence)
-      : nextClientSequence++;
-
-    const nextEvent = {
-      ...event,
-      match_id: identity.matchId,
-      client_id: identity.clientId,
-      client_sequence: clientSequence,
-    };
+    const nextEvent = hasPersistentIdentity
+      ? { ...event }
+      : {
+          ...event,
+          match_id: identity.matchId,
+          client_id: identity.clientId,
+          client_sequence: nextClientSequence++,
+        };
 
     // Existing callers keep the same event objects in React state. Mutating the
     // object here keeps that in-memory state aligned with the canonical local
@@ -156,11 +158,7 @@ function normaliseEventsForSave(events, identity) {
     return event;
   });
 
-  normalised.sort(
-    (a, b) => Number(a.client_sequence || 0) - Number(b.client_sequence || 0)
-  );
-
-  const inferredNext = getNextSequenceFromEvents(normalised);
+  const inferredNext = getNextSequenceFromEvents(normalised, identity.clientId);
   persistIdentity({
     ...identity,
     nextClientSequence: Math.max(nextClientSequence, inferredNext),
@@ -193,6 +191,38 @@ export function saveLiveSetup(setup) {
   // Fire-and-forget: entering Live Stats must never depend on the network.
   queuePendingEvents(enrichedSetup, []);
   return enrichedSetup;
+}
+
+export function restoreLiveSessionFromRemote(snapshot) {
+  if (!snapshot?.setup?.matchId) {
+    throw new Error("La sesión remota no contiene un matchId válido.");
+  }
+
+  const clientId = getOrCreateClientId();
+  const setup = {
+    ...snapshot.setup,
+    clientId,
+    recoveredAt: new Date().toISOString(),
+  };
+  const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+  const runtime = snapshot.runtime && typeof snapshot.runtime === "object"
+    ? { ...snapshot.runtime, clockRunning: false }
+    : null;
+
+  localStorage.setItem(SETUP_KEY, JSON.stringify(setup));
+  localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+  if (runtime) localStorage.setItem(RUNTIME_KEY, JSON.stringify(runtime));
+  else localStorage.removeItem(RUNTIME_KEY);
+  localStorage.removeItem(SYNC_PENDING_KEY);
+
+  persistIdentity({
+    matchId: setup.matchId,
+    clientId,
+    nextClientSequence: getNextSequenceFromEvents(events, clientId),
+  });
+  lastRemoteRuntimeSyncAt = Date.now();
+
+  return setup;
 }
 
 export function loadLiveSetup() {
