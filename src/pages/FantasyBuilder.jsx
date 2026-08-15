@@ -3,70 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
-import { loadFantasyCoaches, loadFantasyMarket } from "../lib/fantasyMarket.js";
+import { fantasyNumberKey, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
 
-// ========================
-// Rasgos / atributos
-// ========================
-
-function normalizeName(name) {
-  return name
-    ?.toString()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-// Mapeo nombre jugador -> rasgos
-const PLAYER_TRAITS = {
-  iker: ["J", "S"],
-  josu: ["S", "L"],
-  imanol: ["S", "L"],
-  kusky: ["S", "A"],
-  ibon: ["A", "V"],
-  lucho: ["A", "J"],
-  aimar: ["S", "A"],
-  aingeru: ["V", "P"],
-  julen: ["V", "P"],
-  aguirre: ["V", "A"],
-  covela: ["C", "A"],
-  inaki: ["V", "L"],
-  jorge: ["A", "V"],
-  oier: ["J", "A"],
-};
-
-const COACH_TRAITS = {
-  david: ["S", "A"],
-  gorka: ["V", "C"],
-  unai: ["J", "L"],
-};
-
+// Fallback de etiqueta histórica; los rasgos reales vienen de Supabase.
 const COACH_LABELS = {
   david: "David",
   gorka: "Gorka",
   unai: "Unai",
 };
-
-const TRAIT_LABELS = {
-  A: "Alcohólico",
-  L: "Ludópata",
-  S: "Sexólogo",
-  V: "Vieja guardia",
-  J: "Joven promesa",
-  C: "Boost Covela x2",
-  P: "Primos",
-};
-
-function getPlayerTraitsForName(name) {
-  const key = normalizeName(name);
-  return PLAYER_TRAITS[key] || [];
-}
-
-function getCoachTraits(code) {
-  return COACH_TRAITS[code] || [];
-}
 
 // ========================
 // Barras last3 PIR
@@ -109,12 +53,6 @@ const displayNumber = (raw) => {
   return !Number.isNaN(num) && num === 0 ? "00" : String(raw);
 };
 
-// Los 3 entrenadores permitidos
-const COACHES = [
-  { code: "david" },
-  { code: "gorka" },
-  { code: "unai" },
-];
 
 export default function FantasyBuilder() {
   const { user } = useAuth();
@@ -131,6 +69,7 @@ export default function FantasyBuilder() {
   const [lineup, setLineup] = useState(null);
   const [players, setPlayers] = useState([]);
   const [coaches, setCoaches] = useState([]);
+  const [traitConfig, setTraitConfig] = useState(null);
   const [playerStatuses, setPlayerStatuses] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -190,12 +129,14 @@ export default function FantasyBuilder() {
         setLineup(lineupData || null);
 
         // Jugadores y entrenadores disponibles de esta temporada.
-        const [marketPlayers, coachOptions] = await Promise.all([
+        const [marketPlayers, coachOptions, seasonTraits] = await Promise.all([
           loadFantasyMarket({ seasonId: CURRENT_SEASON_ID, gameweekId: gwData.id }),
           loadFantasyCoaches(CURRENT_SEASON_ID),
+          loadFantasyTraitConfig(CURRENT_SEASON_ID),
         ]);
         setPlayers(marketPlayers);
         setCoaches(coachOptions);
+        setTraitConfig(seasonTraits);
 
         // Estados de los jugadores para esta jornada
         const { data: statuses, error: statusError } = await supabase
@@ -576,7 +517,7 @@ export default function FantasyBuilder() {
               {coaches.map((coach) => {
                 const code = coach.code;
                 const name = coach.name || COACH_LABELS[code] || code;
-                const traits = getCoachTraits(code);
+                const traits = traitConfig?.coachTraitsByCode?.[code] || [];
                 const isSelected = currentCoachCode === code;
               
                 return (
@@ -693,7 +634,7 @@ export default function FantasyBuilder() {
                 const rawNumber = p.number ?? p.dorsal;
                 const num = Number(rawNumber);
                 const last3 = p.last3_pir || [];
-                const traits = getPlayerTraitsForName(p.name);
+                const traits = traitConfig?.playerTraitsByNumber?.[fantasyNumberKey(rawNumber)] || [];
 
                 const st = playerStatuses.get(Number(p.number));
                 const statusRaw = st?.status ?? null;
@@ -871,15 +812,13 @@ export default function FantasyBuilder() {
               Leyenda atributos
             </h2>
             <p className="fantasy-builder__text fantasy-builder__legend">
-              {Object.entries(TRAIT_LABELS).map(([letter, desc]) => (
-                <span
-                  key={letter}
-                  className="fantasy-builder__legend-item"
-                >
-                  <span className="fantasy-builder__trait-chip">
-                    {letter}
-                  </span>{" "}
-                  {desc}
+              {(traitConfig?.traitList || []).map((trait) => (
+                <span key={trait.code} className="fantasy-builder__legend-item">
+                  <span className="fantasy-builder__trait-chip">{trait.code}</span>{" "}
+                  {trait.label}
+                  {trait.activation_type === "lineup_count"
+                    ? ` · ${trait.required_count} jugadores · x${trait.multiplier.toFixed(1)}`
+                    : ` · entrenador · x${trait.multiplier.toFixed(1)}`}
                 </span>
               ))}
             </p>

@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient.js";
 import { useNavigate } from "react-router-dom";
 import { computeLineupPoints } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID, SEASONS } from "../lib/seasons.js";
+import { loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
 
 export default function FantasyRanking() {
   const { user } = useAuth();
@@ -29,6 +30,8 @@ export default function FantasyRanking() {
       setSelectedGwId("all");
 
       try {
+        const traitConfig = await loadFantasyTraitConfig(selectedSeasonId);
+
         // 1) Equipos fantasy
         const { data: teams, error: teamError } = await supabase
           .from("fantasy_teams")
@@ -196,6 +199,7 @@ export default function FantasyRanking() {
             statsMap,
             captainNumber,
             coachCode,
+            traitConfig,
           });
 
           // Acumulado total
