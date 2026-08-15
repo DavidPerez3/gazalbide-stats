@@ -1,4 +1,4 @@
-name: Migrate stats to Supabase
+name: Import historical stats to Supabase
 
 on:
   workflow_dispatch:
@@ -7,11 +7,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: stats-supabase-migration
+  group: stats-supabase-historical-import
   cancel-in-progress: false
 
 jobs:
-  migrate:
+  import-history:
     runs-on: ubuntu-latest
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::Falta el secret SUPABASE_DB_URL. Añade la connection string de Supabase como Repository secret y vuelve a ejecutar este workflow manualmente."
+            echo "::error::Falta el secret SUPABASE_DB_URL. Este workflow ya no aplica schema; solo importa los datos históricos cuando la base ya está migrada."
             exit 1
           fi
 
@@ -34,45 +34,18 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      # 001 must exist before the historical importer can write players/matches/stats.
-      - name: Apply base stats schema
-        env:
-          PGSSLMODE: require
-        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/001_stats_core.sql
-
       - name: Install temporary Postgres driver
         run: npm install --no-save --package-lock=false pg
 
       - name: Import historical JSON data
         run: node scripts/migrate_stats_via_postgres.mjs
 
-      # Migrations 002+ are applied after the import. This matters for 006_seasons.sql,
-      # which creates the 2025-2026 season membership from the imported legacy players.
-      - name: Apply remaining migrations in order
-        env:
-          PGSSLMODE: require
-        shell: bash
-        run: |
-          set -euo pipefail
-          for migration in supabase/migrations/*.sql; do
-            if [ "$(basename "$migration")" = "001_stats_core.sql" ]; then
-              continue
-            fi
-            echo "Applying $migration"
-            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
-          done
-
       - name: Confirm no repository data changed
         shell: bash
         run: |
           if ! git diff --quiet -- public/data excels package.json package-lock.json; then
-            echo "::error::La migración modificó archivos legacy inesperadamente."
+            echo "::error::La importación modificó archivos legacy inesperadamente."
             git diff -- public/data excels package.json package-lock.json
             exit 1
           fi
-          echo "Migración completada sin modificar Excel, JSON ni package files."
+          echo "Importación completada sin modificar Excel, JSON ni package files."

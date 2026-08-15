@@ -61,16 +61,10 @@ create table if not exists public.player_match_stats (
   primary key (match_id, player_id)
 );
 
-create index if not exists matches_date_idx
-  on public.matches(date desc);
+create index if not exists matches_date_idx on public.matches(date desc);
+create index if not exists player_match_stats_player_idx on public.player_match_stats(player_id);
+create index if not exists player_match_stats_match_sort_idx on public.player_match_stats(match_id, sort_order);
 
-create index if not exists player_match_stats_player_idx
-  on public.player_match_stats(player_id);
-
-create index if not exists player_match_stats_match_sort_idx
-  on public.player_match_stats(match_id, sort_order);
-
--- Reuse the current profiles.is_admin flag instead of introducing another role.
 create or replace function public.is_gazal_admin()
 returns boolean
 language sql
@@ -78,10 +72,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select coalesce(
-    (select p.is_admin from public.profiles p where p.id = auth.uid()),
-    false
-  );
+  select coalesce((select p.is_admin from public.profiles p where p.id = auth.uid()), false);
 $$;
 
 grant execute on function public.is_gazal_admin() to authenticated;
@@ -90,54 +81,32 @@ alter table public.players enable row level security;
 alter table public.matches enable row level security;
 alter table public.player_match_stats enable row level security;
 
--- Public/statistical data can be read by anyone, as it is already public on GitHub Pages.
 drop policy if exists "stats_players_public_read" on public.players;
-create policy "stats_players_public_read"
-  on public.players for select
-  using (true);
+create policy "stats_players_public_read" on public.players for select using (true);
 
 drop policy if exists "stats_matches_public_read" on public.matches;
-create policy "stats_matches_public_read"
-  on public.matches for select
-  using (status = 'published' or public.is_gazal_admin());
+create policy "stats_matches_public_read" on public.matches for select using (status = 'published' or public.is_gazal_admin());
 
 drop policy if exists "stats_player_match_public_read" on public.player_match_stats;
-create policy "stats_player_match_public_read"
-  on public.player_match_stats for select
-  using (
-    exists (
-      select 1
-      from public.matches m
-      where m.id = player_match_stats.match_id
-        and (m.status = 'published' or public.is_gazal_admin())
-    )
-  );
+create policy "stats_player_match_public_read" on public.player_match_stats for select using (
+  exists (
+    select 1 from public.matches m
+    where m.id = player_match_stats.match_id
+      and (m.status = 'published' or public.is_gazal_admin())
+  )
+);
 
--- The existing admin role will own all management operations.
 drop policy if exists "stats_players_admin_insert" on public.players;
-create policy "stats_players_admin_insert"
-  on public.players for insert to authenticated
-  with check (public.is_gazal_admin());
+create policy "stats_players_admin_insert" on public.players for insert to authenticated with check (public.is_gazal_admin());
 
 drop policy if exists "stats_players_admin_update" on public.players;
-create policy "stats_players_admin_update"
-  on public.players for update to authenticated
-  using (public.is_gazal_admin())
-  with check (public.is_gazal_admin());
+create policy "stats_players_admin_update" on public.players for update to authenticated using (public.is_gazal_admin()) with check (public.is_gazal_admin());
 
 drop policy if exists "stats_players_admin_delete" on public.players;
-create policy "stats_players_admin_delete"
-  on public.players for delete to authenticated
-  using (public.is_gazal_admin());
+create policy "stats_players_admin_delete" on public.players for delete to authenticated using (public.is_gazal_admin());
 
 drop policy if exists "stats_matches_admin_all" on public.matches;
-create policy "stats_matches_admin_all"
-  on public.matches for all to authenticated
-  using (public.is_gazal_admin())
-  with check (public.is_gazal_admin());
+create policy "stats_matches_admin_all" on public.matches for all to authenticated using (public.is_gazal_admin()) with check (public.is_gazal_admin());
 
 drop policy if exists "stats_player_match_admin_all" on public.player_match_stats;
-create policy "stats_player_match_admin_all"
-  on public.player_match_stats for all to authenticated
-  using (public.is_gazal_admin())
-  with check (public.is_gazal_admin());
+create policy "stats_player_match_admin_all" on public.player_match_stats for all to authenticated using (public.is_gazal_admin()) with check (public.is_gazal_admin());
