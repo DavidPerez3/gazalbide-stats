@@ -23,6 +23,11 @@ export default function FantasyPriceProposalPanel() {
     [marketPlayers]
   );
 
+  const proposalApplied = useMemo(
+    () => proposals.length > 0 && proposals.every((row) => row.status === "applied"),
+    [proposals]
+  );
+
   async function loadProposals(match) {
     if (!match) {
       setProposals([]);
@@ -90,7 +95,7 @@ export default function FantasyPriceProposalPanel() {
   }, []);
 
   async function generate() {
-    if (!latestMatch || generating) return;
+    if (!latestMatch || generating || proposalApplied) return;
     setGenerating(true);
     setMessage(null);
 
@@ -111,7 +116,7 @@ export default function FantasyPriceProposalPanel() {
   }
 
   async function applyReviewed() {
-    if (!latestMatch || proposals.length === 0 || applying) return;
+    if (!latestMatch || proposals.length === 0 || applying || proposalApplied) return;
     setApplying(true);
     setMessage(null);
 
@@ -119,18 +124,16 @@ export default function FantasyPriceProposalPanel() {
       const prices = Object.fromEntries(
         proposals.map((row) => [row.player_id, Number(drafts[row.player_id])])
       );
-      const { data, error } = await supabase.rpc("apply_fantasy_price_review", {
+      const { error } = await supabase.rpc("apply_fantasy_price_review", {
         p_season_id: CURRENT_SEASON_ID,
         p_match_id: latestMatch.id,
         p_prices: prices,
       });
       if (error) throw error;
 
-      setMessage(
-        `Precios aplicados: ${data?.players ?? proposals.length} jugadores · cinco más baratos ${data?.cheapest_five ?? "-"} 🍺.`
-      );
-      setMarketPlayers(await loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }));
-      await loadProposals(latestMatch);
+      // AdminPage below this panel owns a separate market-price state. Reloading
+      // after an atomic apply prevents that stale editor from restoring old prices.
+      window.location.reload();
     } catch (error) {
       console.error("Error aplicando precios Fantasy:", error);
       setMessage(error.message || "No se han podido aplicar los precios revisados.");
@@ -143,7 +146,7 @@ export default function FantasyPriceProposalPanel() {
     if (proposals.length < 5) return null;
     return proposals
       .map((row) => Number(drafts[row.player_id]))
-      .filter(Number.isFinite)
+      .filter((value) => Number.isFinite(value) && value >= 8)
       .sort((a, b) => a - b)
       .slice(0, 5)
       .reduce((sum, value) => sum + value, 0);
@@ -169,8 +172,14 @@ export default function FantasyPriceProposalPanel() {
               <strong>{latestMatch.date}</strong>
               <span className="admin__text"> {latestMatch.opponent ? `· vs ${latestMatch.opponent}` : `· ${latestMatch.id}`}</span>
             </div>
-            <button type="button" className="admin__button" onClick={generate} disabled={generating || applying}>
-              {generating ? "Calculando..." : proposals.length ? "Recalcular propuesta" : "Calcular propuesta"}
+            <button type="button" className="admin__button" onClick={generate} disabled={generating || applying || proposalApplied}>
+              {proposalApplied
+                ? "Propuesta aplicada"
+                : generating
+                  ? "Calculando..."
+                  : proposals.length
+                    ? "Recalcular propuesta"
+                    : "Calcular propuesta"}
             </button>
           </div>
 
@@ -216,6 +225,7 @@ export default function FantasyPriceProposalPanel() {
                               className="admin__input"
                               style={{ width: 72, textAlign: "center" }}
                               value={drafts[row.player_id] ?? ""}
+                              disabled={proposalApplied}
                               onChange={(event) =>
                                 setDrafts((current) => ({
                                   ...current,
@@ -235,9 +245,15 @@ export default function FantasyPriceProposalPanel() {
                 Cinco más baratos revisados: <strong>{reviewedCheapestFive ?? "-"} 🍺</strong> · límite con presupuesto base 80: <strong>64 🍺</strong>.
               </p>
 
-              <button type="button" className="admin__button" onClick={applyReviewed} disabled={applying || generating}>
-                {applying ? "Aplicando..." : "Aplicar precios revisados"}
-              </button>
+              {!proposalApplied ? (
+                <button type="button" className="admin__button" onClick={applyReviewed} disabled={applying || generating}>
+                  {applying ? "Aplicando..." : "Aplicar precios revisados"}
+                </button>
+              ) : (
+                <p className="admin__message admin__message--success">
+                  Precios de este partido ya aplicados al mercado. Las jornadas anteriores conservan su snapshot.
+                </p>
+              )}
             </>
           ) : null}
         </>
