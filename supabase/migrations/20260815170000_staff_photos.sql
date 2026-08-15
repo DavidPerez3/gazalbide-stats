@@ -1,4 +1,9 @@
--- Gazalbide Stats: optional staff profile photos managed from the PWA.
+-- Gazalbide Stats: managed staff records and optional profile photos from the PWA.
+-- DML is granted to authenticated users, while existing RLS policies continue to
+-- restrict mutations to Gazalbide admins only.
+
+grant insert, update, delete on public.staff_members to authenticated;
+grant insert, update, delete on public.season_staff to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('staff-photos', 'staff-photos', true, 2097152, array['image/webp']::text[])
