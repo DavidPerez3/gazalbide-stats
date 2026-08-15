@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { createHashRouter, RouterProvider } from "react-router-dom";
+import { createHashRouter, Navigate, RouterProvider } from "react-router-dom";
 
 import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
@@ -43,7 +43,7 @@ const router = createHashRouter([
       { path: "jugador/:name", element: <PlayerProfilePage /> },
       { path: "ranking", element: <Ranking /> },
       { path: "compare", element: <Compare /> },
-      { path: "le-gazal", element: <LeGazalPage /> },
+      { path: "le-gazal", element: <Navigate to="/fantasy/le-gazal" replace /> },
 
       { path: "login", element: <AuthPage /> },
       { path: "forgot-password", element: <ForgotPassword /> },
@@ -86,6 +86,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute>
             <FantasyTeamHistory />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "fantasy/le-gazal",
+        element: (
+          <PrivateRoute>
+            <LeGazalPage />
           </PrivateRoute>
         ),
       },

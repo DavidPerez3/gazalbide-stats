@@ -14,12 +14,12 @@ export default function LeGazalRulesModal({ open, onClose }) {
         </div>
 
         <div className="le-gazal-modal__body">
-          <p>Esta es una demo con cervezas virtuales ilimitadas y sin valor economico real.</p>
-          <p>No se pueden comprar ni retirar cervezas y esta version no toca fantasy, plantilla ni estadisticas.</p>
-          <p>Las jugadas ganadoras se leen de izquierda a derecha en cada fila. La camiseta 88 hace de wild para cerrar combos.</p>
-          <p>Tres scatters activan CLUTCH TIME con 3 tiradas gratis y multiplicador x2.</p>
-          <p>Tres bonus activan CLUTCH TIME+ con 5 tiradas gratis y multiplicador x3.</p>
-          <p>Es una mecanica humoristica y experimental para la web del equipo. Mas adelante podra conectarse a la economia fantasy, pero hoy no lo hace.</p>
+          <p>Le Gazal utiliza exclusivamente cervezas virtuales sobrantes de una jornada Fantasy con alineación válida. No tienen valor económico real.</p>
+          <p>Si no juegas, el ahorro se conserva automáticamente. Jugar tiene riesgo y un valor esperado inferior a guardar las cervezas.</p>
+          <p>Puedes elegir cuánto saldo sobrante destinar a Le Gazal y apostar 1, 3, 5 o 10 🍺 por tirada.</p>
+          <p>CLUTCH TIME concede 2 tiradas gratis con multiplicador x1,5. CLUTCH TIME+ concede 3 tiradas gratis con multiplicador x2.</p>
+          <p>Los resultados, apuestas y premios se generan y guardan en el servidor. El navegador solo muestra la animación.</p>
+          <p>Puedes retirarte cuando quieras. El saldo guardado se transfiere a la siguiente jornada dentro de los límites de la economía Fantasy.</p>
         </div>
       </div>
     </div>
