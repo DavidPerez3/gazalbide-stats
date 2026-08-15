@@ -1,0 +1,1 @@
+Historical 2025-2026 box scores are imported one time from the public JSON files after schema deployment. This note intentionally contains no data and exists only to keep the import workflow documented.
