@@ -11,6 +11,11 @@ function resolveStaffPhotoSrc(photoPath) {
   return null;
 }
 
+export function fantasyNumberKey(value) {
+  const n = Number(value);
+  return Number.isNaN(n) ? String(value ?? "") : String(n);
+}
+
 export async function getFantasySeasonStatus(seasonId) {
   const [settingsResult, rosterResult, marketResult] = await Promise.all([
     supabase
@@ -190,4 +195,100 @@ export async function loadFantasyCoaches(seasonId) {
       };
     })
     .filter(Boolean);
+}
+
+export async function loadFantasyTraitConfig(seasonId) {
+  const [traitsResult, rosterResult, playerAssignmentsResult, coaches, staffAssignmentsResult] =
+    await Promise.all([
+      supabase
+        .from("fantasy_traits")
+        .select("code, label, activation_type, multiplier, required_count, sort_order")
+        .eq("season_id", seasonId)
+        .eq("enabled", true)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("season_players")
+        .select("player_id, jersey_number")
+        .eq("season_id", seasonId),
+      supabase
+        .from("fantasy_player_traits")
+        .select("player_id, trait_code")
+        .eq("season_id", seasonId),
+      loadFantasyCoaches(seasonId),
+      supabase
+        .from("fantasy_staff_traits")
+        .select("staff_id, trait_code")
+        .eq("season_id", seasonId),
+    ]);
+
+  if (traitsResult.error) throw traitsResult.error;
+  if (rosterResult.error) throw rosterResult.error;
+  if (playerAssignmentsResult.error) throw playerAssignmentsResult.error;
+  if (staffAssignmentsResult.error) throw staffAssignmentsResult.error;
+
+  const traitList = (traitsResult.data || []).map((row) => ({
+    ...row,
+    multiplier: Number(row.multiplier),
+    required_count: Number(row.required_count),
+  }));
+  const traits = Object.fromEntries(traitList.map((row) => [row.code, row]));
+
+  const numberByPlayerId = new Map(
+    (rosterResult.data || []).map((row) => [row.player_id, fantasyNumberKey(row.jersey_number)])
+  );
+  const playerTraitsByNumber = {};
+  const playerTraitsByPlayerId = {};
+  for (const row of playerAssignmentsResult.data || []) {
+    const numberKey = numberByPlayerId.get(row.player_id);
+    if (numberKey != null) {
+      (playerTraitsByNumber[numberKey] ||= []).push(row.trait_code);
+    }
+    (playerTraitsByPlayerId[row.player_id] ||= []).push(row.trait_code);
+  }
+
+  const codeByStaffId = new Map(coaches.map((coach) => [coach.id, coach.code]));
+  const coachTraitsByCode = {};
+  const staffTraitsById = {};
+  for (const row of staffAssignmentsResult.data || []) {
+    const code = codeByStaffId.get(row.staff_id);
+    if (code) (coachTraitsByCode[code] ||= []).push(row.trait_code);
+    (staffTraitsById[row.staff_id] ||= []).push(row.trait_code);
+  }
+
+  return {
+    seasonId,
+    traits,
+    traitList,
+    playerTraitsByNumber,
+    playerTraitsByPlayerId,
+    coachTraitsByCode,
+    staffTraitsById,
+  };
+}
+
+export async function replaceFantasyTraitAssignments({
+  seasonId,
+  playerTraitsByPlayerId,
+  staffTraitsById,
+}) {
+  const playerAssignments = [];
+  for (const [playerId, codes] of Object.entries(playerTraitsByPlayerId || {})) {
+    for (const traitCode of codes || []) {
+      playerAssignments.push({ player_id: Number(playerId), trait_code: traitCode });
+    }
+  }
+
+  const staffAssignments = [];
+  for (const [staffId, codes] of Object.entries(staffTraitsById || {})) {
+    for (const traitCode of codes || []) {
+      staffAssignments.push({ staff_id: staffId, trait_code: traitCode });
+    }
+  }
+
+  const { error } = await supabase.rpc("replace_fantasy_trait_assignments", {
+    p_season_id: seasonId,
+    p_player_assignments: playerAssignments,
+    p_staff_assignments: staffAssignments,
+  });
+  if (error) throw error;
 }
