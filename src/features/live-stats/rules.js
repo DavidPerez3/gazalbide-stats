@@ -40,6 +40,7 @@ export const MAX_ROSTER_SIZE = 12;
 export const MAX_ON_COURT = 5;
 export const MAX_BENCH_SIZE = 7;
 export const PLAYER_FOUL_LIMIT = 5;
+export const TEAM_FOUL_PENALTY_THRESHOLD = 4;
 
 export function getRuleProfileForDate(matchDate) {
   if (!matchDate) return RULE_PROFILE.FIBA_2026;
@@ -92,12 +93,41 @@ export function validateLineup(onCourtIds, rosterIds = []) {
   return { ok: true, reason: null };
 }
 
+export function getTeamFoulsForPeriod(teamFouls = {}, period = 1) {
+  const safePeriod = Math.max(1, Number(period || 1));
+  if (safePeriod <= 4) {
+    return teamFouls[safePeriod] || { gazalbide: 0, opponent: 0 };
+  }
+
+  // Under FIBA, every overtime is an extension of Q4 for team-foul penalty.
+  // Existing Live sessions store each overtime under its own period key, so
+  // aggregate Q4 + every overtime up to the current one instead of rewriting
+  // event history or changing the persisted event period.
+  const total = { gazalbide: 0, opponent: 0 };
+  for (let key = 4; key <= safePeriod; key += 1) {
+    const fouls = teamFouls[key] || {};
+    total.gazalbide += Number(fouls.gazalbide || 0);
+    total.opponent += Number(fouls.opponent || 0);
+  }
+  return total;
+}
+
+export function isTeamInPenalty(teamFouls = {}, period = 1, team = "gazalbide") {
+  const current = getTeamFoulsForPeriod(teamFouls, period);
+  return Number(current?.[team] || 0) >= TEAM_FOUL_PENALTY_THRESHOLD;
+}
+
 export function deriveDisciplinaryStatus({ totalFouls = 0, foulKinds = [], profile }) {
   if (foulKinds.includes(FOUL_KIND.DISQUALIFYING)) {
     return PLAYER_STATUS.DISQUALIFIED;
   }
 
   if (profile === RULE_PROFILE.FIBA_2026) {
+    // The 2026 rule profile is intentionally isolated here. FIBA has approved
+    // the new two-category technical-foul model and Disruptive/Flagrant fouls,
+    // while the detailed official rule text is still pending publication.
+    // Keep the currently adopted project interpretation in one place so it can
+    // be updated without touching the Live Stats state engine.
     const cat1 = foulKinds.filter((kind) => kind === FOUL_KIND.TECHNICAL_CAT_1).length;
     const flagrant = foulKinds.filter((kind) => kind === FOUL_KIND.FLAGRANT).length;
     if (cat1 >= 2 || flagrant >= 2 || (cat1 >= 1 && flagrant >= 1)) {
