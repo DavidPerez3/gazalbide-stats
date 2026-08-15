@@ -93,14 +93,23 @@ export function validateLineup(onCourtIds, rosterIds = []) {
   return { ok: true, reason: null };
 }
 
-export function getTeamFoulPeriodKey(period) {
-  const safePeriod = Math.max(1, Number(period || 1));
-  return safePeriod > 4 ? 4 : safePeriod;
-}
-
 export function getTeamFoulsForPeriod(teamFouls = {}, period = 1) {
-  const key = getTeamFoulPeriodKey(period);
-  return teamFouls[key] || { gazalbide: 0, opponent: 0 };
+  const safePeriod = Math.max(1, Number(period || 1));
+  if (safePeriod <= 4) {
+    return teamFouls[safePeriod] || { gazalbide: 0, opponent: 0 };
+  }
+
+  // Under FIBA, every overtime is an extension of Q4 for team-foul penalty.
+  // Existing Live sessions store each overtime under its own period key, so
+  // aggregate Q4 + every overtime up to the current one instead of rewriting
+  // event history or changing the persisted event period.
+  const total = { gazalbide: 0, opponent: 0 };
+  for (let key = 4; key <= safePeriod; key += 1) {
+    const fouls = teamFouls[key] || {};
+    total.gazalbide += Number(fouls.gazalbide || 0);
+    total.opponent += Number(fouls.opponent || 0);
+  }
+  return total;
 }
 
 export function isTeamInPenalty(teamFouls = {}, period = 1, team = "gazalbide") {
