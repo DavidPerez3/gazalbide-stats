@@ -7,7 +7,7 @@ import "./mobile-polish.css";
 export default function App() {
   const { pathname } = useLocation();
   const isLiveScorer = pathname === "/admin/live";
-  const isLeGazal = pathname.startsWith("/le-gazal");
+  const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isFantasy = pathname.startsWith("/fantasy");
   const hidesSeasonTabs =
     pathname.startsWith("/admin") ||
