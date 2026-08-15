@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
+import { loadFantasyCoaches, loadFantasyMarket } from "../lib/fantasyMarket.js";
 
 // ========================
 // Rasgos / atributos
@@ -129,6 +130,7 @@ export default function FantasyBuilder() {
   const [gameweek, setGameweek] = useState(null);
   const [lineup, setLineup] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [coaches, setCoaches] = useState([]);
   const [playerStatuses, setPlayerStatuses] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -187,12 +189,13 @@ export default function FantasyBuilder() {
         if (lineupError && lineupError.code !== "PGRST116") throw lineupError;
         setLineup(lineupData || null);
 
-        // Jugadores disponibles
-        const res = await fetch(`${BASE}data/fantasy_players.json`);
-        if (!res.ok)
-          throw new Error("No se ha podido cargar fantasy_players.json");
-        const json = await res.json();
-        setPlayers(json);
+        // Jugadores y entrenadores disponibles de esta temporada.
+        const [marketPlayers, coachOptions] = await Promise.all([
+          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID, gameweekId: gwData.id }),
+          loadFantasyCoaches(CURRENT_SEASON_ID),
+        ]);
+        setPlayers(marketPlayers);
+        setCoaches(coachOptions);
 
         // Estados de los jugadores para esta jornada
         const { data: statuses, error: statusError } = await supabase
@@ -294,6 +297,10 @@ export default function FantasyBuilder() {
   }, [remainingBeers, currentSlotPlayer, isCoachMode]);
 
   const currentCoachCode = lineup?.coach_code || null;
+  const currentCoach = useMemo(
+    () => coaches.find((coach) => coach.code === currentCoachCode) || null,
+    [coaches, currentCoachCode]
+  );
 
   // ========================
   // 2) Añadir jugador al slot
@@ -507,7 +514,7 @@ export default function FantasyBuilder() {
                         <>
                           {" "}
                           Actual:{" "}
-                          <strong>{COACH_LABELS[currentCoachCode]}</strong>
+                          <strong>{currentCoach?.name || COACH_LABELS[currentCoachCode] || currentCoachCode}</strong>
                         </>
                       )}
                     </>
@@ -566,9 +573,9 @@ export default function FantasyBuilder() {
           {/* Lista */}
           {isCoachMode ? (
             <ul className="fantasy-builder__list fantasy-builder__list--coaches">
-              {COACHES.map((coach) => {
+              {coaches.map((coach) => {
                 const code = coach.code;
-                const name = COACH_LABELS[code] || code;
+                const name = coach.name || COACH_LABELS[code] || code;
                 const traits = getCoachTraits(code);
                 const isSelected = currentCoachCode === code;
               
@@ -614,16 +621,22 @@ export default function FantasyBuilder() {
                           flexShrink: 0,
                         }}
                       >
-                        <img
-                          src={`${import.meta.env.BASE_URL}images/coaches/${code}.png`}
-                          alt={name}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
+                        {coach.image ? (
+                          <img
+                            src={coach.image}
+                            alt={name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                          />
+                        ) : (
+                          <span style={{ fontWeight: 800, fontSize: "1.25rem" }}>
+                            {name.slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                         
                       {/* Nombre + atributos */}
@@ -729,10 +742,7 @@ export default function FantasyBuilder() {
                       {/* Foto */}
                       {p.image && (
                         <img
-                          src={`${import.meta.env.BASE_URL}${p.image.replace(
-                            /^\/+/,
-                            ""
-                          )}`}
+                          src={p.image}
                           alt={p.name}
                           className="fantasy-builder__player-photo"
                         />
