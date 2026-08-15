@@ -99,7 +99,7 @@ export function getTeamFoulsForPeriod(teamFouls = {}, period = 1) {
     return teamFouls[safePeriod] || { gazalbide: 0, opponent: 0 };
   }
 
-  // Under FIBA, every overtime is an extension of Q4 for team-foul penalty.
+  // FIBA treats every overtime as an extension of Q4 for team-foul penalty.
   // Existing Live sessions store each overtime under its own period key, so
   // aggregate Q4 + every overtime up to the current one instead of rewriting
   // event history or changing the persisted event period.
@@ -123,11 +123,10 @@ export function deriveDisciplinaryStatus({ totalFouls = 0, foulKinds = [], profi
   }
 
   if (profile === RULE_PROFILE.FIBA_2026) {
-    // The 2026 rule profile is intentionally isolated here. FIBA has approved
-    // the new two-category technical-foul model and Disruptive/Flagrant fouls,
-    // while the detailed official rule text is still pending publication.
-    // Keep the currently adopted project interpretation in one place so it can
-    // be updated without touching the Live Stats state engine.
+    // Official Basketball Rules 2026, valid from 1 October 2026:
+    // category 1 technicals count towards game disqualification; category 2
+    // technicals do not. Two category 1 technicals, two flagrant fouls, or one
+    // of each disqualify the player.
     const cat1 = foulKinds.filter((kind) => kind === FOUL_KIND.TECHNICAL_CAT_1).length;
     const flagrant = foulKinds.filter((kind) => kind === FOUL_KIND.FLAGRANT).length;
     if (cat1 >= 2 || flagrant >= 2 || (cat1 >= 1 && flagrant >= 1)) {
