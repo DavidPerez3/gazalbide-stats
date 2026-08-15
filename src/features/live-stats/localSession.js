@@ -1,32 +1,146 @@
 const SETUP_KEY = "gazalbide.live.setup.v1";
 const EVENTS_KEY = "gazalbide.live.events.v1";
 const RUNTIME_KEY = "gazalbide.live.runtime.v1";
+const IDENTITY_KEY = "gazalbide.live.identity.v1";
+const CLIENT_KEY = "gazalbide.live.client.v1";
+
+function readJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw == null ? fallback : JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function getOrCreateClientId() {
+  const existing = localStorage.getItem(CLIENT_KEY);
+  if (existing) return existing;
+
+  const clientId = crypto.randomUUID();
+  localStorage.setItem(CLIENT_KEY, clientId);
+  return clientId;
+}
+
+function getNextSequenceFromEvents(events) {
+  const maxSequence = (Array.isArray(events) ? events : []).reduce(
+    (max, event) => Math.max(max, Number(event?.client_sequence || 0)),
+    0
+  );
+  return maxSequence + 1;
+}
+
+function persistIdentity(identity) {
+  localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
+}
+
+function ensureLiveSessionIdentity(setup) {
+  if (!setup) return null;
+
+  const events = readJson(EVENTS_KEY, []);
+  const stored = readJson(IDENTITY_KEY, null);
+  const matchId = stored?.matchId || setup.matchId || crypto.randomUUID();
+  const clientId = stored?.clientId || setup.clientId || getOrCreateClientId();
+  const nextClientSequence = Math.max(
+    1,
+    Number(stored?.nextClientSequence || 1),
+    getNextSequenceFromEvents(events)
+  );
+
+  const identity = { matchId, clientId, nextClientSequence };
+  persistIdentity(identity);
+
+  if (setup.matchId !== matchId || setup.clientId !== clientId) {
+    localStorage.setItem(
+      SETUP_KEY,
+      JSON.stringify({ ...setup, matchId, clientId })
+    );
+  }
+
+  return identity;
+}
+
+function normaliseStoredEvents(events, identity) {
+  if (!Array.isArray(events)) return [];
+  if (!identity) return events;
+
+  return events.map((event, index) => ({
+    ...event,
+    match_id: event.match_id || identity.matchId,
+    client_id: event.client_id || identity.clientId,
+    client_sequence: Number(event.client_sequence || index + 1),
+  }));
+}
 
 export function saveLiveSetup(setup) {
-  localStorage.setItem(SETUP_KEY, JSON.stringify(setup));
+  const clientId = setup?.clientId || getOrCreateClientId();
+  const matchId = setup?.matchId || crypto.randomUUID();
+  const enrichedSetup = { ...setup, matchId, clientId };
+
+  localStorage.setItem(SETUP_KEY, JSON.stringify(enrichedSetup));
   localStorage.removeItem(EVENTS_KEY);
   localStorage.removeItem(RUNTIME_KEY);
+  persistIdentity({ matchId, clientId, nextClientSequence: 1 });
+
+  return enrichedSetup;
 }
 
 export function loadLiveSetup() {
-  try {
-    return JSON.parse(localStorage.getItem(SETUP_KEY) || "null");
-  } catch {
-    return null;
+  const setup = readJson(SETUP_KEY, null);
+  if (!setup || typeof setup !== "object") return null;
+
+  const identity = ensureLiveSessionIdentity(setup);
+  return {
+    ...setup,
+    matchId: identity.matchId,
+    clientId: identity.clientId,
+  };
+}
+
+export function getLiveSessionIdentity() {
+  const setup = readJson(SETUP_KEY, null);
+  return ensureLiveSessionIdentity(setup);
+}
+
+export function allocateLiveEventIdentity() {
+  const identity = getLiveSessionIdentity();
+  if (!identity) {
+    throw new Error("No hay una sesión Live preparada para registrar eventos.");
   }
+
+  const eventIdentity = {
+    matchId: identity.matchId,
+    clientId: identity.clientId,
+    clientSequence: identity.nextClientSequence,
+  };
+
+  persistIdentity({
+    ...identity,
+    nextClientSequence: identity.nextClientSequence + 1,
+  });
+
+  return eventIdentity;
 }
 
 export function saveLiveEvents(events) {
-  localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+  const identity = getLiveSessionIdentity();
+  const normalised = normaliseStoredEvents(events, identity);
+  localStorage.setItem(EVENTS_KEY, JSON.stringify(normalised));
 }
 
 export function loadLiveEvents() {
-  try {
-    const value = JSON.parse(localStorage.getItem(EVENTS_KEY) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
+  const value = readJson(EVENTS_KEY, []);
+  if (!Array.isArray(value)) return [];
+
+  const setup = readJson(SETUP_KEY, null);
+  const identity = ensureLiveSessionIdentity(setup);
+  const normalised = normaliseStoredEvents(value, identity);
+
+  if (identity && JSON.stringify(normalised) !== JSON.stringify(value)) {
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(normalised));
   }
+
+  return normalised;
 }
 
 export function saveLiveRuntime(state) {
@@ -46,16 +160,13 @@ export function saveLiveRuntime(state) {
 }
 
 export function loadLiveRuntime() {
-  try {
-    const value = JSON.parse(localStorage.getItem(RUNTIME_KEY) || "null");
-    return value && typeof value === "object" ? value : null;
-  } catch {
-    return null;
-  }
+  const value = readJson(RUNTIME_KEY, null);
+  return value && typeof value === "object" ? value : null;
 }
 
 export function clearLiveSession() {
   localStorage.removeItem(SETUP_KEY);
   localStorage.removeItem(EVENTS_KEY);
   localStorage.removeItem(RUNTIME_KEY);
+  localStorage.removeItem(IDENTITY_KEY);
 }
