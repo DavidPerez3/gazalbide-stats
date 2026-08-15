@@ -19,7 +19,7 @@ function databasePlayerId(player) {
 
 function rosterRows(setup) {
   const starterIds = new Set((setup.starterIds || []).map(String));
-  const rows = (setup.roster || []).map((player, index) => {
+  return (setup.roster || []).map((player, index) => {
     const playerId = databasePlayerId(player);
     if (playerId == null) {
       throw new Error(`No se puede sincronizar ${player?.name || "un jugador"}: falta player_id de Supabase.`);
@@ -35,8 +35,23 @@ function rosterRows(setup) {
       is_active: true,
     };
   });
+}
 
-  return rows;
+function playedTimeRows(setup, gameState) {
+  if (!gameState?.players) return [];
+
+  return rosterRows(setup).map((row) => {
+    const localPlayer = (setup.roster || []).find(
+      (player) => String(databasePlayerId(player)) === String(row.player_id)
+    );
+    const statePlayer = localPlayer ? gameState.players?.[String(localPlayer.id)] : null;
+
+    return {
+      ...row,
+      played_ms: Math.max(0, Math.round(Number(statePlayer?.playedMs || 0))),
+      updated_at: new Date().toISOString(),
+    };
+  });
 }
 
 function liveStateRow(setup, gameState) {
@@ -105,7 +120,7 @@ function eventRows(setup, events, userId) {
     voided_at: event.voided_at ?? null,
     void_reason: event.void_reason ?? null,
     metadata: event.metadata || {},
-    created_by: userId,
+    created_by: event.created_by ?? userId,
     updated_at: new Date().toISOString(),
   }));
 }
@@ -135,12 +150,23 @@ async function pushLiveState(setup, gameState) {
   if (error) throw error;
 }
 
+async function pushPlayedTime(setup, gameState) {
+  const rows = playedTimeRows(setup, gameState);
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from("game_roster")
+    .upsert(rows, { onConflict: "match_id,player_id" });
+  if (error) throw error;
+}
+
 async function syncSession(snapshot) {
   if (isOffline()) return { ok: false, offline: true };
 
   await ensureRemoteMatch(snapshot.setup);
   const syncedEvents = await pushEvents(snapshot.setup, snapshot.events);
   await pushLiveState(snapshot.setup, snapshot.gameState);
+  await pushPlayedTime(snapshot.setup, snapshot.gameState);
   return { ok: true, syncedEvents };
 }
 
@@ -149,6 +175,7 @@ async function syncState(snapshot) {
 
   await ensureRemoteMatch(snapshot.setup);
   await pushLiveState(snapshot.setup, snapshot.gameState);
+  await pushPlayedTime(snapshot.setup, snapshot.gameState);
   return { ok: true };
 }
 
@@ -178,4 +205,121 @@ export function queueLiveStateSync({ setup, gameState }) {
     gameState: clone(gameState),
   };
   return enqueue(() => syncState(snapshot));
+}
+
+export async function listRecoverableLiveSessions(seasonId) {
+  if (isOffline()) return [];
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select("id,season,date,opponent,gazal_side,status,created_at,updated_at")
+    .eq("season", seasonId)
+    .eq("status", "live")
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+function normaliseRemoteEvent(event) {
+  return {
+    ...event,
+    player_id: event.player_id == null ? null : String(event.player_id),
+    related_player_id:
+      event.related_player_id == null ? null : String(event.related_player_id),
+  };
+}
+
+export async function loadRemoteLiveSession(matchId) {
+  if (!matchId) throw new Error("Falta el partido Live que se quiere recuperar.");
+  if (isOffline()) throw new Error("No hay conexión para recuperar el partido desde Supabase.");
+
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("id,season,date,opponent,gazal_side,status,created_at,updated_at")
+    .eq("id", matchId)
+    .eq("status", "live")
+    .single();
+  if (matchError) throw matchError;
+
+  const [rosterResult, stateResult, eventsResult] = await Promise.all([
+    supabase
+      .from("game_roster")
+      .select("match_id,player_id,jersey_number,player_name,sort_order,is_starter,is_active,played_ms")
+      .eq("match_id", matchId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("live_game_state")
+      .select("match_id,period,clock_ms,clock_running,period_duration_ms,overtime_duration_ms,updated_at")
+      .eq("match_id", matchId)
+      .maybeSingle(),
+    supabase
+      .from("game_events")
+      .select("id,match_id,server_sequence,client_id,client_sequence,client_created_at,period,clock_ms,subject,event_type,player_id,related_player_id,staff_id,foul_kind,action_group_id,is_void,voided_at,void_reason,metadata,created_by,created_at,updated_at")
+      .eq("match_id", matchId)
+      .order("server_sequence", { ascending: true }),
+  ]);
+
+  if (rosterResult.error) throw rosterResult.error;
+  if (stateResult.error) throw stateResult.error;
+  if (eventsResult.error) throw eventsResult.error;
+
+  const rosterRowsRemote = rosterResult.data || [];
+  if (rosterRowsRemote.length < 5) {
+    throw new Error("El partido remoto no tiene una convocatoria Live válida.");
+  }
+
+  const starterIds = rosterRowsRemote
+    .filter((row) => row.is_starter)
+    .map((row) => String(row.player_id));
+  if (starterIds.length !== 5) {
+    throw new Error("El partido remoto no tiene exactamente cinco titulares guardados.");
+  }
+
+  const roster = rosterRowsRemote.map((row) => ({
+    id: String(row.player_id),
+    databaseId: row.player_id,
+    number: String(row.jersey_number),
+    name: row.player_name,
+  }));
+
+  const playedMs = Object.fromEntries(
+    rosterRowsRemote.map((row) => [
+      String(row.player_id),
+      Math.max(0, Number(row.played_ms || 0)),
+    ])
+  );
+
+  const remoteState = stateResult.data;
+  const period = Number(remoteState?.period || 1);
+  const clockMs = Number.isFinite(remoteState?.clock_ms)
+    ? remoteState.clock_ms
+    : period <= 4
+      ? LIVE_STATS_CONFIG.regulationPeriodMs
+      : LIVE_STATS_CONFIG.overtimePeriodMs;
+
+  return {
+    setup: {
+      matchId: match.id,
+      seasonId: match.season,
+      opponent: match.opponent,
+      matchDate: match.date,
+      gazalSide: match.gazal_side || "home",
+      roster,
+      starterIds,
+      createdAt: match.created_at,
+      recoveredAt: new Date().toISOString(),
+    },
+    events: (eventsResult.data || []).map(normaliseRemoteEvent),
+    runtime: {
+      period,
+      clockMs: Math.max(0, Number(clockMs || 0)),
+      clockRunning: false,
+      playedMs,
+      savedAt: remoteState?.updated_at || new Date().toISOString(),
+      recoveredFromSupabase: true,
+    },
+  };
 }
