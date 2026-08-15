@@ -198,7 +198,9 @@ export function restoreLiveSessionFromRemote(snapshot) {
     throw new Error("La sesión remota no contiene un matchId válido.");
   }
 
-  const clientId = getOrCreateClientId();
+  // A recovered match resumes the same logical client stream. This keeps
+  // client_sequence monotonic even when recovery happens on another device.
+  const clientId = snapshot.resumeClientId || getOrCreateClientId();
   const setup = {
     ...snapshot.setup,
     clientId,
