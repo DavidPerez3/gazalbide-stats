@@ -123,10 +123,14 @@ export default function FantasyEconomySummary() {
     const base = Number(economy.base_budget || 0);
     const carry = Number(economy.carry_in || 0);
     const available = Number(economy.available_budget ?? base + carry);
-    return { base, carry, available };
+    const lineupCost =
+      economy.lineup_cost == null ? null : Number(economy.lineup_cost);
+    return { base, carry, available, lineupCost };
   }, [economy]);
 
   if (!user || loading || error || !gameweek || !values) return null;
+
+  const isValid = economy.valid_lineup === true;
 
   return (
     <div className="container" aria-label="Resumen de presupuesto Fantasy">
@@ -169,6 +173,39 @@ export default function FantasyEconomySummary() {
               Total <strong>{values.available} 🍺</strong>
             </span>
           </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            paddingTop: 10,
+            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <span
+            style={{
+              ...pillStyle,
+              border: isValid
+                ? "1px solid rgba(74, 222, 128, 0.45)"
+                : "1px solid rgba(248, 113, 113, 0.45)",
+              color: isValid ? "#86EFAC" : "#FCA5A5",
+            }}
+          >
+            {isValid ? "✓ Alineación válida" : "Alineación no válida"}
+          </span>
+
+          <span style={{ fontSize: "0.8rem", color: "#A1A1AA" }}>
+            {isValid
+              ? values.lineupCost == null
+                ? "Puntúa y genera ahorro al cerrar la jornada."
+                : `Coste: ${values.lineupCost} 🍺 · puntúa y puede generar ahorro.`
+              : "0 puntos · 0 ahorro hasta que la alineación sea válida."}
+          </span>
         </div>
       </section>
     </div>
