@@ -278,6 +278,16 @@ export async function loadRemoteLiveSession(matchId) {
     throw new Error("El partido remoto no tiene exactamente cinco titulares guardados.");
   }
 
+  const remoteEvents = eventsResult.data || [];
+  const remoteClientIds = [
+    ...new Set(remoteEvents.map((event) => event.client_id).filter(Boolean)),
+  ];
+  if (remoteClientIds.length > 1) {
+    throw new Error(
+      "Este Live contiene eventos de varios clientes. No se recuperará automáticamente hasta implementar reconciliación multi-dispositivo."
+    );
+  }
+
   const roster = rosterRowsRemote.map((row) => ({
     id: String(row.player_id),
     databaseId: row.player_id,
@@ -312,7 +322,8 @@ export async function loadRemoteLiveSession(matchId) {
       createdAt: match.created_at,
       recoveredAt: new Date().toISOString(),
     },
-    events: (eventsResult.data || []).map(normaliseRemoteEvent),
+    resumeClientId: remoteClientIds[0] || null,
+    events: remoteEvents.map(normaliseRemoteEvent),
     runtime: {
       period,
       clockMs: Math.max(0, Number(clockMs || 0)),
