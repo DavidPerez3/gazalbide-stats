@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MAX_ROSTER_SIZE, MAX_ON_COURT } from "../features/live-stats/rules.js";
-import { saveLiveSetup } from "../features/live-stats/localSession.js";
+import {
+  restoreLiveSessionFromRemote,
+  saveLiveSetup,
+} from "../features/live-stats/localSession.js";
+import {
+  listRecoverableLiveSessions,
+  loadRemoteLiveSession,
+} from "../features/live-stats/supabaseSync.js";
 import { getPlayers } from "../lib/data.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import "../live-stats.css";
@@ -17,11 +24,33 @@ export default function LiveStatsSetup() {
   const [matchDate, setMatchDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [gazalSide, setGazalSide] = useState("home");
   const [error, setError] = useState("");
+  const [recoverableSessions, setRecoverableSessions] = useState([]);
+  const [recoveringId, setRecoveringId] = useState(null);
+  const [recoveryError, setRecoveryError] = useState("");
 
   useEffect(() => {
     getPlayers(CURRENT_SEASON_ID)
       .then((data) => setPlayers(data || []))
       .catch(() => setError("No se pudo cargar la plantilla de la temporada actual."));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    listRecoverableLiveSessions(CURRENT_SEASON_ID)
+      .then((matches) => {
+        if (!cancelled) setRecoverableSessions(matches || []);
+      })
+      .catch((loadError) => {
+        console.warn("No se pudieron listar Lives recuperables:", loadError);
+        if (!cancelled) {
+          setRecoveryError("No se pudieron consultar los partidos Live guardados en Supabase.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -53,6 +82,24 @@ export default function LiveStatsSetup() {
       return;
     }
     setStarters((prev) => [...prev, id]);
+  }
+
+  async function recoverGame(matchId) {
+    if (recoveringId) return;
+    setRecoveryError("");
+    setRecoveringId(matchId);
+
+    try {
+      const snapshot = await loadRemoteLiveSession(matchId);
+      restoreLiveSessionFromRemote(snapshot);
+      navigate("/admin/live");
+    } catch (recoverError) {
+      console.error("No se pudo recuperar el Live:", recoverError);
+      setRecoveryError(
+        recoverError?.message || "No se pudo recuperar el partido Live desde Supabase."
+      );
+      setRecoveringId(null);
+    }
   }
 
   function startGame() {
@@ -96,6 +143,33 @@ export default function LiveStatsSetup() {
           <strong>{starters.length}/5</strong><span>titulares</span>
         </div>
       </header>
+
+      {recoverableSessions.length > 0 ? (
+        <section className="card card--p">
+          <p className="live-kicker">Recuperación Supabase</p>
+          <h2>Partido Live guardado</h2>
+          <p className="text-dim">
+            Puedes continuar un Live aunque se haya perdido la sesión local o estés usando otro dispositivo.
+          </p>
+          <div className="live-setup__footer">
+            {recoverableSessions.map((match) => (
+              <button
+                key={match.id}
+                type="button"
+                className="live-primary-action"
+                onClick={() => recoverGame(match.id)}
+                disabled={Boolean(recoveringId)}
+              >
+                {recoveringId === match.id
+                  ? "Recuperando…"
+                  : `Continuar ${match.opponent} · ${match.date}`}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {recoveryError ? <div className="live-alert live-alert--error">{recoveryError}</div> : null}
 
       <section className="live-setup__meta card card--p">
         <label>Rival<input className="input" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="Nombre del rival" /></label>
