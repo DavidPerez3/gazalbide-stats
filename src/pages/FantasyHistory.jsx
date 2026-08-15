@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
+import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 
 // Entrenadores (solo para mostrar)
 const COACH_TRAITS = {
@@ -48,7 +49,8 @@ export default function FantasyHistory() {
         const { data: teams, error: teamsError } = await supabase
           .from("fantasy_teams")
           .select("*")
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .eq("season_id", CURRENT_SEASON_ID);
 
         if (teamsError) throw teamsError;
         if (!teams || teams.length === 0) {

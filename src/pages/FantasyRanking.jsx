@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { useNavigate } from "react-router-dom";
 import { computeLineupPoints } from "../lib/fantasyScoring.js";
+import { CURRENT_SEASON_ID, SEASONS } from "../lib/seasons.js";
 
 export default function FantasyRanking() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function FantasyRanking() {
   const [rowsByGw, setRowsByGw] = useState({}); // ranking por jornada { gwId: [rows] }
   const [gameweekOptions, setGameweekOptions] = useState([]);
   const [selectedGwId, setSelectedGwId] = useState("all");
+  const [selectedSeasonId, setSelectedSeasonId] = useState(CURRENT_SEASON_ID);
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -24,12 +26,14 @@ export default function FantasyRanking() {
     async function loadRanking() {
       setLoading(true);
       setErrorMsg(null);
+      setSelectedGwId("all");
 
       try {
         // 1) Equipos fantasy
         const { data: teams, error: teamError } = await supabase
           .from("fantasy_teams")
-          .select("*");
+          .select("*")
+          .eq("season_id", selectedSeasonId);
 
         if (teamError) throw teamError;
         if (!teams || teams.length === 0) {
@@ -237,7 +241,7 @@ export default function FantasyRanking() {
     }
 
     loadRanking();
-  }, [user, BASE]);
+  }, [user, BASE, selectedSeasonId]);
 
   // Filtrado por jornada
   const rows = useMemo(() => {
@@ -319,8 +323,21 @@ export default function FantasyRanking() {
                 <h2 className="fantasy__section-title">
                   Clasificación ({sortedRows.length} equipos)
                 </h2>
-                {gameweekOptions.length > 0 && (
-                  <div className="fantasy__filters">
+                <div className="fantasy__filters">
+                  <label className="fantasy__filter-label">
+                    Temporada:{" "}
+                    <select
+                      value={selectedSeasonId}
+                      onChange={(e) => setSelectedSeasonId(e.target.value)}
+                    >
+                      {SEASONS.map((season) => (
+                        <option key={season.id} value={season.id}>
+                          {season.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {gameweekOptions.length > 0 && (
                     <label className="fantasy__filter-label">
                       Jornada:{" "}
                       <select
@@ -335,8 +352,8 @@ export default function FantasyRanking() {
                         ))}
                       </select>
                     </label>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {sortedRows.length === 0 ? (

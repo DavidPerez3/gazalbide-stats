@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
+import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 
 // ========================
 // Rasgos / atributos
@@ -149,6 +150,7 @@ export default function FantasyBuilder() {
           .from("fantasy_teams")
           .select("*")
           .eq("user_id", user.id)
+          .eq("season_id", CURRENT_SEASON_ID)
           .single();
 
         if (teamError) throw teamError;
@@ -159,6 +161,7 @@ export default function FantasyBuilder() {
         const { data: gwData, error: gwError } = await supabase
           .from("gameweeks")
           .select("*")
+          .eq("season_id", CURRENT_SEASON_ID)
           .eq("status", "scheduled")
           .gt("deadline", nowIso)
           .order("deadline", { ascending: true })

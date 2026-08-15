@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
+import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 
 // ==== helpers de rasgos / entrenadores (igual que en el builder) ====
 
@@ -130,6 +131,7 @@ export default function FantasyHome() {
         .from("fantasy_teams")
         .select("*")
         .eq("user_id", user.id)
+        .eq("season_id", CURRENT_SEASON_ID)
         .maybeSingle();
 
       if (error) {
@@ -158,6 +160,7 @@ export default function FantasyHome() {
       const { data, error } = await supabase
         .from("gameweeks")
         .select("*")
+        .eq("season_id", CURRENT_SEASON_ID)
         .eq("status", "scheduled")
         .gt("deadline", nowIso)
         .order("deadline", { ascending: true })
@@ -375,6 +378,7 @@ export default function FantasyHome() {
       .insert({
         user_id: user.id,
         name: teamName.trim(),
+        season_id: CURRENT_SEASON_ID,
       })
       .select("*")
       .single();
