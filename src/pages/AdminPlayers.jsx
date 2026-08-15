@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlayerPhoto from "../components/PlayerPhoto.jsx";
+import AdminStaffSection from "../components/AdminStaffSection.jsx";
 import { getPlayers } from "../lib/data.js";
 import { CURRENT_SEASON_ID, LEGACY_SEASON_ID } from "../lib/seasons.js";
 import {
@@ -62,7 +63,6 @@ function PhotoInput({ file, onChange, player = null }) {
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(event) => onChange(event.target.files?.[0] || null)}
           />
         </label>
@@ -576,6 +576,8 @@ export default function AdminPlayers() {
           </div>
         )}
       </section>
+
+      <AdminStaffSection />
     </div>
   );
 }

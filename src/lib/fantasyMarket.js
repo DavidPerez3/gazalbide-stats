@@ -1,15 +1,7 @@
 import { supabase } from "./supabaseClient.js";
 import { resolvePlayerPhotoSrc } from "./playerPhotos.js";
+import { resolveStaffPhotoSrc } from "./staffPhotos.js";
 
-function resolveStaffPhotoSrc(photoPath) {
-  const raw = String(photoPath || "").trim();
-  if (!raw) return null;
-  if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
-  if (/^\/?images\//i.test(raw)) {
-    return `${import.meta.env.BASE_URL}${raw.replace(/^\/+/, "")}`;
-  }
-  return null;
-}
 
 export function fantasyNumberKey(value) {
   const n = Number(value);
@@ -191,7 +183,7 @@ export async function loadFantasyCoaches(seasonId) {
       return {
         ...member,
         role: membershipRow.role,
-        image: resolveStaffPhotoSrc(member.photo_path),
+        image: resolveStaffPhotoSrc(member),
       };
     })
     .filter(Boolean);
