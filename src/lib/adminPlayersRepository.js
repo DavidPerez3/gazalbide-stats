@@ -19,7 +19,7 @@ export function isStatsSchemaMissing(error) {
 export async function getAdminSeasonRoster(seasonId) {
   const { data, error } = await supabase
     .from("season_players")
-    .select("season_id,jersey_number,active,sort_order,player:players(id,name,number,photo_path)")
+    .select("season_id,jersey_number,active,sort_order,player:players!season_players_player_id_fkey(id,name,number,photo_path)")
     .eq("season_id", seasonId)
     .order("active", { ascending: false })
     .order("sort_order", { ascending: true });
