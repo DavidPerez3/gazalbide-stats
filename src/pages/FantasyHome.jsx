@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
+import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket } from "../lib/fantasyMarket.js";
 
 // ==== helpers de rasgos / entrenadores (igual que en el builder) ====
 
@@ -109,6 +110,8 @@ export default function FantasyHome() {
   const [statsError, setStatsError] = useState(null);
 
   const [fantasyPlayers, setFantasyPlayers] = useState([]);
+  const [fantasyCoaches, setFantasyCoaches] = useState([]);
+  const [seasonStatus, setSeasonStatus] = useState(null);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
 
   const [creating, setCreating] = useState(false);
@@ -118,6 +121,14 @@ export default function FantasyHome() {
 
   const BASE = import.meta.env.BASE_URL || "/";
   const courtSrc = `${BASE}images/court.png`;
+
+  useEffect(() => {
+    let cancelled = false;
+    getFantasySeasonStatus(CURRENT_SEASON_ID)
+      .then((status) => { if (!cancelled) setSeasonStatus(status); })
+      .catch((error) => console.error("Error cargando estado del mercado Fantasy:", error));
+    return () => { cancelled = true; };
+  }, []);
 
   // 1) Cargar equipo del usuario
   useEffect(() => {
@@ -257,12 +268,16 @@ export default function FantasyHome() {
           setCoachCode("david");
         }
 
-        // Jugadores fantasy
-        const res = await fetch(`${BASE}data/fantasy_players.json`);
-        if (!res.ok)
-          throw new Error("No se ha podido cargar fantasy_players.json");
-        const json = await res.json();
-        setFantasyPlayers(json);
+        // Mercado y staff de la temporada actual desde Supabase.
+        const [marketPlayers, coaches] = await Promise.all([
+          loadFantasyMarket({
+            seasonId: CURRENT_SEASON_ID,
+            gameweekId: lineupRow?.gameweek_id ?? null,
+          }),
+          loadFantasyCoaches(CURRENT_SEASON_ID),
+        ]);
+        setFantasyPlayers(marketPlayers);
+        setFantasyCoaches(coaches);
       } catch (err) {
         console.error("Error cargando último lineup/jugadores:", err);
         setLineupError(
@@ -415,7 +430,7 @@ export default function FantasyHome() {
   }
 
   const username = profile?.username || user?.email?.split("@")[0];
-  const totalBudget = team?.cervezas ?? 0;
+  const totalBudget = team?.cervezas ?? seasonStatus?.baseBudget ?? 80;
 
   // Mercado abierto SOLO si hay próxima gameweek futura y aún no ha pasado el deadline
   let canEditLineup = false;
@@ -476,6 +491,11 @@ export default function FantasyHome() {
   );
 
   const remainingBeers = Math.max(totalBudget - usedBeers, 0);
+
+  const selectedCoach = useMemo(
+    () => fantasyCoaches.find((coach) => coach.code === coachCode) || null,
+    [fantasyCoaches, coachCode]
+  );
 
   const hasCoach = !!coachCode;
   const hasCaptain =
@@ -677,10 +697,7 @@ export default function FantasyHome() {
       >
         {/* 1. Foto */}
         {p.image && (() => {
-          const imgSrc = `${import.meta.env.BASE_URL}${p.image.replace(
-            /^\/+/,
-            ""
-          )}`;
+          const imgSrc = p.image;
           return (
             <div
               style={{
@@ -1017,15 +1034,21 @@ export default function FantasyHome() {
                       <h3 className="fantasy__section-subtitle">Entrenador</h3>
                       <div className="fantasy-builder__coach-traits">
                         <div className="fantasy-builder__coach-avatar">
-                          <img
-                            src={`${import.meta.env.BASE_URL}images/coaches/${coachCode}.png`}
-                            alt={COACH_LABELS[coachCode] || coachCode}
-                            className="fantasy-builder__coach-photo"
-                          />
+                          {selectedCoach?.image ? (
+                            <img
+                              src={selectedCoach.image}
+                              alt={selectedCoach.name || coachCode}
+                              className="fantasy-builder__coach-photo"
+                            />
+                          ) : (
+                            <span style={{ fontWeight: 800, fontSize: "1.25rem" }}>
+                              {(selectedCoach?.name || coachCode).slice(0, 1).toUpperCase()}
+                            </span>
+                          )}
                         </div>
                         <div className="fantasy-builder__coach-info">
                           <span className="fantasy-builder__coach-name">
-                            {COACH_LABELS[coachCode] || coachCode}
+                            {selectedCoach?.name || COACH_LABELS[coachCode] || coachCode}
                           </span>
                           <div className="fantasy-builder__traits">
                             {getCoachTraits(coachCode).map((t) => (

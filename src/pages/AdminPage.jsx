@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
+import { getFantasySeasonStatus } from "../lib/fantasyMarket.js";
 
 // Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
 function slugifyOpponent(str) {
@@ -228,6 +229,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [infoMsg, setInfoMsg] = useState(null);
+  const [marketStatus, setMarketStatus] = useState(null);
 
   const [name, setName] = useState("");
   const [opponent, setOpponent] = useState("");
@@ -258,6 +260,12 @@ export default function AdminPage() {
         setGameweeks(data || []);
       }
 
+      try {
+        setMarketStatus(await getFantasySeasonStatus(CURRENT_SEASON_ID));
+      } catch (marketError) {
+        console.error("Error cargando estado del mercado:", marketError);
+      }
+
       setLoading(false);
     }
 
@@ -268,6 +276,13 @@ export default function AdminPage() {
     e.preventDefault();
     setErrorMsg(null);
     setInfoMsg(null);
+
+    if (!marketStatus?.marketReady) {
+      setErrorMsg(
+        `El mercado ${CURRENT_SEASON_ID} todavía está en preparación (${marketStatus?.pricedPlayers ?? 0}/${marketStatus?.activePlayers ?? 0} jugadores con precio).`
+      );
+      return;
+    }
 
     if (!date || !deadline) {
       setErrorMsg("Debes indicar fecha del partido y deadline.");
@@ -359,6 +374,11 @@ export default function AdminPage() {
               Crea una <strong>gameweek</strong> indicando fecha, rival y
               deadline para que la gente cierre sus equipos.
             </p>
+            {marketStatus && (
+              <p className={marketStatus.marketReady ? "admin__message admin__message--success" : "admin__message admin__message--error"}>
+                Mercado {CURRENT_SEASON_ID}: {marketStatus.marketReady ? "listo" : "en preparación"} · {marketStatus.pricedPlayers}/{marketStatus.activePlayers} jugadores con precio · base {marketStatus.baseBudget} 🍺
+              </p>
+            )}
 
             <form className="admin__form" onSubmit={handleCreateGameweek}>
               <div className="admin__field">
@@ -427,7 +447,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 className="admin__button"
-                disabled={saving}
+                disabled={saving || !marketStatus?.marketReady}
               >
                 {saving ? "Creando jornada..." : "Crear jornada"}
               </button>
