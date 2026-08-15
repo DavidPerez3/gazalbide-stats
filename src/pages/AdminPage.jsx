@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
-import { getFantasySeasonStatus } from "../lib/fantasyMarket.js";
+import { getFantasySeasonStatus, loadFantasyMarket } from "../lib/fantasyMarket.js";
 
 // Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
 function slugifyOpponent(str) {
@@ -15,213 +15,6 @@ function slugifyOpponent(str) {
     .replace(/^-+|-+$/g, "");
 }
 
-// === Helpers autorrelleno (mismos que en el script) ===
-function isAllEmpty(players) {
-  return (
-    Array.isArray(players) &&
-    players.length === 5 &&
-    players.every(
-      (v) => v === "-1" || v === -1 || v === null || v === undefined
-    )
-  );
-}
-
-function isValidFullLineup(players) {
-  return (
-    Array.isArray(players) &&
-    players.length === 5 &&
-    players.every(
-      (v) => v !== "-1" && v !== -1 && v !== null && v !== undefined
-    )
-  );
-}
-
-function buildPriceMap(fantasyPlayers) {
-  return new Map(
-    fantasyPlayers.map((p) => [
-      Number(p.number ?? p.dorsal),
-      Number(p.price ?? 0),
-    ])
-  );
-}
-
-function getLineupCost(players, priceByNumber) {
-  if (!Array.isArray(players)) return 0;
-  const nums = players
-    .map((x) => Number(x))
-    .filter((n) => !Number.isNaN(n) && n >= 0);
-
-  return nums.reduce(
-    (sum, n) => sum + (priceByNumber.get(n) || 0),
-    0
-  );
-}
-
-// Función de autorrelleno usable desde el Admin (frontend)
-async function autoFillLineupsForGameweek(gameweekId, { setInfoMsg, setErrorMsg, setAutoFillingGwId }) {
-  const GW = Number(gameweekId);
-  if (Number.isNaN(GW)) {
-    console.error("autoFillLineupsForGameweek: gameweekId inválido", gameweekId);
-    setErrorMsg("ID de jornada inválido para el autorrelleno.");
-    return;
-  }
-
-  const BASE = import.meta.env.BASE_URL || "/";
-
-  setErrorMsg(null);
-  setInfoMsg(null);
-  setAutoFillingGwId(GW);
-  console.log(`🔁 Auto-rellenando alineaciones vacías para la jornada ${GW}...`);
-
-  try {
-    // 1) Cargar precios de jugadores desde fantasy_players.json
-    let fantasyPlayers;
-    try {
-      const res = await fetch(`${BASE}data/fantasy_players.json`);
-      if (!res.ok) {
-        console.error("No se pudo cargar fantasy_players.json", res.status);
-        setErrorMsg("No se han podido cargar los precios de los jugadores.");
-        setAutoFillingGwId(null);
-        return;
-      }
-      fantasyPlayers = await res.json();
-    } catch (e) {
-      console.error("Error al cargar fantasy_players.json", e);
-      setErrorMsg("Error al cargar los precios de los jugadores.");
-      setAutoFillingGwId(null);
-      return;
-    }
-
-    const priceByNumber = buildPriceMap(fantasyPlayers);
-
-    // 2) Cargar equipos con su presupuesto
-    const { data: teams, error: teamError } = await supabase
-      .from("fantasy_teams")
-      .select("id, cervezas")
-      .eq("season_id", CURRENT_SEASON_ID);
-
-    if (teamError) {
-      console.error("Error cargando equipos fantasy:", teamError);
-      setErrorMsg("No se han podido cargar los equipos para el autorrelleno.");
-      setAutoFillingGwId(null);
-      return;
-    }
-
-    const budgetByTeam = new Map(
-      (teams || []).map((t) => [t.id, t.cervezas ?? 0])
-    );
-
-    // 3) Cargar alineaciones de esta jornada
-    const { data: lineups, error: lineupError } = await supabase
-      .from("fantasy_lineups")
-      .select("id, fantasy_team_id, gameweek_id, players, captain_number, coach_code")
-      .eq("gameweek_id", GW);
-
-    if (lineupError) {
-      console.error("Error cargando alineaciones de la jornada:", lineupError);
-      setErrorMsg("No se han podido cargar las alineaciones de esta jornada.");
-      setAutoFillingGwId(null);
-      return;
-    }
-
-    if (!lineups || lineups.length === 0) {
-      console.log("No hay alineaciones para esta jornada. Nada que autorrellenar.");
-      setInfoMsg("No hay alineaciones para esta jornada. Nada que autorrellenar.");
-      setAutoFillingGwId(null);
-      return;
-    }
-
-    let updated = 0;
-
-    for (const lineup of lineups) {
-      const teamId = lineup.fantasy_team_id;
-      const budget = budgetByTeam.get(teamId) ?? 0;
-      const rawPlayers = Array.isArray(lineup.players) ? lineup.players : [];
-
-      // 1) Si NO está completamente vacía, no tocamos nada
-      if (!isAllEmpty(rawPlayers)) {
-        continue;
-      }
-
-      // 2) Buscar alineación inmediatamente anterior de este equipo
-      const { data: prevLineup, error: prevError } = await supabase
-        .from("fantasy_lineups")
-        .select("players, captain_number, coach_code, gameweek_id")
-        .eq("fantasy_team_id", teamId)
-        .lt("gameweek_id", GW)
-        .order("gameweek_id", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (prevError) {
-        console.error(
-          `Error buscando alineación anterior para equipo ${teamId}:`,
-          prevError
-        );
-        continue;
-      }
-
-      if (!prevLineup) {
-        // Nunca tuvo alineación previa
-        continue;
-      }
-
-      const prevPlayers = Array.isArray(prevLineup.players)
-        ? prevLineup.players
-        : [];
-
-      // Si la anterior también era todo -1, no auto-rellenamos
-      if (isAllEmpty(prevPlayers)) {
-        continue;
-      }
-
-      // Aseguramos que la alineación anterior era un quinteto completo válido
-      if (!isValidFullLineup(prevPlayers)) {
-        continue;
-      }
-
-      // 3) Comprobar coste con precios actuales
-      const cost = getLineupCost(prevPlayers, priceByNumber);
-
-      if (cost > budget) {
-        console.log(
-          `Equipo ${teamId}: quinteto anterior se pasa de presupuesto (${cost} > ${budget}), no se copia.`
-        );
-        continue;
-      }
-
-      // 4) Actualizar la alineación actual copiando la anterior
-      const { error: updateError } = await supabase
-        .from("fantasy_lineups")
-        .update({
-          players: prevPlayers,
-          captain_number: prevLineup.captain_number,
-          coach_code: prevLineup.coach_code,
-        })
-        .eq("id", lineup.id);
-
-      if (updateError) {
-        console.error(
-          `Error actualizando alineación de equipo ${teamId} en jornada ${GW}:`,
-          updateError
-        );
-        continue;
-      }
-
-      updated++;
-      console.log(
-        `✅ Equipo ${teamId}: alineación de jornada ${GW} rellenada desde jornada ${prevLineup.gameweek_id} (coste ${cost}/${budget}).`
-      );
-    }
-
-    setInfoMsg(
-      `Autorrelleno completado para jornada ${GW}. Alineaciones actualizadas: ${updated}.`
-    );
-  } finally {
-    setAutoFillingGwId(null);
-  }
-}
-
 export default function AdminPage() {
   const { user, profile } = useAuth();
   const [gameweeks, setGameweeks] = useState([]);
@@ -230,14 +23,15 @@ export default function AdminPage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [infoMsg, setInfoMsg] = useState(null);
   const [marketStatus, setMarketStatus] = useState(null);
+  const [marketPlayers, setMarketPlayers] = useState([]);
+  const [priceDrafts, setPriceDrafts] = useState({});
+  const [savingPrices, setSavingPrices] = useState(false);
 
   const [name, setName] = useState("");
   const [opponent, setOpponent] = useState("");
   const [date, setDate] = useState(""); // YYYY-MM-DD
   const [deadline, setDeadline] = useState(""); // datetime-local
   const [matchId, setMatchId] = useState("");
-
-  const [autoFillingGwId, setAutoFillingGwId] = useState(null);
 
   useEffect(() => {
     async function fetchGameweeks() {
@@ -261,7 +55,15 @@ export default function AdminPage() {
       }
 
       try {
-        setMarketStatus(await getFantasySeasonStatus(CURRENT_SEASON_ID));
+        const [status, players] = await Promise.all([
+          getFantasySeasonStatus(CURRENT_SEASON_ID),
+          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }),
+        ]);
+        setMarketStatus(status);
+        setMarketPlayers(players);
+        setPriceDrafts(
+          Object.fromEntries(players.map((player) => [player.player_id, player.price ?? ""]))
+        );
       } catch (marketError) {
         console.error("Error cargando estado del mercado:", marketError);
       }
@@ -271,6 +73,53 @@ export default function AdminPage() {
 
     fetchGameweeks();
   }, []);
+
+  async function handleSaveMarketPrices() {
+    setErrorMsg(null);
+    setInfoMsg(null);
+
+    const rows = [];
+    for (const player of marketPlayers) {
+      const price = Number(priceDrafts[player.player_id]);
+      if (!Number.isInteger(price) || price <= 0) {
+        setErrorMsg(`Precio inválido para ${player.name}.`);
+        return;
+      }
+      rows.push({
+        season_id: CURRENT_SEASON_ID,
+        player_id: player.player_id,
+        price,
+        enabled: true,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    if (!rows.length) {
+      setErrorMsg("No hay jugadores en el mercado actual.");
+      return;
+    }
+
+    setSavingPrices(true);
+    const { error } = await supabase
+      .from("fantasy_player_market")
+      .upsert(rows, { onConflict: "season_id,player_id" });
+    setSavingPrices(false);
+
+    if (error) {
+      console.error("Error guardando precios Fantasy:", error);
+      setErrorMsg("No se han podido guardar los precios: " + (error.message || "error desconocido"));
+      return;
+    }
+
+    setMarketPlayers((prev) =>
+      prev.map((player) => ({
+        ...player,
+        price: Number(priceDrafts[player.player_id]),
+      }))
+    );
+    setMarketStatus(await getFantasySeasonStatus(CURRENT_SEASON_ID));
+    setInfoMsg("Precios Fantasy guardados. El mercado sigue bloqueado hasta terminar la configuración de temporada.");
+  }
 
   async function handleCreateGameweek(e) {
     e.preventDefault();
@@ -366,6 +215,57 @@ export default function AdminPage() {
               {infoMsg}
             </p>
           )}
+
+          {/* Mercado Fantasy de la temporada */}
+          <section className="admin__section">
+            <h2 className="admin__section-title">Precios Fantasy {CURRENT_SEASON_ID}</h2>
+            <p className="admin__text">
+              Precios provisionales del mercado actual. Puedes ajustarlos desde aquí antes de abrir la primera jornada.
+            </p>
+            {marketPlayers.length === 0 ? (
+              <p className="admin__text">Todavía no hay precios cargados.</p>
+            ) : (
+              <div className="admin__list" style={{ display: "grid", gap: "0.55rem" }}>
+                {marketPlayers.map((player) => (
+                  <div
+                    key={player.player_id}
+                    className="admin__list-item"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}
+                  >
+                    <div>
+                      <strong>#{Number(player.number) === 0 ? "00" : player.number} · {player.name}</strong>
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0 }}>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        className="admin__input"
+                        style={{ width: 82, textAlign: "center" }}
+                        value={priceDrafts[player.player_id] ?? ""}
+                        onChange={(e) =>
+                          setPriceDrafts((prev) => ({ ...prev, [player.player_id]: e.target.value }))
+                        }
+                      />
+                      <span>🍺</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              className="admin__button"
+              style={{ marginTop: "0.75rem" }}
+              onClick={handleSaveMarketPrices}
+              disabled={savingPrices || marketPlayers.length === 0}
+            >
+              {savingPrices ? "Guardando precios..." : "Guardar precios"}
+            </button>
+            <p className="admin__text" style={{ marginTop: "0.65rem" }}>
+              Estado: <strong>{marketStatus?.marketReady ? "listo" : "bloqueado"}</strong>. Crear una jornada seguirá deshabilitado hasta terminar precios, rasgos y entrenadores.
+            </p>
+          </section>
 
           {/* Formulario creación de jornada */}
           <section className="admin__section">
@@ -500,25 +400,6 @@ export default function AdminPage() {
                             Stats file: {gw.stats_file}
                           </span>
                         )}
-
-                        {/* Botón de autorrelleno para esta jornada */}
-                        <button
-                          type="button"
-                          className="admin__button"
-                          style={{ marginTop: "0.5rem" }}
-                          disabled={!!autoFillingGwId}
-                          onClick={() =>
-                            autoFillLineupsForGameweek(gw.id, {
-                              setInfoMsg,
-                              setErrorMsg,
-                              setAutoFillingGwId,
-                            })
-                          }
-                        >
-                          {autoFillingGwId === gw.id
-                            ? "Autorrellenando..."
-                            : "Autorrellenar alineaciones vacías"}
-                        </button>
                       </div>
                     </div>
                   </li>
