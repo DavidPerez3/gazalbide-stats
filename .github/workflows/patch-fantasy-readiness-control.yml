@@ -1,0 +1,113 @@
+name: Patch Fantasy readiness control
+
+on:
+  push:
+    branches:
+      - feat/fantasy-readiness-control
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fantasy-readiness-control
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply readiness patch
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected 1 match in {path}, found {count}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          def regex_once(path, pattern, replacement):
+              p = Path(path)
+              text = p.read_text()
+              text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f"Expected 1 regex match in {path}, found {count}: {pattern[:120]!r}")
+              p.write_text(text)
+
+          # ------------------------------------------------------------------
+          # fantasyMarket.js: richer readiness status + validated RPC toggle.
+          # ------------------------------------------------------------------
+          regex_once(
+              "src/lib/fantasyMarket.js",
+              r'export async function getFantasySeasonStatus\(seasonId\) \{.*?\n\}\n\nasync function loadSeasonPerformance',
+              '''export async function getFantasySeasonStatus(seasonId) {\n  const [settingsResult, rosterResult, marketResult, staffResult, traitsResult] =\n    await Promise.all([\n      supabase\n        .from("fantasy_season_settings")\n        .select("season_id, base_budget, market_ready")\n        .eq("season_id", seasonId)\n        .maybeSingle(),\n      supabase\n        .from("season_players")\n        .select("player_id")\n        .eq("season_id", seasonId)\n        .eq("active", true),\n      supabase\n        .from("fantasy_player_market")\n        .select("player_id")\n        .eq("season_id", seasonId)\n        .eq("enabled", true),\n      supabase\n        .from("season_staff")\n        .select("staff_id")\n        .eq("season_id", seasonId)\n        .eq("active", true)\n        .eq("fantasy_enabled", true),\n      supabase\n        .from("fantasy_traits")\n        .select("code")\n        .eq("season_id", seasonId)\n        .eq("enabled", true),\n    ]);\n\n  if (settingsResult.error) throw settingsResult.error;\n  if (rosterResult.error) throw rosterResult.error;\n  if (marketResult.error) throw marketResult.error;\n  if (staffResult.error) throw staffResult.error;\n  if (traitsResult.error) throw traitsResult.error;\n\n  const settings = settingsResult.data;\n  const activePlayerIds = new Set((rosterResult.data || []).map((row) => row.player_id));\n  const activePlayers = activePlayerIds.size;\n  const pricedPlayers = (marketResult.data || []).filter((row) =>\n    activePlayerIds.has(row.player_id)\n  ).length;\n  const fantasyStaff = staffResult.data?.length ?? 0;\n  const enabledTraits = traitsResult.data?.length ?? 0;\n\n  const checks = {\n    roster: activePlayers > 0,\n    prices: activePlayers > 0 && pricedPlayers === activePlayers,\n    staff: fantasyStaff > 0,\n    traits: enabledTraits > 0,\n  };\n\n  return {\n    seasonId,\n    baseBudget: Number(settings?.base_budget ?? 80),\n    marketReady: Boolean(settings?.market_ready),\n    activePlayers,\n    pricedPlayers,\n    fantasyStaff,\n    enabledTraits,\n    checks,\n    canActivate: Object.values(checks).every(Boolean),\n  };\n}\n\nexport async function setFantasySeasonReady({ seasonId, ready }) {\n  const { data, error } = await supabase.rpc("set_fantasy_market_ready", {\n    p_season_id: seasonId,\n    p_ready: Boolean(ready),\n  });\n  if (error) throw error;\n  return data;\n}\n\nasync function loadSeasonPerformance''',
+          )
+
+          # ------------------------------------------------------------------
+          # AdminPage.jsx: readiness card and explicit activation/deactivation.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              'import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments } from "../lib/fantasyMarket.js";\n',
+              'import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments, setFantasySeasonReady } from "../lib/fantasyMarket.js";\n',
+          )
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '  const [savingTraits, setSavingTraits] = useState(false);\n',
+              '  const [savingTraits, setSavingTraits] = useState(false);\n  const [togglingMarketReady, setTogglingMarketReady] = useState(false);\n',
+          )
+
+          marker = '  async function handleSaveMarketPrices() {\n'
+          p = Path("src/pages/AdminPage.jsx")
+          text = p.read_text()
+          if marker not in text:
+              raise SystemExit("Admin save-prices marker not found")
+          handler = '''  async function handleToggleMarketReady() {\n    if (!marketStatus) return;\n\n    const nextReady = !marketStatus.marketReady;\n    setErrorMsg(null);\n    setInfoMsg(null);\n    setTogglingMarketReady(true);\n\n    try {\n      await setFantasySeasonReady({\n        seasonId: CURRENT_SEASON_ID,\n        ready: nextReady,\n      });\n      const refreshed = await getFantasySeasonStatus(CURRENT_SEASON_ID);\n      setMarketStatus(refreshed);\n      setInfoMsg(\n        nextReady\n          ? `Fantasy ${CURRENT_SEASON_ID} marcada como preparada. No se ha creado ninguna jornada.`\n          : `Fantasy ${CURRENT_SEASON_ID} bloqueada para crear nuevas jornadas.`\n      );\n    } catch (error) {\n      console.error("Error cambiando preparación Fantasy:", error);\n      setErrorMsg(\n        "No se ha podido cambiar el estado de Fantasy: " +\n          (error.message || "error desconocido")\n      );\n    } finally {\n      setTogglingMarketReady(false);\n    }\n  }\n\n'''
+          p.write_text(text.replace(marker, handler + marker, 1))
+
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '    setInfoMsg("Precios Fantasy guardados. El mercado sigue bloqueado hasta terminar la configuración de temporada.");\n',
+              '    setInfoMsg("Precios Fantasy guardados. Las jornadas ya creadas conservan su snapshot de precios.");\n',
+          )
+
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '''  const adminName =\n    profile?.username || user?.email?.split("@")[0] || "admin";\n\n  return (\n''',
+              '''  const adminName =\n    profile?.username || user?.email?.split("@")[0] || "admin";\n\n  const readinessItems = [\n    {\n      key: "roster",\n      label: "Plantilla",\n      ok: Boolean(marketStatus?.checks?.roster),\n      detail: `${marketStatus?.activePlayers ?? 0} jugadores activos`,\n    },\n    {\n      key: "prices",\n      label: "Precios",\n      ok: Boolean(marketStatus?.checks?.prices),\n      detail: `${marketStatus?.pricedPlayers ?? 0}/${marketStatus?.activePlayers ?? 0} con precio`,\n    },\n    {\n      key: "staff",\n      label: "Entrenadores",\n      ok: Boolean(marketStatus?.checks?.staff),\n      detail: `${marketStatus?.fantasyStaff ?? 0} habilitados en Fantasy`,\n    },\n    {\n      key: "traits",\n      label: "Rasgos",\n      ok: Boolean(marketStatus?.checks?.traits),\n      detail: `${marketStatus?.enabledTraits ?? 0} rasgos habilitados`,\n    },\n  ];\n\n  return (\n''',
+          )
+
+          p = Path("src/pages/AdminPage.jsx")
+          text = p.read_text()
+          render_marker = '          {/* Rasgos Fantasy de la temporada */}\n'
+          if render_marker not in text:
+              raise SystemExit("Admin traits render marker not found")
+          readiness_section = '''          {/* Preparación general de la temporada Fantasy */}\n          <section className="admin__section">\n            <h2 className="admin__section-title">Preparación Fantasy {CURRENT_SEASON_ID}</h2>\n            <p className="admin__text">\n              Este control solo permite o bloquea la creación de nuevas jornadas. Activarlo no crea una jornada ni abre un deadline por sí solo.\n            </p>\n\n            <div style={{ display: "grid", gap: "0.5rem", marginTop: "0.75rem" }}>\n              {readinessItems.map((item) => (\n                <div\n                  key={item.key}\n                  className="admin__list-item"\n                  style={{\n                    display: "flex",\n                    alignItems: "center",\n                    justifyContent: "space-between",\n                    gap: "0.75rem",\n                    padding: "0.65rem 0.75rem",\n                  }}\n                >\n                  <div style={{ minWidth: 0 }}>\n                    <strong>{item.label}</strong>\n                    <div className="admin__text" style={{ margin: "0.15rem 0 0", fontSize: "0.85rem" }}>\n                      {item.detail}\n                    </div>\n                  </div>\n                  <span\n                    aria-label={item.ok ? "Correcto" : "Pendiente"}\n                    title={item.ok ? "Correcto" : "Pendiente"}\n                    style={{\n                      flexShrink: 0,\n                      width: 28,\n                      height: 28,\n                      borderRadius: "999px",\n                      display: "inline-flex",\n                      alignItems: "center",\n                      justifyContent: "center",\n                      fontWeight: 800,\n                      background: item.ok ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.18)",\n                      color: item.ok ? "#34D399" : "#FCA5A5",\n                    }}\n                  >\n                    {item.ok ? "✓" : "!"}\n                  </span>\n                </div>\n              ))}\n            </div>\n\n            <p className="admin__text" style={{ marginTop: "0.75rem" }}>\n              Estado: <strong>{marketStatus?.marketReady ? "preparada" : "bloqueada"}</strong>.\n              {marketStatus?.marketReady\n                ? " Ya puedes crear una jornada cuando quieras abrir el mercado."\n                : marketStatus?.canActivate\n                ? " La configuración mínima está completa y puedes activarla."\n                : " Completa los elementos pendientes antes de activarla."}\n            </p>\n\n            <button\n              type="button"\n              className="admin__button"\n              onClick={handleToggleMarketReady}\n              disabled={\n                togglingMarketReady ||\n                !marketStatus ||\n                (!marketStatus.marketReady && !marketStatus.canActivate)\n              }\n            >\n              {togglingMarketReady\n                ? "Actualizando..."\n                : marketStatus?.marketReady\n                ? "Bloquear creación de jornadas"\n                : `Activar Fantasy ${CURRENT_SEASON_ID}`}\n            </button>\n          </section>\n\n'''
+          p.write_text(text.replace(render_marker, readiness_section + render_marker, 1))
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Remove one-off workflow
+        run: rm .github/workflows/patch-fantasy-readiness-control.yml
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/fantasyMarket.js src/pages/AdminPage.jsx
+          git add -A .github/workflows/patch-fantasy-readiness-control.yml
+          git commit -m "feat(fantasy): add validated readiness control"
+          git push origin HEAD:feat/fantasy-readiness-control
