@@ -1,0 +1,116 @@
+.live-staff-discipline {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 80;
+  font-family: inherit;
+}
+
+.live-staff-discipline__toggle {
+  min-width: 68px;
+  min-height: 44px;
+  border: 1px solid rgba(250, 204, 21, 0.65);
+  border-radius: 999px;
+  background: rgba(24, 24, 27, 0.96);
+  color: #facc15;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+}
+
+.live-staff-discipline__panel {
+  position: absolute;
+  right: 0;
+  bottom: 54px;
+  width: min(330px, calc(100vw - 28px));
+  padding: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 14px;
+  background: rgba(24, 24, 27, 0.98);
+  color: #fafafa;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+
+.live-staff-discipline__header,
+.live-staff-discipline__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.live-staff-discipline__header {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.live-staff-discipline__header button,
+.live-staff-discipline__actions button {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+.live-staff-discipline__header button {
+  width: 34px;
+  height: 34px;
+  font-size: 1.25rem;
+}
+
+.live-staff-discipline__field {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+  color: #d4d4d8;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.live-staff-discipline__field select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: #18181b;
+  color: #fafafa;
+  padding: 0 10px;
+}
+
+.live-staff-discipline__actions button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 10px;
+  font-weight: 800;
+}
+
+.live-staff-discipline__actions button:last-child {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+}
+
+.live-staff-discipline__last,
+.live-staff-discipline__error {
+  margin: 10px 0 0;
+  font-size: 0.76rem;
+}
+
+.live-staff-discipline__last {
+  color: #a1a1aa;
+}
+
+.live-staff-discipline__error {
+  color: #fca5a5;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .live-staff-discipline {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .live-staff-discipline__panel {
+    bottom: 48px;
+    width: min(310px, 45vw);
+    padding: 10px;
+  }
+}

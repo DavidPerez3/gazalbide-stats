@@ -16,7 +16,7 @@ import FantasyHome from "./pages/FantasyHome.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
 import AdminPlayers from "./pages/AdminPlayers.jsx";
 import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
-import LiveStatsPage from "./pages/LiveStatsPage.jsx";
+import LiveStatsWithStaffPage from "./pages/LiveStatsWithStaffPage.jsx";
 import FantasyBuilder from "./pages/FantasyBuilder.jsx";
 import FantasyHistory from "./pages/FantasyHistory.jsx";
 import FantasyRanking from "./pages/FantasyRanking.jsx";
@@ -125,7 +125,7 @@ const router = createHashRouter([
         path: "admin/live",
         element: (
           <PrivateRoute adminOnly={true}>
-            <LiveStatsPage />
+            <LiveStatsWithStaffPage />
           </PrivateRoute>
         ),
       },

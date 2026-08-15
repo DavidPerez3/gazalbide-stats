@@ -46,6 +46,13 @@ const EMPTY_STATS = Object.freeze({
   pf_flagrant: 0,
 });
 
+const STAFF_FOUL_KINDS = new Set([
+  "technical",
+  "technical_cat_1",
+  "technical_cat_2",
+  "disqualifying",
+]);
+
 function addDelta(base, delta) {
   if (!delta) return base;
   const next = { ...base };
@@ -61,6 +68,28 @@ function normaliseRosterPlayer(player) {
     number: String(player.number ?? player.jersey_number ?? ""),
     name: player.name ?? player.player_name ?? "",
   };
+}
+
+function isStaffFoul(event) {
+  return (
+    event?.event_type === LIVE_EVENT.PF &&
+    Boolean(event?.staff_id ?? event?.metadata?.staffId)
+  );
+}
+
+function validateStaffFoul(event) {
+  const staffId = event?.staff_id ?? event?.metadata?.staffId;
+  const foulKind = event?.foul_kind ?? event?.metadata?.foulKind;
+
+  if (!staffId) {
+    throw new Error("La falta de staff requiere un miembro del staff.");
+  }
+  if (event?.player_id) {
+    throw new Error("Una falta no puede pertenecer a un jugador y al staff a la vez.");
+  }
+  if (!STAFF_FOUL_KINDS.has(foulKind)) {
+    throw new Error("El staff solo admite técnica o descalificante.");
+  }
 }
 
 export function createInitialGameState({ roster, starterIds, matchDate, period = 1 }) {
@@ -282,6 +311,7 @@ export function adjustPlayedTimeForCurrentLineup(state, deltaMs) {
 export function applyLiveEvent(previousState, event) {
   if (!event || event.is_void) return previousState;
   let state = previousState;
+  const staffFoul = isStaffFoul(event);
 
   if (event.event_type === LIVE_EVENT.SUBSTITUTION) {
     state = applySubstitution(state, event);
@@ -290,13 +320,24 @@ export function applyLiveEvent(previousState, event) {
   } else if (event.event_type === LIVE_EVENT.SUB_IN) {
     state = applySubIn(state, event.player_id);
   } else if (event.event_type === LIVE_EVENT.PF) {
-    state = applyPlayerFoul(state, event);
+    if (staffFoul) {
+      // Staff discipline is an event-level fact only. It must never mutate a
+      // player's box score, foul count, eligibility or substitution state.
+      validateStaffFoul(event);
+    } else {
+      state = applyPlayerFoul(state, event);
+    }
   } else if (event.subject === "gazalbide" || event.player_id) {
     state = applyPlayerStat(state, event);
   }
 
   const scoreDelta = getScoreDelta(event.event_type);
-  const foulDelta = getTeamFoulDelta(event.event_type);
+  // Staff technical/disqualifying events are deliberately not treated as a
+  // player's team-foul increment. Team-foul/bonus rules are finalized in the
+  // dedicated Live Stats rules block rather than inferred from staff events.
+  const foulDelta = staffFoul
+    ? { gazalbide: 0, opponent: 0 }
+    : getTeamFoulDelta(event.event_type);
   const period = event.period ?? state.period;
   const currentPeriodFouls = state.teamFouls[period] || { gazalbide: 0, opponent: 0 };
   const eventClockMs = Number.isFinite(event.clock_ms) ? event.clock_ms : state.clockMs;
