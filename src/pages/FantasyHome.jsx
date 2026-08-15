@@ -4,66 +4,14 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
-import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket } from "../lib/fantasyMarket.js";
+import { fantasyNumberKey, getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
 
-// ==== helpers de rasgos / entrenadores (igual que en el builder) ====
-
-function normalizeName(name) {
-  return name
-    ?.toString()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-const PLAYER_TRAITS = {
-  iker: ["J", "S"],
-  josu: ["S", "L"],
-  imanol: ["S", "L"],
-  kusky: ["S", "A"],
-  ibon: ["A", "V"],
-  lucho: ["A", "J"],
-  aimar: ["S", "A"],
-  aingeru: ["V", "P"],
-  julen: ["V", "P"],
-  aguirre: ["V", "A"],
-  covela: ["C", "A"],
-  inaki: ["V", "L"],
-  jorge: ["A", "V"],
-  oier: ["J", "A"],
-};
-
-const COACH_TRAITS = {
-  david: ["S", "A"],
-  gorka: ["V", "C"],
-  unai: ["J", "L"],
-};
-
+// Fallback de etiqueta para alineaciones antiguas si el staff no estuviera cargado.
 const COACH_LABELS = {
   david: "David",
   gorka: "Gorka",
   unai: "Unai",
 };
-
-const TRAIT_LABELS = {
-  A: "Alcohólico",
-  L: "Ludópata",
-  S: "Sexólogo",
-  V: "Vieja guardia",
-  J: "Joven promesa",
-  C: "Boost Covela x2",
-  P: "Primos",
-};
-
-function getPlayerTraits(name) {
-  return PLAYER_TRAITS[normalizeName(name)] || [];
-}
-
-function getCoachTraits(code) {
-  return COACH_TRAITS[code] || [];
-}
 
 // valor para hueco vacío (en BD se guarda como "-1")
 const EMPTY_SLOT_NUM = -1;
@@ -112,6 +60,7 @@ export default function FantasyHome() {
   const [fantasyPlayers, setFantasyPlayers] = useState([]);
   const [fantasyCoaches, setFantasyCoaches] = useState([]);
   const [seasonStatus, setSeasonStatus] = useState(null);
+  const [traitConfig, setTraitConfig] = useState(null);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
 
   const [creating, setCreating] = useState(false);
@@ -269,15 +218,17 @@ export default function FantasyHome() {
         }
 
         // Mercado y staff de la temporada actual desde Supabase.
-        const [marketPlayers, coaches] = await Promise.all([
+        const [marketPlayers, coaches, seasonTraits] = await Promise.all([
           loadFantasyMarket({
             seasonId: CURRENT_SEASON_ID,
             gameweekId: lineupRow?.gameweek_id ?? null,
           }),
           loadFantasyCoaches(CURRENT_SEASON_ID),
+          loadFantasyTraitConfig(CURRENT_SEASON_ID),
         ]);
         setFantasyPlayers(marketPlayers);
         setFantasyCoaches(coaches);
+        setTraitConfig(seasonTraits);
       } catch (err) {
         console.error("Error cargando último lineup/jugadores:", err);
         setLineupError(
@@ -522,12 +473,13 @@ export default function FantasyHome() {
         statsMap: statsByNumber,
         captainNumber,
         coachCode,
+        traitConfig,
       });
     } catch (e) {
       console.error("Error calculando breakdown en FantasyHome:", e);
       return null;
     }
-  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, filledSlots]);
+  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, filledSlots, traitConfig]);
 
   // Puntos fantasy por jugador por slot
   const playersWithPoints = useMemo(() => {
@@ -592,7 +544,7 @@ export default function FantasyHome() {
         ...p,
         isCaptain,
         fantasyPoints,
-        traits: getPlayerTraits(p.name),
+        traits: traitConfig?.playerTraitsByNumber?.[fantasyNumberKey(p.number ?? p.dorsal)] || [],
         synergies,
         // status "genérico" (por si lo usas en otro sitio)
         status: statusColor,
@@ -602,7 +554,7 @@ export default function FantasyHome() {
         statusNote,
       };
     });
-  }, [playersBySlot, breakdown, captainNumber, playerStatuses]);
+  }, [playersBySlot, breakdown, captainNumber, playerStatuses, traitConfig]);
 
   const totalFantasyPoints = useMemo(() => {
     if (breakdown) return breakdown.totalPoints;
@@ -1051,7 +1003,7 @@ export default function FantasyHome() {
                             {selectedCoach?.name || COACH_LABELS[coachCode] || coachCode}
                           </span>
                           <div className="fantasy-builder__traits">
-                            {getCoachTraits(coachCode).map((t) => (
+                            {(traitConfig?.coachTraitsByCode?.[coachCode] || []).map((t) => (
                               <span
                                 key={t}
                                 className="fantasy-builder__trait-chip"

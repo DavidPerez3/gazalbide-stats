@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
-import { getFantasySeasonStatus, loadFantasyMarket } from "../lib/fantasyMarket.js";
+import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments } from "../lib/fantasyMarket.js";
 
 // Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
 function slugifyOpponent(str) {
@@ -26,6 +26,11 @@ export default function AdminPage() {
   const [marketPlayers, setMarketPlayers] = useState([]);
   const [priceDrafts, setPriceDrafts] = useState({});
   const [savingPrices, setSavingPrices] = useState(false);
+  const [fantasyCoaches, setFantasyCoaches] = useState([]);
+  const [traitConfig, setTraitConfig] = useState(null);
+  const [playerTraitDrafts, setPlayerTraitDrafts] = useState({});
+  const [staffTraitDrafts, setStaffTraitDrafts] = useState({});
+  const [savingTraits, setSavingTraits] = useState(false);
 
   const [name, setName] = useState("");
   const [opponent, setOpponent] = useState("");
@@ -55,15 +60,21 @@ export default function AdminPage() {
       }
 
       try {
-        const [status, players] = await Promise.all([
+        const [status, players, coaches, seasonTraits] = await Promise.all([
           getFantasySeasonStatus(CURRENT_SEASON_ID),
           loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }),
+          loadFantasyCoaches(CURRENT_SEASON_ID),
+          loadFantasyTraitConfig(CURRENT_SEASON_ID),
         ]);
         setMarketStatus(status);
         setMarketPlayers(players);
+        setFantasyCoaches(coaches);
+        setTraitConfig(seasonTraits);
         setPriceDrafts(
           Object.fromEntries(players.map((player) => [player.player_id, player.price ?? ""]))
         );
+        setPlayerTraitDrafts(seasonTraits.playerTraitsByPlayerId || {});
+        setStaffTraitDrafts(seasonTraits.staffTraitsById || {});
       } catch (marketError) {
         console.error("Error cargando estado del mercado:", marketError);
       }
@@ -73,6 +84,39 @@ export default function AdminPage() {
 
     fetchGameweeks();
   }, []);
+
+  function toggleTrait(setter, entityId, traitCode) {
+    setter((prev) => {
+      const current = prev[entityId] || [];
+      const next = current.includes(traitCode)
+        ? current.filter((code) => code !== traitCode)
+        : [...current, traitCode];
+      return { ...prev, [entityId]: next };
+    });
+  }
+
+  async function handleSaveTraits() {
+    setErrorMsg(null);
+    setInfoMsg(null);
+    setSavingTraits(true);
+    try {
+      await replaceFantasyTraitAssignments({
+        seasonId: CURRENT_SEASON_ID,
+        playerTraitsByPlayerId: playerTraitDrafts,
+        staffTraitsById: staffTraitDrafts,
+      });
+      const refreshed = await loadFantasyTraitConfig(CURRENT_SEASON_ID);
+      setTraitConfig(refreshed);
+      setPlayerTraitDrafts(refreshed.playerTraitsByPlayerId || {});
+      setStaffTraitDrafts(refreshed.staffTraitsById || {});
+      setInfoMsg("Rasgos Fantasy guardados correctamente.");
+    } catch (error) {
+      console.error("Error guardando rasgos Fantasy:", error);
+      setErrorMsg("No se han podido guardar los rasgos: " + (error.message || "error desconocido"));
+    } finally {
+      setSavingTraits(false);
+    }
+  }
 
   async function handleSaveMarketPrices() {
     setErrorMsg(null);
@@ -215,6 +259,62 @@ export default function AdminPage() {
               {infoMsg}
             </p>
           )}
+
+          {/* Rasgos Fantasy de la temporada */}
+          <section className="admin__section">
+            <h2 className="admin__section-title">Rasgos Fantasy {CURRENT_SEASON_ID}</h2>
+            <p className="admin__text">
+              Se guardan por identidad y temporada. Julen Power se activa cuando dos jugadores con JP coinciden en el quinteto.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.9rem" }}>
+              {(traitConfig?.traitList || []).map((trait) => (
+                <span key={trait.code} className="fantasy-builder__trait-chip">
+                  {trait.code} · {trait.label} · x{trait.multiplier.toFixed(1)}
+                </span>
+              ))}
+            </div>
+            <h3 style={{ marginBottom: "0.55rem" }}>Jugadores</h3>
+            <div style={{ display: "grid", gap: "0.65rem" }}>
+              {marketPlayers.map((player) => (
+                <div key={player.player_id} className="admin__list-item" style={{ padding: "0.7rem" }}>
+                  <strong>#{Number(player.number) === 0 ? "00" : player.number} · {player.name}</strong>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.45rem" }}>
+                    {(traitConfig?.traitList || []).map((trait) => {
+                      const checked = (playerTraitDrafts[player.player_id] || []).includes(trait.code);
+                      return (
+                        <label key={trait.code} style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleTrait(setPlayerTraitDrafts, player.player_id, trait.code)} />
+                          <span className="fantasy-builder__trait-chip">{trait.code}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <h3 style={{ margin: "1rem 0 0.55rem" }}>Entrenadores</h3>
+            <div style={{ display: "grid", gap: "0.65rem" }}>
+              {fantasyCoaches.map((coach) => (
+                <div key={coach.id} className="admin__list-item" style={{ padding: "0.7rem" }}>
+                  <strong>{coach.name}</strong>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.45rem" }}>
+                    {(traitConfig?.traitList || []).filter((trait) => trait.activation_type === "coach_match").map((trait) => {
+                      const checked = (staffTraitDrafts[coach.id] || []).includes(trait.code);
+                      return (
+                        <label key={trait.code} style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleTrait(setStaffTraitDrafts, coach.id, trait.code)} />
+                          <span className="fantasy-builder__trait-chip">{trait.code}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="admin__button" style={{ marginTop: "0.85rem" }} onClick={handleSaveTraits} disabled={savingTraits || !traitConfig}>
+              {savingTraits ? "Guardando rasgos..." : "Guardar rasgos"}
+            </button>
+          </section>
 
           {/* Mercado Fantasy de la temporada */}
           <section className="admin__section">

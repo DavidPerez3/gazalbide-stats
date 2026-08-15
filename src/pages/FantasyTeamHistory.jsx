@@ -2,23 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient.js";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
-
-// Entrenadores (solo para mostrar)
-const COACH_TRAITS = {
-  david: ["S", "A"],
-  gorka: ["V", "C"],
-  unai: ["J", "L"],
-};
+import { loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
 
 const COACH_LABELS = {
   david: "David",
   gorka: "Gorka",
   unai: "Unai",
 };
-
-function getCoachTraits(code) {
-  return COACH_TRAITS[code] || [];
-}
 
 export default function FantasyTeamHistory() {
   const { teamId } = useParams();
@@ -48,13 +38,21 @@ export default function FantasyTeamHistory() {
         // 0) Nombre del equipo desde BD
         const { data: teamData, error: teamError } = await supabase
           .from("fantasy_teams")
-          .select("id, name")
+          .select("id, name, season_id")
           .eq("id", teamId)
           .maybeSingle();
 
         if (!teamError && teamData && teamData.name) {
           setTeamName(teamData.name);
         }
+
+        const seasonId = teamData?.season_id || "2025-2026";
+        const [traitConfig, seasonPlayers, seasonCoaches] = await Promise.all([
+          loadFantasyTraitConfig(seasonId),
+          loadFantasyMarket({ seasonId }),
+          loadFantasyCoaches(seasonId),
+        ]);
+        const coachMap = new Map(seasonCoaches.map((coach) => [coach.code, coach]));
 
         // 1) Lineups del equipo
         const { data: lineups, error: lineupError } = await supabase
@@ -87,21 +85,11 @@ export default function FantasyTeamHistory() {
 
         const gwMap = new Map((gameweeks || []).map((g) => [g.id, g]));
 
-        // 3) Cargar nombres desde fantasy_players.json
+        // 3) Cargar nombres desde la plantilla de esa temporada.
         const playerNameMap = new Map();
-        try {
-          const resPlayers = await fetch(`${BASE}data/fantasy_players.json`);
-          if (resPlayers.ok) {
-            const fantasyPlayers = await resPlayers.json();
-            for (const fp of fantasyPlayers) {
-              const n = Number(fp.number ?? fp.dorsal);
-              if (!Number.isNaN(n) && fp.name) {
-                playerNameMap.set(n, fp.name);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("No se pudo cargar fantasy_players.json", e);
+        for (const player of seasonPlayers) {
+          const n = Number(player.number ?? player.dorsal);
+          if (!Number.isNaN(n) && player.name) playerNameMap.set(n, player.name);
         }
 
         // 4) Cargar stats por jornada (Map<number, rowStats>)
@@ -177,6 +165,7 @@ export default function FantasyTeamHistory() {
             statsMap,
             captainNumber,
             coachCode,
+            traitConfig,
           });
 
           // Construir jugadores detallados
@@ -213,6 +202,8 @@ export default function FantasyTeamHistory() {
             baseTotal: breakdown.baseTotal,
             bonusTotal: breakdown.bonusTotal,
             coachCode,
+            coachName: coachMap.get(coachCode)?.name || COACH_LABELS[coachCode] || coachCode,
+            coachTraits: traitConfig.coachTraitsByCode?.[coachCode] || [],
           });
         }
 
@@ -341,11 +332,10 @@ export default function FantasyTeamHistory() {
                           <p className="fantasy__text" style={{ marginTop: 4 }}>
                             Entrenador:{" "}
                             <strong>
-                              {COACH_LABELS[e.coachCode] || e.coachCode}
+                              {e.coachName || e.coachCode}
                             </strong>{" "}
                             <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>
-                              {getCoachTraits(e.coachCode).join(" · ") ||
-                                "sin rasgos"}
+                              {e.coachTraits?.join(" · ") || "sin rasgos"}
                             </span>
                           </p>
                         )}

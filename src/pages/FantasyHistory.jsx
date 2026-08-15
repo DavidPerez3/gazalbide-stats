@@ -4,23 +4,13 @@ import { supabase } from "../lib/supabaseClient.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
-
-// Entrenadores (solo para mostrar)
-const COACH_TRAITS = {
-  david: ["S", "A"],
-  gorka: ["V", "C"],
-  unai: ["J", "L"],
-};
+import { loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
 
 const COACH_LABELS = {
   david: "David",
   gorka: "Gorka",
   unai: "Unai",
 };
-
-function getCoachTraits(code) {
-  return COACH_TRAITS[code] || [];
-}
 
 export default function FantasyHistory() {
   const { user } = useAuth();
@@ -45,6 +35,13 @@ export default function FantasyHistory() {
       setErrorMsg(null);
 
       try {
+        const [traitConfig, seasonPlayers, seasonCoaches] = await Promise.all([
+          loadFantasyTraitConfig(CURRENT_SEASON_ID),
+          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }),
+          loadFantasyCoaches(CURRENT_SEASON_ID),
+        ]);
+        const coachMap = new Map(seasonCoaches.map((coach) => [coach.code, coach]));
+
         // 1) Buscar equipos fantasy del usuario
         const { data: teams, error: teamsError } = await supabase
           .from("fantasy_teams")
@@ -95,21 +92,11 @@ export default function FantasyHistory() {
 
         const gwMap = new Map((gameweeks || []).map((g) => [g.id, g]));
 
-        // 4) Mapa dorsal -> nombre desde fantasy_players
+        // 4) Mapa dorsal -> nombre desde la plantilla de la temporada.
         const playerNameMap = new Map();
-        try {
-          const resPlayers = await fetch(`${BASE}data/fantasy_players.json`);
-          if (resPlayers.ok) {
-            const fantasyPlayers = await resPlayers.json();
-            for (const fp of fantasyPlayers) {
-              const n = Number(fp.number ?? fp.dorsal);
-              if (!Number.isNaN(n) && fp.name) {
-                playerNameMap.set(n, fp.name);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("No se pudo cargar fantasy_players.json", e);
+        for (const player of seasonPlayers) {
+          const n = Number(player.number ?? player.dorsal);
+          if (!Number.isNaN(n) && player.name) playerNameMap.set(n, player.name);
         }
 
         // 5) Cargar stats JSON por jornada
@@ -188,6 +175,7 @@ export default function FantasyHistory() {
             statsMap,
             captainNumber,
             coachCode,
+            traitConfig,
           });
 
           // rawPlayers viene directamente de la DB: ["00","13","25","8","10"]
@@ -223,7 +211,9 @@ export default function FantasyHistory() {
             totalPoints: breakdown.totalPoints,
             baseTotal: breakdown.baseTotal,
             bonusTotal: breakdown.bonusTotal,
-            coachCode, // 👈 guardamos entrenador usado en esa jornada
+            coachCode,
+            coachName: coachMap.get(coachCode)?.name || COACH_LABELS[coachCode] || coachCode,
+            coachTraits: traitConfig.coachTraitsByCode?.[coachCode] || [],
           });
         }
 
@@ -353,12 +343,11 @@ export default function FantasyHistory() {
                           <p className="fantasy__text" style={{ marginTop: 4 }}>
                             Entrenador:{" "}
                             <strong>
-                              {COACH_LABELS[e.coachCode] || e.coachCode}
+                              {e.coachName || e.coachCode}
                             </strong>{" "}
                             <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>
                               (
-                              {getCoachTraits(e.coachCode).join(" · ") ||
-                                "sin rasgos"}
+                              {e.coachTraits?.join(" · ") || "sin rasgos"}
                               )
                             </span>
                           </p>
