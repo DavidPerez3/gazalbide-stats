@@ -1,0 +1,290 @@
+name: Patch Fantasy season traits
+
+on:
+  push:
+    branches:
+      - feat/fantasy-season-traits
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fantasy-season-traits
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply dynamic trait patch
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected 1 match in {path}, found {count}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          def regex_once(path, pattern, replacement):
+              p = Path(path)
+              text = p.read_text()
+              text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f"Expected 1 regex match in {path}, found {count}: {pattern[:120]!r}")
+              p.write_text(text)
+
+          # ------------------------------------------------------------------
+          # FantasyHome: remove hardcoded current traits and use Supabase config.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              'import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket } from "../lib/fantasyMarket.js";\n',
+              'import { fantasyNumberKey, getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";\n',
+          )
+          regex_once(
+              "src/pages/FantasyHome.jsx",
+              r'// ==== helpers de rasgos / entrenadores \(igual que en el builder\) ====.*?function getCoachTraits\(code\) \{\n  return COACH_TRAITS\[code\] \|\| \[\];\n\}\n\n',
+              '''// Fallback de etiqueta para alineaciones antiguas si el staff no estuviera cargado.\nconst COACH_LABELS = {\n  david: "David",\n  gorka: "Gorka",\n  unai: "Unai",\n};\n\n''',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '  const [seasonStatus, setSeasonStatus] = useState(null);\n',
+              '  const [seasonStatus, setSeasonStatus] = useState(null);\n  const [traitConfig, setTraitConfig] = useState(null);\n',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '''        const [marketPlayers, coaches] = await Promise.all([\n          loadFantasyMarket({\n            seasonId: CURRENT_SEASON_ID,\n            gameweekId: lineupRow?.gameweek_id ?? null,\n          }),\n          loadFantasyCoaches(CURRENT_SEASON_ID),\n        ]);\n        setFantasyPlayers(marketPlayers);\n        setFantasyCoaches(coaches);\n''',
+              '''        const [marketPlayers, coaches, seasonTraits] = await Promise.all([\n          loadFantasyMarket({\n            seasonId: CURRENT_SEASON_ID,\n            gameweekId: lineupRow?.gameweek_id ?? null,\n          }),\n          loadFantasyCoaches(CURRENT_SEASON_ID),\n          loadFantasyTraitConfig(CURRENT_SEASON_ID),\n        ]);\n        setFantasyPlayers(marketPlayers);\n        setFantasyCoaches(coaches);\n        setTraitConfig(seasonTraits);\n''',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '''        captainNumber,\n        coachCode,\n      });\n''',
+              '''        captainNumber,\n        coachCode,\n        traitConfig,\n      });\n''',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, filledSlots]);\n',
+              '  }, [lineupNumbers, statsByNumber, captainNumber, coachCode, filledSlots, traitConfig]);\n',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '        traits: getPlayerTraits(p.name),\n',
+              '        traits: traitConfig?.playerTraitsByNumber?.[fantasyNumberKey(p.number ?? p.dorsal)] || [],\n',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '  }, [playersBySlot, breakdown, captainNumber, playerStatuses]);\n',
+              '  }, [playersBySlot, breakdown, captainNumber, playerStatuses, traitConfig]);\n',
+          )
+          replace_once(
+              "src/pages/FantasyHome.jsx",
+              '{getCoachTraits(coachCode).map((t) => (',
+              '{(traitConfig?.coachTraitsByCode?.[coachCode] || []).map((t) => (',
+          )
+
+          # ------------------------------------------------------------------
+          # FantasyBuilder: dynamic chips + legend.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              'import { loadFantasyCoaches, loadFantasyMarket } from "../lib/fantasyMarket.js";\n',
+              'import { fantasyNumberKey, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";\n',
+          )
+          regex_once(
+              "src/pages/FantasyBuilder.jsx",
+              r'// ========================\n// Rasgos / atributos\n// ========================.*?// ========================\n// Barras last3 PIR\n// ========================',
+              '''// Fallback de etiqueta histórica; los rasgos reales vienen de Supabase.\nconst COACH_LABELS = {\n  david: "David",\n  gorka: "Gorka",\n  unai: "Unai",\n};\n\n// ========================\n// Barras last3 PIR\n// ========================''',
+          )
+          regex_once(
+              "src/pages/FantasyBuilder.jsx",
+              r'\n// Los 3 entrenadores permitidos\nconst COACHES = \[.*?\];\n',
+              '\n',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '  const [coaches, setCoaches] = useState([]);\n',
+              '  const [coaches, setCoaches] = useState([]);\n  const [traitConfig, setTraitConfig] = useState(null);\n',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '''        const [marketPlayers, coachOptions] = await Promise.all([\n          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID, gameweekId: gwData.id }),\n          loadFantasyCoaches(CURRENT_SEASON_ID),\n        ]);\n        setPlayers(marketPlayers);\n        setCoaches(coachOptions);\n''',
+              '''        const [marketPlayers, coachOptions, seasonTraits] = await Promise.all([\n          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID, gameweekId: gwData.id }),\n          loadFantasyCoaches(CURRENT_SEASON_ID),\n          loadFantasyTraitConfig(CURRENT_SEASON_ID),\n        ]);\n        setPlayers(marketPlayers);\n        setCoaches(coachOptions);\n        setTraitConfig(seasonTraits);\n''',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '                const traits = getCoachTraits(code);\n',
+              '                const traits = traitConfig?.coachTraitsByCode?.[code] || [];\n',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '                const traits = getPlayerTraitsForName(p.name);\n',
+              '                const traits = traitConfig?.playerTraitsByNumber?.[fantasyNumberKey(rawNumber)] || [];\n',
+          )
+          replace_once(
+              "src/pages/FantasyBuilder.jsx",
+              '''              {Object.entries(TRAIT_LABELS).map(([letter, desc]) => (\n                <span\n                  key={letter}\n                  className="fantasy-builder__legend-item"\n                >\n                  <span className="fantasy-builder__trait-chip">\n                    {letter}\n                  </span>{" "}\n                  {desc}\n                </span>\n              ))}\n''',
+              '''              {(traitConfig?.traitList || []).map((trait) => (\n                <span\n                  key={trait.code}\n                  className="fantasy-builder__legend-item"\n                >\n                  <span className="fantasy-builder__trait-chip">\n                    {trait.code}\n                  </span>{" "}\n                  {trait.label}\n                  {trait.activation_type === "lineup_count"\n                    ? ` · ${trait.required_count} jugadores · x${trait.multiplier.toFixed(1)}`\n                    : ` · entrenador · x${trait.multiplier.toFixed(1)}`}\n                </span>\n              ))}\n''',
+          )
+
+          # ------------------------------------------------------------------
+          # FantasyRanking: scoring config follows selected season.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              'import { CURRENT_SEASON_ID, SEASONS } from "../lib/seasons.js";\n',
+              'import { CURRENT_SEASON_ID, SEASONS } from "../lib/seasons.js";\nimport { loadFantasyTraitConfig } from "../lib/fantasyMarket.js";\n',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '''      try {\n        // 1) Equipos fantasy\n''',
+              '''      try {\n        const traitConfig = await loadFantasyTraitConfig(selectedSeasonId);\n\n        // 1) Equipos fantasy\n''',
+          )
+          replace_once(
+              "src/pages/FantasyRanking.jsx",
+              '''            captainNumber,\n            coachCode,\n          });\n''',
+              '''            captainNumber,\n            coachCode,\n            traitConfig,\n          });\n''',
+          )
+
+          # ------------------------------------------------------------------
+          # Personal FantasyHistory: current-season names + traits from Supabase.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              'import { CURRENT_SEASON_ID } from "../lib/seasons.js";\n',
+              'import { CURRENT_SEASON_ID } from "../lib/seasons.js";\nimport { loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";\n',
+          )
+          regex_once(
+              "src/pages/FantasyHistory.jsx",
+              r'// Entrenadores \(solo para mostrar\).*?function getCoachTraits\(code\) \{\n  return COACH_TRAITS\[code\] \|\| \[\];\n\}\n\n',
+              '''const COACH_LABELS = {\n  david: "David",\n  gorka: "Gorka",\n  unai: "Unai",\n};\n\n''',
+          )
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              '''      try {\n        // 1) Buscar equipos fantasy del usuario\n''',
+              '''      try {\n        const [traitConfig, seasonPlayers, seasonCoaches] = await Promise.all([\n          loadFantasyTraitConfig(CURRENT_SEASON_ID),\n          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }),\n          loadFantasyCoaches(CURRENT_SEASON_ID),\n        ]);\n        const coachMap = new Map(seasonCoaches.map((coach) => [coach.code, coach]));\n\n        // 1) Buscar equipos fantasy del usuario\n''',
+          )
+          regex_once(
+              "src/pages/FantasyHistory.jsx",
+              r'        // 4\) Mapa dorsal -> nombre desde fantasy_players\n        const playerNameMap = new Map\(\);.*?        // 5\) Cargar stats JSON por jornada',
+              '''        // 4) Mapa dorsal -> nombre desde la plantilla de la temporada.\n        const playerNameMap = new Map();\n        for (const player of seasonPlayers) {\n          const n = Number(player.number ?? player.dorsal);\n          if (!Number.isNaN(n) && player.name) playerNameMap.set(n, player.name);\n        }\n\n        // 5) Cargar stats JSON por jornada''',
+          )
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              '''            captainNumber,\n            coachCode,\n          });\n''',
+              '''            captainNumber,\n            coachCode,\n            traitConfig,\n          });\n''',
+          )
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              '            coachCode, // 👈 guardamos entrenador usado en esa jornada\n',
+              '''            coachCode,\n            coachName: coachMap.get(coachCode)?.name || COACH_LABELS[coachCode] || coachCode,\n            coachTraits: traitConfig.coachTraitsByCode?.[coachCode] || [],\n''',
+          )
+          replace_once(
+              "src/pages/FantasyHistory.jsx",
+              '''                              {COACH_LABELS[e.coachCode] || e.coachCode}\n                            </strong>{" "}\n                            <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>\n                              (\n                              {getCoachTraits(e.coachCode).join(" · ") ||\n                                "sin rasgos"}\n                              )\n''',
+              '''                              {e.coachName || e.coachCode}\n                            </strong>{" "}\n                            <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>\n                              (\n                              {e.coachTraits?.join(" · ") || "sin rasgos"}\n                              )\n''',
+          )
+
+          # ------------------------------------------------------------------
+          # FantasyTeamHistory: derive config from the team's own season.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              'import { computeLineupBreakdown } from "../lib/fantasyScoring.js";\n',
+              'import { computeLineupBreakdown } from "../lib/fantasyScoring.js";\nimport { loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";\n',
+          )
+          regex_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              r'// Entrenadores \(solo para mostrar\).*?function getCoachTraits\(code\) \{\n  return COACH_TRAITS\[code\] \|\| \[\];\n\}\n\n',
+              '''const COACH_LABELS = {\n  david: "David",\n  gorka: "Gorka",\n  unai: "Unai",\n};\n\n''',
+          )
+          replace_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              '.select("id, name")\n',
+              '.select("id, name, season_id")\n',
+          )
+          replace_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              '''        if (!teamError && teamData && teamData.name) {\n          setTeamName(teamData.name);\n        }\n\n        // 1) Lineups del equipo\n''',
+              '''        if (!teamError && teamData && teamData.name) {\n          setTeamName(teamData.name);\n        }\n\n        const seasonId = teamData?.season_id || "2025-2026";\n        const [traitConfig, seasonPlayers, seasonCoaches] = await Promise.all([\n          loadFantasyTraitConfig(seasonId),\n          loadFantasyMarket({ seasonId }),\n          loadFantasyCoaches(seasonId),\n        ]);\n        const coachMap = new Map(seasonCoaches.map((coach) => [coach.code, coach]));\n\n        // 1) Lineups del equipo\n''',
+          )
+          regex_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              r'        // 3\) Cargar nombres desde fantasy_players.json\n        const playerNameMap = new Map\(\);.*?        // 4\) Cargar stats por jornada',
+              '''        // 3) Cargar nombres desde la plantilla de esa temporada.\n        const playerNameMap = new Map();\n        for (const player of seasonPlayers) {\n          const n = Number(player.number ?? player.dorsal);\n          if (!Number.isNaN(n) && player.name) playerNameMap.set(n, player.name);\n        }\n\n        // 4) Cargar stats por jornada''',
+          )
+          replace_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              '''            captainNumber,\n            coachCode,\n          });\n''',
+              '''            captainNumber,\n            coachCode,\n            traitConfig,\n          });\n''',
+          )
+          replace_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              '''            coachCode,\n          });\n''',
+              '''            coachCode,\n            coachName: coachMap.get(coachCode)?.name || COACH_LABELS[coachCode] || coachCode,\n            coachTraits: traitConfig.coachTraitsByCode?.[coachCode] || [],\n          });\n''',
+          )
+          replace_once(
+              "src/pages/FantasyTeamHistory.jsx",
+              '''                              {COACH_LABELS[e.coachCode] || e.coachCode}\n                            </strong>{" "}\n                            <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>\n                              (\n                              {getCoachTraits(e.coachCode).join(" · ") ||\n                                "sin rasgos"}\n                              )\n''',
+              '''                              {e.coachName || e.coachCode}\n                            </strong>{" "}\n                            <span style={{ opacity: 0.8, fontSize: "0.85rem" }}>\n                              (\n                              {e.coachTraits?.join(" · ") || "sin rasgos"}\n                              )\n''',
+          )
+
+          # ------------------------------------------------------------------
+          # Admin: mobile checkbox editor, atomically persisted by RPC.
+          # ------------------------------------------------------------------
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              'import { getFantasySeasonStatus, loadFantasyMarket } from "../lib/fantasyMarket.js";\n',
+              'import { fantasyNumberKey, getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments } from "../lib/fantasyMarket.js";\n',
+          )
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '  const [savingPrices, setSavingPrices] = useState(false);\n',
+              '''  const [savingPrices, setSavingPrices] = useState(false);\n  const [fantasyCoaches, setFantasyCoaches] = useState([]);\n  const [traitConfig, setTraitConfig] = useState(null);\n  const [playerTraitDrafts, setPlayerTraitDrafts] = useState({});\n  const [staffTraitDrafts, setStaffTraitDrafts] = useState({});\n  const [savingTraits, setSavingTraits] = useState(false);\n''',
+          )
+          replace_once(
+              "src/pages/AdminPage.jsx",
+              '''        const [status, players] = await Promise.all([\n          getFantasySeasonStatus(CURRENT_SEASON_ID),\n          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }),\n        ]);\n        setMarketStatus(status);\n        setMarketPlayers(players);\n        setPriceDrafts(\n          Object.fromEntries(players.map((player) => [player.player_id, player.price ?? ""]))\n        );\n''',
+              '''        const [status, players, coaches, seasonTraits] = await Promise.all([\n          getFantasySeasonStatus(CURRENT_SEASON_ID),\n          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID }),\n          loadFantasyCoaches(CURRENT_SEASON_ID),\n          loadFantasyTraitConfig(CURRENT_SEASON_ID),\n        ]);\n        setMarketStatus(status);\n        setMarketPlayers(players);\n        setFantasyCoaches(coaches);\n        setTraitConfig(seasonTraits);\n        setPriceDrafts(\n          Object.fromEntries(players.map((player) => [player.player_id, player.price ?? ""]))\n        );\n        setPlayerTraitDrafts(seasonTraits.playerTraitsByPlayerId || {});\n        setStaffTraitDrafts(seasonTraits.staffTraitsById || {});\n''',
+          )
+          marker = '  async function handleSaveMarketPrices() {\n'
+          p = Path("src/pages/AdminPage.jsx")
+          text = p.read_text()
+          if marker not in text:
+              raise SystemExit("Admin save-market marker not found")
+          trait_handlers = '''  function toggleTrait(setter, entityId, traitCode) {\n    setter((prev) => {\n      const current = prev[entityId] || [];\n      const next = current.includes(traitCode)\n        ? current.filter((code) => code !== traitCode)\n        : [...current, traitCode];\n      return { ...prev, [entityId]: next };\n    });\n  }\n\n  async function handleSaveTraits() {\n    setErrorMsg(null);\n    setInfoMsg(null);\n    setSavingTraits(true);\n    try {\n      await replaceFantasyTraitAssignments({\n        seasonId: CURRENT_SEASON_ID,\n        playerTraitsByPlayerId: playerTraitDrafts,\n        staffTraitsById: staffTraitDrafts,\n      });\n      const refreshed = await loadFantasyTraitConfig(CURRENT_SEASON_ID);\n      setTraitConfig(refreshed);\n      setPlayerTraitDrafts(refreshed.playerTraitsByPlayerId || {});\n      setStaffTraitDrafts(refreshed.staffTraitsById || {});\n      setInfoMsg("Rasgos Fantasy guardados correctamente.");\n    } catch (error) {\n      console.error("Error guardando rasgos Fantasy:", error);\n      setErrorMsg("No se han podido guardar los rasgos: " + (error.message || "error desconocido"));\n    } finally {\n      setSavingTraits(false);\n    }\n  }\n\n'''
+          p.write_text(text.replace(marker, trait_handlers + marker, 1))
+
+          p = Path("src/pages/AdminPage.jsx")
+          text = p.read_text()
+          render_marker = '          {/* Mercado Fantasy de la temporada */}\n'
+          if render_marker not in text:
+              raise SystemExit("Admin market render marker not found")
+          trait_section = '''          {/* Rasgos Fantasy de la temporada */}\n          <section className="admin__section">\n            <h2 className="admin__section-title">Rasgos Fantasy {CURRENT_SEASON_ID}</h2>\n            <p className="admin__text">\n              Se guardan por identidad y temporada. Julen Power se activa cuando dos jugadores con JP coinciden en el quinteto.\n            </p>\n\n            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.9rem" }}>\n              {(traitConfig?.traitList || []).map((trait) => (\n                <span key={trait.code} className="fantasy-builder__trait-chip">\n                  {trait.code} · {trait.label} · x{trait.multiplier.toFixed(1)}\n                </span>\n              ))}\n            </div>\n\n            <h3 style={{ marginBottom: "0.55rem" }}>Jugadores</h3>\n            <div style={{ display: "grid", gap: "0.65rem" }}>\n              {marketPlayers.map((player) => (\n                <div key={player.player_id} className="admin__list-item" style={{ padding: "0.7rem" }}>\n                  <strong>#{Number(player.number) === 0 ? "00" : player.number} · {player.name}</strong>\n                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.45rem" }}>\n                    {(traitConfig?.traitList || []).map((trait) => {\n                      const checked = (playerTraitDrafts[player.player_id] || []).includes(trait.code);\n                      return (\n                        <label key={trait.code} style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>\n                          <input\n                            type="checkbox"\n                            checked={checked}\n                            onChange={() => toggleTrait(setPlayerTraitDrafts, player.player_id, trait.code)}\n                          />\n                          <span className="fantasy-builder__trait-chip">{trait.code}</span>\n                        </label>\n                      );\n                    })}\n                  </div>\n                </div>\n              ))}\n            </div>\n\n            <h3 style={{ margin: "1rem 0 0.55rem" }}>Entrenadores</h3>\n            <div style={{ display: "grid", gap: "0.65rem" }}>\n              {fantasyCoaches.map((coach) => (\n                <div key={coach.id} className="admin__list-item" style={{ padding: "0.7rem" }}>\n                  <strong>{coach.name}</strong>\n                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.45rem" }}>\n                    {(traitConfig?.traitList || [])\n                      .filter((trait) => trait.activation_type === "coach_match")\n                      .map((trait) => {\n                        const checked = (staffTraitDrafts[coach.id] || []).includes(trait.code);\n                        return (\n                          <label key={trait.code} style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>\n                            <input\n                              type="checkbox"\n                              checked={checked}\n                              onChange={() => toggleTrait(setStaffTraitDrafts, coach.id, trait.code)}\n                            />\n                            <span className="fantasy-builder__trait-chip">{trait.code}</span>\n                          </label>\n                        );\n                      })}\n                  </div>\n                </div>\n              ))}\n            </div>\n\n            <button\n              type="button"\n              className="admin__button"\n              style={{ marginTop: "0.85rem" }}\n              onClick={handleSaveTraits}\n              disabled={savingTraits || !traitConfig}\n            >\n              {savingTraits ? "Guardando rasgos..." : "Guardar rasgos"}\n            </button>\n          </section>\n\n'''
+          p.write_text(text.replace(render_marker, trait_section + render_marker, 1))
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Remove one-off workflow
+        run: rm .github/workflows/patch-fantasy-season-traits.yml
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/fantasyScoring.js src/lib/fantasyMarket.js src/pages/FantasyHome.jsx src/pages/FantasyBuilder.jsx src/pages/FantasyRanking.jsx src/pages/FantasyHistory.jsx src/pages/FantasyTeamHistory.jsx src/pages/AdminPage.jsx supabase/migrations/20260815165000_fantasy_season_traits.sql .github/workflows/patch-fantasy-season-traits.yml
+          git commit -m "feat(fantasy): make traits season-specific and editable"
+          git push origin HEAD:feat/fantasy-season-traits
