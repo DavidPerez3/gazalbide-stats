@@ -44,7 +44,9 @@ alter table public.fantasy_teams add constraint fantasy_teams_season_id_fkey
   foreign key (season_id) references public.seasons(id) on update cascade on delete restrict;
 
 -- The old schema allowed exactly one Fantasy team per user for all time.
--- Replace that with one team per user and season.
+-- Production used unique_user_team; a fresh baseline may use fantasy_teams_user_id_key.
+-- Drop either before replacing it with one team per user and season.
+alter table public.fantasy_teams drop constraint if exists unique_user_team;
 alter table public.fantasy_teams drop constraint if exists fantasy_teams_user_id_key;
 create unique index if not exists fantasy_teams_user_season_uidx
   on public.fantasy_teams(user_id, season_id);
