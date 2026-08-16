@@ -25,40 +25,90 @@ async function uniqueCode(name) {
 }
 
 export async function getAdminSeasonStaff(seasonId) {
-  const { data, error } = await supabase
+  // No usamos un embed PostgREST season_staff -> staff_members. En producción
+  // existe una relación que PostgREST puede resolver como ambigua según su
+  // schema cache; dos consultas explícitas son más robustas y dejan claro qué
+  // FK estamos usando.
+  const { data: memberships, error: membershipError } = await supabase
     .from("season_staff")
-    .select("season_id,role,active,fantasy_enabled,sort_order,staff:staff_members(id,code,name,photo_path)")
+    .select("season_id,staff_id,role,active,fantasy_enabled,sort_order")
     .eq("season_id", seasonId)
     .order("active", { ascending: false })
     .order("sort_order", { ascending: true });
-  if (error) throw error;
+  if (membershipError) throw membershipError;
+  if (!memberships?.length) return [];
 
-  return (data || []).map((row) => ({
-    id: row.staff?.id,
-    code: row.staff?.code || "",
-    name: row.staff?.name || "",
-    photo_path: row.staff?.photo_path || null,
-    photo_url: resolveStaffPhotoSrc(row.staff),
-    role: row.role || "coach",
-    active: row.active !== false,
-    fantasy_enabled: row.fantasy_enabled !== false,
-    sort_order: row.sort_order ?? 0,
-  }));
+  const staffIds = [...new Set(memberships.map((row) => row.staff_id).filter(Boolean))];
+  const { data: staffRows, error: staffError } = await supabase
+    .from("staff_members")
+    .select("id,code,name,photo_path")
+    .in("id", staffIds);
+  if (staffError) throw staffError;
+
+  const staffMap = new Map((staffRows || []).map((row) => [String(row.id), row]));
+  return memberships
+    .map((row) => {
+      const member = staffMap.get(String(row.staff_id));
+      if (!member) return null;
+      return {
+        id: member.id,
+        code: member.code || "",
+        name: member.name || "",
+        photo_path: member.photo_path || null,
+        photo_url: resolveStaffPhotoSrc(member),
+        role: row.role || "coach",
+        active: row.active !== false,
+        fantasy_enabled: row.fantasy_enabled !== false,
+        sort_order: row.sort_order ?? 0,
+      };
+    })
+    .filter(Boolean);
 }
 
 export async function getReusableStaff(seasonId) {
-  const [{ data: allStaff, error: staffError }, { data: memberships, error: membershipError }] =
+  // "Reutilizar histórico" debe mostrar únicamente personas que hayan formado
+  // parte de otra temporada y que todavía no estén dadas de alta en la actual.
+  const [{ data: historicalMemberships, error: historicalError }, { data: currentMemberships, error: currentError }] =
     await Promise.all([
-      supabase.from("staff_members").select("id,code,name,photo_path").order("name"),
-      supabase.from("season_staff").select("staff_id").eq("season_id", seasonId),
+      supabase
+        .from("season_staff")
+        .select("season_id,staff_id")
+        .neq("season_id", seasonId),
+      supabase
+        .from("season_staff")
+        .select("staff_id")
+        .eq("season_id", seasonId),
     ]);
-  if (staffError) throw staffError;
-  if (membershipError) throw membershipError;
+  if (historicalError) throw historicalError;
+  if (currentError) throw currentError;
 
-  const inSeason = new Set((memberships || []).map((row) => String(row.staff_id)));
-  return (allStaff || [])
-    .filter((row) => !inSeason.has(String(row.id)))
-    .map((row) => ({ ...row, photo_url: resolveStaffPhotoSrc(row) }));
+  const currentIds = new Set((currentMemberships || []).map((row) => String(row.staff_id)));
+  const historicalByStaff = new Map();
+  for (const row of historicalMemberships || []) {
+    if (!row.staff_id || currentIds.has(String(row.staff_id))) continue;
+    const entry = historicalByStaff.get(String(row.staff_id)) || {
+      staffId: row.staff_id,
+      seasons: [],
+    };
+    if (row.season_id && !entry.seasons.includes(row.season_id)) entry.seasons.push(row.season_id);
+    historicalByStaff.set(String(row.staff_id), entry);
+  }
+
+  const staffIds = Array.from(historicalByStaff.values()).map((row) => row.staffId);
+  if (!staffIds.length) return [];
+
+  const { data: allStaff, error: staffError } = await supabase
+    .from("staff_members")
+    .select("id,code,name,photo_path")
+    .in("id", staffIds)
+    .order("name");
+  if (staffError) throw staffError;
+
+  return (allStaff || []).map((row) => ({
+    ...row,
+    seasons: historicalByStaff.get(String(row.id))?.seasons?.sort() || [],
+    photo_url: resolveStaffPhotoSrc(row),
+  }));
 }
 
 async function savePhoto(staffId, file, previousPhotoPath = null) {
