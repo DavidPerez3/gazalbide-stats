@@ -5,6 +5,7 @@ import {
   loadLiveCenterSnapshot,
   subscribeLiveCenter,
 } from "../lib/liveCenter.js";
+import "../live-center.css";
 
 function periodLabel(period) {
   const value = Number(period || 1);
