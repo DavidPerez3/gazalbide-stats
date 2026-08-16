@@ -974,8 +974,8 @@ export default function FantasyHome() {
                     </div>
                   </div>
 
-                  {/* Tarjeta de entrenador */}
-                  {coachCode && (
+                  {/* Selector/tarjeta de entrenador: siempre visible, aunque el mercado esté cerrado. */}
+                  {!loadingPlayers && (
                     <div
                       className="fantasy__coach-card"
                       style={{ marginTop: "0.75rem", cursor: canEditLineup ? "pointer" : "default" }}
@@ -989,18 +989,18 @@ export default function FantasyHome() {
                           {selectedCoach?.image ? (
                             <img
                               src={selectedCoach.image}
-                              alt={selectedCoach.name || coachCode}
+                              alt={selectedCoach.name || "Entrenador"}
                               className="fantasy-builder__coach-photo"
                             />
                           ) : (
                             <span style={{ fontWeight: 800, fontSize: "1.25rem" }}>
-                              {(selectedCoach?.name || coachCode).slice(0, 1).toUpperCase()}
+                              {(selectedCoach?.name || (coachCode ? COACH_LABELS[coachCode] || coachCode : "Sin entrenador")).slice(0, 1).toUpperCase()}
                             </span>
                           )}
                         </div>
                         <div className="fantasy-builder__coach-info">
                           <span className="fantasy-builder__coach-name">
-                            {selectedCoach?.name || COACH_LABELS[coachCode] || coachCode}
+                            {selectedCoach?.name || (coachCode ? COACH_LABELS[coachCode] || coachCode : "Sin entrenador")}
                           </span>
                           <div className="fantasy-builder__traits">
                             {(traitConfig?.coachTraitsByCode?.[coachCode] || []).map((t) => (
@@ -1012,6 +1012,20 @@ export default function FantasyHome() {
                               </span>
                             ))}
                           </div>
+                          <span className="fantasy__text" style={{ marginTop: 4, fontSize: "0.78rem" }}>
+                            {canEditLineup
+                              ? selectedCoach
+                                ? "Toca para cambiar de entrenador."
+                                : "Toca para elegir entrenador."
+                              : selectedCoach
+                                ? "Podrás cambiarlo cuando abra el mercado."
+                                : "Podrás elegirlo cuando abra el mercado."}
+                          </span>
+                          {!canEditLineup && !selectedCoach && fantasyCoaches.length > 0 && (
+                            <span className="fantasy__text" style={{ marginTop: 3, fontSize: "0.72rem" }}>
+                              Disponibles: {fantasyCoaches.map((coach) => coach.name).join(" · ")}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
