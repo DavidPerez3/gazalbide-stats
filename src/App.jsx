@@ -3,7 +3,9 @@ import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
 import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
 import FantasyLeGazalOffer from "./components/FantasyLeGazalOffer.jsx";
+import ActiveLiveShortcut from "./components/ActiveLiveShortcut.jsx";
 import "./mobile-polish.css";
+import "./active-live.css";
 
 export default function App() {
   const { pathname } = useLocation();
@@ -36,6 +38,7 @@ export default function App() {
             <Outlet />
           </div>
         </main>
+        <ActiveLiveShortcut />
       </div>
     );
   }
@@ -54,6 +57,7 @@ export default function App() {
       <footer className="footer">
         <div className="container">© {new Date().getFullYear()} Gazalbide CB</div>
       </footer>
+      <ActiveLiveShortcut />
     </div>
   );
 }
