@@ -114,7 +114,39 @@
 
 .admin-players__photo-field input[type="file"] {
   width: 100%;
-  font-size: 0.82rem;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 4px;
+  border: 1px solid rgba(212,175,55,.2);
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.admin-players__photo-field input[type="file"]::file-selector-button {
+  min-height: 34px;
+  margin-right: 9px;
+  padding: 6px 11px;
+  border: 1px solid rgba(212,175,55,.6);
+  border-radius: 8px;
+  background: rgba(212,175,55,.11);
+  color: var(--color-gold);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-players__photo-field input[type="file"]::-webkit-file-upload-button {
+  min-height: 34px;
+  margin-right: 9px;
+  padding: 6px 11px;
+  border: 1px solid rgba(212,175,55,.6);
+  border-radius: 8px;
+  background: rgba(212,175,55,.11);
+  color: var(--color-gold);
+  font: inherit;
+  font-weight: 800;
 }
 
 .admin-players__hint {
@@ -228,6 +260,14 @@
   .admin-players__photo-field,
   .admin-player-edit__photo {
     grid-column: auto;
+  }
+
+  .admin-players__photo-field {
+    align-items: flex-start;
+  }
+
+  .admin-players__photo-field input[type="file"] {
+    display: block;
   }
 
   .admin-player-row {
