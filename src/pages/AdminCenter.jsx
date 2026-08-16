@@ -39,7 +39,15 @@ const modules = [
     icon: "⚡",
     title: "Live Stats",
     description: "Preparar convocatoria y registrar el partido en horizontal con almacenamiento local.",
-    status: "Prueba local",
+    status: "Operativo",
+    available: true,
+  },
+  {
+    id: "exports",
+    icon: "📥",
+    title: "Exportaciones",
+    description: "Descargar Excel de partidos, temporadas, histórico y quintetos/+/-.",
+    status: "Operativo",
     available: true,
   },
 ];
@@ -54,6 +62,10 @@ export default function AdminCenter() {
     }
     if (module.id === "live") {
       navigate("/admin/live/setup");
+      return;
+    }
+    if (module.id === "exports") {
+      navigate("/admin/exportaciones");
       return;
     }
     if (module.id === "fantasy") {
@@ -79,7 +91,7 @@ export default function AdminCenter() {
           <div className="admin-center__section-heading">
             <div>
               <h2 id="admin-modules-title">Módulos</h2>
-              <p>Plantilla, Fantasy y Live Stats ya tienen módulos propios dentro del rol admin.</p>
+              <p>Plantilla, Fantasy, Live Stats y exportaciones ya tienen módulos propios dentro del rol admin.</p>
             </div>
           </div>
 
@@ -101,7 +113,7 @@ export default function AdminCenter() {
 
                 {module.available ? (
                   <button type="button" className="admin-module__action" onClick={() => openModule(module)}>
-                    Abrir {module.id === "live" ? "Live Stats" : "gestión"} <span aria-hidden="true">→</span>
+                    Abrir {module.id === "live" ? "Live Stats" : module.id === "exports" ? "exportaciones" : "gestión"} <span aria-hidden="true">→</span>
                   </button>
                 ) : (
                   <span className="admin-module__pending">Aún no disponible</span>
