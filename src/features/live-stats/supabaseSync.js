@@ -8,6 +8,8 @@ let syncStatus = {
   error: null,
 };
 const syncListeners = new Set();
+const fantasyPrepByMatch = new Map();
+const FANTASY_PREP_RETRY_MS = 30_000;
 
 function publishSyncStatus(patch) {
   syncStatus = { ...syncStatus, ...patch };
@@ -99,6 +101,47 @@ async function currentUserId() {
   return data?.session?.user?.id || null;
 }
 
+async function maybePrepareFantasyLive(setup) {
+  if (!setup?.matchId || isOffline()) return null;
+
+  const current = fantasyPrepByMatch.get(setup.matchId);
+  const now = Date.now();
+  if (current?.ready) return current.result || null;
+  if (current?.lastAttempt && now - current.lastAttempt < FANTASY_PREP_RETRY_MS) {
+    return current.result || null;
+  }
+
+  fantasyPrepByMatch.set(setup.matchId, {
+    ...(current || {}),
+    lastAttempt: now,
+  });
+
+  try {
+    const { data, error } = await supabase.rpc("prepare_live_fantasy_gameweek", {
+      p_match_id: setup.matchId,
+    });
+    if (error) throw error;
+
+    const ready = Boolean(data?.linked && data?.finalized);
+    fantasyPrepByMatch.set(setup.matchId, {
+      ready,
+      result: data || null,
+      lastAttempt: now,
+    });
+    return data || null;
+  } catch (error) {
+    // Fantasy Live is auxiliary to the scorer. A configuration problem must not
+    // prevent the match itself from continuing local-first.
+    console.warn("No se pudo preparar Fantasy Live; Live Stats continúa:", error);
+    fantasyPrepByMatch.set(setup.matchId, {
+      ready: false,
+      result: null,
+      lastAttempt: now,
+    });
+    return null;
+  }
+}
+
 async function ensureRemoteMatch(setup) {
   if (!setup?.matchId) throw new Error("La sesión Live no tiene matchId persistente.");
 
@@ -123,6 +166,8 @@ async function ensureRemoteMatch(setup) {
       .upsert(rows, { onConflict: "match_id,player_id" });
     if (rosterError) throw rosterError;
   }
+
+  await maybePrepareFantasyLive(setup);
 }
 
 export async function ensureRemoteLiveSession(setup) {

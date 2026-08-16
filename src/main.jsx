@@ -5,6 +5,7 @@ import { createHashRouter, Navigate, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
 import Match from "./pages/Match.jsx";
+import LiveCenterPage from "./pages/LiveCenterPage.jsx";
 import Players from "./pages/Players.jsx";
 import PlayerProfilePage from "./pages/PlayerProfilePage.jsx";
 import Ranking from "./pages/Ranking.jsx";
@@ -44,6 +45,7 @@ const router = createHashRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "partido/:id", element: <Match /> },
+      { path: "live/:matchId", element: <LiveCenterPage /> },
       { path: "jugadores", element: <Players /> },
       { path: "jugador/:name", element: <PlayerProfilePage /> },
       { path: "ranking", element: <Ranking /> },
@@ -148,9 +150,6 @@ const router = createHashRouter([
   },
 ]);
 
-// Android can interpret capture="environment" as "camera only". In the
-// player admin we want the regular system picker so the user can choose
-// gallery/photos or camera. Strip the hint just before the picker opens.
 function allowGalleryForAdminPlayerPhotos(event) {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;

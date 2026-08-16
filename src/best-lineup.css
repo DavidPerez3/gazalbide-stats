@@ -1,0 +1,51 @@
+.best-lineup {
+  display: grid;
+  gap: 10px;
+  border-color: rgba(250, 204, 21, 0.42);
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.10), rgba(18, 18, 18, 0.98));
+}
+
+.best-lineup__eyebrow {
+  color: var(--color-gold);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.best-lineup__names {
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.best-lineup__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+  color: #d1d5db;
+}
+
+.best-lineup__metrics strong {
+  color: var(--color-gold);
+  font-size: 1.8rem;
+}
+
+.best-lineup__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: #9ca3af;
+  font-size: 0.78rem;
+}
+
+.best-lineup__sample-warning {
+  color: #fbbf24;
+}
+
+.best-lineup--compact {
+  padding: 12px;
+}
+
+.best-lineup--compact .best-lineup__metrics strong {
+  font-size: 1.4rem;
+}
