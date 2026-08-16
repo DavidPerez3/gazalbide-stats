@@ -151,9 +151,6 @@ function normaliseEventsForSave(events, identity) {
           client_sequence: nextClientSequence++,
         };
 
-    // Existing callers keep the same event objects in React state. Mutating the
-    // object here keeps that in-memory state aligned with the canonical local
-    // copy without forcing every event producer to duplicate identity logic.
     Object.assign(event, nextEvent);
     return event;
   });
@@ -168,13 +165,36 @@ function normaliseEventsForSave(events, identity) {
 }
 
 function queuePendingEvents(setup, events, gameState = null) {
-  if (!setup) return;
+  if (!setup) return Promise.resolve({ ok: false, skipped: true });
   const version = eventSyncVersion(events);
   markSyncPending();
 
-  void queueLiveSessionSync({ setup, events, gameState }).then((result) => {
+  return queueLiveSessionSync({ setup, events, gameState }).then((result) => {
     if (result?.ok) clearSyncPendingIfCurrent(version);
+    return result;
   });
+}
+
+function runtimeToGameState(setup, runtime) {
+  if (!setup || !runtime) return null;
+  const players = Object.fromEntries(
+    (setup.roster || []).map((player) => [
+      String(player.id),
+      {
+        playedMs: Math.max(
+          0,
+          Number(runtime.playedMs?.[String(player.id)] ?? runtime.playedMs?.[player.id] ?? 0)
+        ),
+      },
+    ])
+  );
+
+  return {
+    period: Number(runtime.period || 1),
+    clockMs: Math.max(0, Number(runtime.clockMs || 0)),
+    clockRunning: Boolean(runtime.clockRunning),
+    players,
+  };
 }
 
 export function saveLiveSetup(setup) {
@@ -188,8 +208,7 @@ export function saveLiveSetup(setup) {
   localStorage.removeItem(SYNC_PENDING_KEY);
   persistIdentity({ matchId, clientId, nextClientSequence: 1 });
 
-  // Fire-and-forget: entering Live Stats must never depend on the network.
-  queuePendingEvents(enrichedSetup, []);
+  void queuePendingEvents(enrichedSetup, []);
   return enrichedSetup;
 }
 
@@ -198,8 +217,6 @@ export function restoreLiveSessionFromRemote(snapshot) {
     throw new Error("La sesión remota no contiene un matchId válido.");
   }
 
-  // A recovered match resumes the same logical client stream. This keeps
-  // client_sequence monotonic even when recovery happens on another device.
   const clientId = snapshot.resumeClientId || getOrCreateClientId();
   const setup = {
     ...snapshot.setup,
@@ -271,7 +288,7 @@ export function saveLiveEvents(events) {
   const normalised = normaliseEventsForSave(withVoids, identity);
 
   localStorage.setItem(EVENTS_KEY, JSON.stringify(normalised));
-  queuePendingEvents(setup, normalised);
+  void queuePendingEvents(setup, normalised);
   return normalised;
 }
 
@@ -318,7 +335,7 @@ export function saveLiveRuntime(state) {
   lastRemoteRuntimeSyncAt = now;
   if (hasSyncPending()) {
     const pendingEvents = readJson(EVENTS_KEY, []);
-    queuePendingEvents(setup, pendingEvents, state);
+    void queuePendingEvents(setup, pendingEvents, state);
   } else {
     void queueLiveStateSync({ setup, gameState: state });
   }
@@ -327,6 +344,19 @@ export function saveLiveRuntime(state) {
 export function loadLiveRuntime() {
   const value = readJson(RUNTIME_KEY, null);
   return value && typeof value === "object" ? value : null;
+}
+
+export function retryPendingLiveSync() {
+  if (!hasSyncPending()) return Promise.resolve({ ok: true, skipped: true });
+
+  const setup = loadLiveSetup();
+  if (!setup) return Promise.resolve({ ok: false, skipped: true });
+
+  const events = readJson(EVENTS_KEY, []);
+  const runtime = loadLiveRuntime();
+  const gameState = runtimeToGameState(setup, runtime);
+  lastRemoteRuntimeSyncAt = Date.now();
+  return queuePendingEvents(setup, events, gameState);
 }
 
 export function clearLiveSession() {
