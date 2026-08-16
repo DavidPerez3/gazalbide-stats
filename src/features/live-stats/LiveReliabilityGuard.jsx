@@ -7,16 +7,27 @@ import {
 import {
   claimLiveControl,
   clearLocalLiveControl,
-  getLivePhysicalDeviceId,
   heartbeatLiveControl,
 } from "./liveControlClient.js";
 import "./liveReliability.css";
 
 const SYNC_PENDING_KEY = "gazalbide.live.sync-pending.v1";
+const SETUP_KEY = "gazalbide.live.setup.v1";
 
 function hasPendingLocalSync() {
   try {
     return localStorage.getItem(SYNC_PENDING_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function localSessionExists(matchId) {
+  try {
+    const raw = localStorage.getItem(SETUP_KEY);
+    if (!raw) return false;
+    const setup = JSON.parse(raw);
+    return setup?.matchId === matchId;
   } catch {
     return false;
   }
@@ -46,7 +57,6 @@ function syncCopy(status, pending, online) {
 
 export default function LiveReliabilityGuard({ children }) {
   const setup = useMemo(() => loadLiveSetup(), []);
-  const deviceId = useMemo(() => getLivePhysicalDeviceId(), []);
   const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine !== false);
   const [syncStatus, setSyncStatus] = useState(() => getLiveSyncStatus());
   const [pending, setPending] = useState(() => hasPendingLocalSync());
@@ -59,7 +69,7 @@ export default function LiveReliabilityGuard({ children }) {
   const hasControl = control.state === "owned";
 
   const claim = useCallback(async (force = false) => {
-    if (!setup?.matchId) return;
+    if (!setup?.matchId || !localSessionExists(setup.matchId)) return;
     setTakingControl(true);
     setControl((current) => ({ ...current, state: force ? "taking" : "loading", error: null }));
     try {
@@ -115,13 +125,14 @@ export default function LiveReliabilityGuard({ children }) {
 
     let cancelled = false;
     const beat = async () => {
+      if (!localSessionExists(setup.matchId)) return;
       try {
         const result = await heartbeatLiveControl(setup);
         if (cancelled) return;
         if (!result?.granted) {
           clearLocalLiveControl(setup.matchId);
           setControl({ state: "locked", holder: result || null, error: null });
-          if (hadControlRef.current) window.location.reload();
+          if (hadControlRef.current && localSessionExists(setup.matchId)) window.location.reload();
         } else {
           setControl((current) => ({ ...current, state: "owned", holder: { ...current.holder, ...result } }));
         }
@@ -172,6 +183,7 @@ export default function LiveReliabilityGuard({ children }) {
   useEffect(() => {
     if (!setup?.matchId) return undefined;
     const warnOnLeave = (event) => {
+      if (!localSessionExists(setup.matchId)) return;
       event.preventDefault();
       event.returnValue = "";
     };
