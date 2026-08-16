@@ -17,6 +17,7 @@ import FantasyHome from "./pages/FantasyHome.jsx";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
 import AdminPlayers from "./pages/AdminPlayers.jsx";
+import ExportCenterPage from "./pages/ExportCenterPage.jsx";
 import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
 import LiveStatsWithStaffPage from "./pages/LiveStatsWithStaffPage.jsx";
 import LiveStatsReviewPage from "./pages/LiveStatsReviewPage.jsx";
@@ -126,6 +127,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute adminOnly={true}>
             <AdminPlayers />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin/exportaciones",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <ExportCenterPage />
           </PrivateRoute>
         ),
       },
