@@ -1,0 +1,61 @@
+.active-live-shortcut {
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: min(92vw, 520px);
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgba(232, 196, 90, 0.45);
+  border-radius: 16px;
+  background: rgba(13, 15, 20, 0.96);
+  color: inherit;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.42);
+  text-align: left;
+  backdrop-filter: blur(12px);
+}
+
+.active-live-shortcut > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+
+.active-live-shortcut strong,
+.active-live-shortcut small {
+  display: block;
+}
+
+.active-live-shortcut strong {
+  font-size: 0.82rem;
+  color: var(--color-gold, #e8c45a);
+}
+
+.active-live-shortcut small {
+  margin-top: 0.14rem;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.7rem;
+}
+
+.active-live-shortcut b {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.active-live-shortcut__pulse {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #ff5e57;
+  box-shadow: 0 0 0 0 rgba(255, 94, 87, 0.65);
+  animation: gazal-live-pulse 1.7s infinite;
+}
+
+@keyframes gazal-live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 94, 87, 0.62); }
+  70% { box-shadow: 0 0 0 9px rgba(255, 94, 87, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 94, 87, 0); }
+}

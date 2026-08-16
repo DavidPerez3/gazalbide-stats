@@ -3,11 +3,14 @@ import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
 import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
 import FantasyLeGazalOffer from "./components/FantasyLeGazalOffer.jsx";
+import ActiveLiveShortcut from "./components/ActiveLiveShortcut.jsx";
 import "./mobile-polish.css";
+import "./active-live.css";
 
 export default function App() {
   const { pathname } = useLocation();
   const isLiveScorer = pathname === "/admin/live";
+  const isLiveFlow = pathname.startsWith("/admin/live");
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isFantasy = pathname.startsWith("/fantasy");
   const isFantasyHome = pathname === "/fantasy";
@@ -36,6 +39,7 @@ export default function App() {
             <Outlet />
           </div>
         </main>
+        {!isLiveFlow ? <ActiveLiveShortcut /> : null}
       </div>
     );
   }
@@ -54,6 +58,7 @@ export default function App() {
       <footer className="footer">
         <div className="container">© {new Date().getFullYear()} Gazalbide CB</div>
       </footer>
+      {!isLiveFlow ? <ActiveLiveShortcut /> : null}
     </div>
   );
 }

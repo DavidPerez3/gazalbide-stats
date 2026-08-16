@@ -1,0 +1,124 @@
+.live-reliability-shell {
+  min-height: 100dvh;
+}
+
+.live-reliability-bar {
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(10, 12, 16, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(10px);
+}
+
+.live-sync-state,
+.live-control-state {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 0.45rem 0.6rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.live-sync-state strong,
+.live-control-state strong {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.1;
+}
+
+.live-sync-state span,
+.live-control-state span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  color: var(--color-text-dim, #aab0bb);
+}
+
+.live-sync-state__dot {
+  flex: 0 0 auto;
+  font-size: 1rem !important;
+  margin: 0 !important;
+}
+
+.live-sync-state--synced .live-sync-state__dot,
+.live-control-state--owned strong {
+  color: #6fdd8b;
+}
+
+.live-sync-state--saving .live-sync-state__dot {
+  color: #e8c45a;
+}
+
+.live-sync-state--pending .live-sync-state__dot,
+.live-sync-state--offline .live-sync-state__dot,
+.live-control-state--locked strong {
+  color: #ff9b54;
+}
+
+.live-control-state {
+  justify-content: space-between;
+}
+
+.live-control-takeover {
+  flex: 0 0 auto;
+  border: 1px solid rgba(232, 196, 90, 0.48);
+  border-radius: 999px;
+  padding: 0.42rem 0.7rem;
+  background: rgba(232, 196, 90, 0.12);
+  color: var(--color-gold, #e8c45a);
+  font-weight: 800;
+  font-size: 0.7rem;
+}
+
+.live-control-takeover:disabled {
+  opacity: 0.55;
+}
+
+.live-reliability-content[inert] {
+  opacity: 0.72;
+  filter: saturate(0.72);
+}
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .live-reliability-bar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    padding: 0.28rem 0.45rem;
+    gap: 0.35rem;
+  }
+
+  .live-reliability-content {
+    padding-top: 3.25rem;
+  }
+
+  .live-sync-state,
+  .live-control-state {
+    padding: 0.28rem 0.45rem;
+    border-radius: 9px;
+  }
+
+  .live-sync-state strong,
+  .live-control-state strong {
+    font-size: 0.7rem;
+  }
+
+  .live-sync-state span,
+  .live-control-state span {
+    font-size: 0.58rem;
+  }
+}
+
+@media (max-width: 680px) and (orientation: portrait) {
+  .live-reliability-bar {
+    grid-template-columns: 1fr;
+  }
+}

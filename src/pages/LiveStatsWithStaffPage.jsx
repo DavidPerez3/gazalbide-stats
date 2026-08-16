@@ -4,6 +4,7 @@ import LiveStaffDisciplinePanel from "../features/live-stats/LiveStaffDiscipline
 import LiveActionHistoryPanel from "../features/live-stats/LiveActionHistoryPanel.jsx";
 import LiveClockPeriodPanel from "../features/live-stats/LiveClockPeriodPanel.jsx";
 import LiveReviewEntry from "../features/live-stats/LiveReviewEntry.jsx";
+import LiveReliabilityGuard from "../features/live-stats/LiveReliabilityGuard.jsx";
 import { hapticTap } from "../features/live-stats/haptics.js";
 import { retryPendingLiveSync } from "../features/live-stats/localSession.js";
 
@@ -21,9 +22,6 @@ export default function LiveStatsWithStaffPage() {
 
     document.addEventListener("click", handleLiveControl);
     window.addEventListener("online", handleOnline);
-
-    // Also retry once on mount: a pending session may have recovered connectivity
-    // while the PWA was closed, so no browser `online` event would be emitted now.
     void retryPendingLiveSync();
 
     return () => {
@@ -33,12 +31,12 @@ export default function LiveStatsWithStaffPage() {
   }, []);
 
   return (
-    <>
+    <LiveReliabilityGuard>
       <LiveStatsPage />
       <LiveActionHistoryPanel />
       <LiveClockPeriodPanel />
       <LiveStaffDisciplinePanel />
       <LiveReviewEntry />
-    </>
+    </LiveReliabilityGuard>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Player from "./Player.jsx";
 import PlayerPhoto from "../components/PlayerPhoto.jsx";
+import PlayerCareerPanel from "../components/PlayerCareerPanel.jsx";
 import { useSeason } from "../context/SeasonContext.jsx";
 import { getPlayers } from "../lib/data.js";
 import "../player-profile.css";
@@ -45,11 +46,12 @@ export default function PlayerProfilePage() {
           </h1>
           <p className="text-dim">
             {player?.photo_path
-              ? "Perfil y estadísticas del jugador."
-              : "Perfil y estadísticas del jugador · foto opcional."}
+              ? "Perfil, temporada activa y carrera histórica del jugador."
+              : "Perfil, temporada activa y carrera histórica · foto opcional."}
           </p>
         </div>
       </section>
+      <PlayerCareerPanel playerId={player?.id} playerName={player?.name || decodedName} />
       <Player key={`${activeSeasonId}:${decodedName}`} />
     </>
   );
