@@ -14,21 +14,26 @@ function storageKey(matchId) {
   return `gazalbide.liveShortcutMinimized:${matchId}`;
 }
 
+function readMinimized(matchId) {
+  if (!matchId) return false;
+  try {
+    return window.sessionStorage.getItem(storageKey(matchId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export default function ActiveLiveShortcut() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const setup = loadLiveSetup();
   const runtime = loadLiveRuntime();
   const matchId = setup?.matchId || null;
+  const [minimized, setMinimized] = useState(() => readMinimized(matchId));
 
-  const [minimized, setMinimized] = useState(() => {
-    if (!matchId) return false;
-    try {
-      return window.sessionStorage.getItem(storageKey(matchId)) === "1";
-    } catch {
-      return false;
-    }
-  });
+  useEffect(() => {
+    setMinimized(readMinimized(matchId));
+  }, [matchId]);
 
   useEffect(() => {
     if (!profile?.is_admin || !matchId) return undefined;
