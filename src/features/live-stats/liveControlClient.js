@@ -62,17 +62,16 @@ export function clearLocalLiveControl(matchId) {
   writeSetup(next);
 }
 
-export async function claimLiveControl(setup, { force = false } = {}) {
-  if (!setup?.matchId) throw new Error("No hay partido Live preparado.");
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    throw new Error("Necesitas conexión para obtener el control del anotador.");
-  }
+export async function getLiveControlStatus(matchId) {
+  if (!matchId) return { active: false };
+  const { data, error } = await supabase.rpc("get_live_match_control", {
+    p_match_id: matchId,
+  });
+  if (error) throw error;
+  return data || { active: false };
+}
 
-  // Serialize the initial remote roster creation before a lease begins enforcing tokens.
-  const prepared = await ensureRemoteLiveSession(setup);
-  if (!prepared?.ok) throw new Error("No se pudo preparar el Live remoto.");
-
-  const deviceId = getLivePhysicalDeviceId();
+async function requestClaim(setup, deviceId, force) {
   const { data, error } = await supabase.rpc("claim_live_match_control", {
     p_match_id: setup.matchId,
     p_device_id: deviceId,
@@ -80,9 +79,36 @@ export async function claimLiveControl(setup, { force = false } = {}) {
     p_force: force,
   });
   if (error) throw error;
-
   if (data?.granted) setLocalLiveControl(setup.matchId, data);
   return data;
+}
+
+export async function claimLiveControl(setup, { force = false } = {}) {
+  if (!setup?.matchId) throw new Error("No hay partido Live preparado.");
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    throw new Error("Necesitas conexión para obtener el control del anotador.");
+  }
+
+  const deviceId = getLivePhysicalDeviceId();
+  const current = await getLiveControlStatus(setup.matchId).catch(() => ({ active: false }));
+
+  // An active lease belongs to a real remote match. Do not touch roster/state
+  // before claiming: those writes are intentionally protected by the current token.
+  if (current?.active) {
+    if (String(current.device_id) !== String(deviceId) && !force) {
+      return {
+        granted: false,
+        ...current,
+        reason: "held_by_other_device",
+      };
+    }
+    return requestClaim(setup, deviceId, force);
+  }
+
+  // New/local sessions need their match+roster created before the FK-backed lease.
+  const prepared = await ensureRemoteLiveSession(setup);
+  if (!prepared?.ok) throw new Error("No se pudo preparar el Live remoto.");
+  return requestClaim(setup, deviceId, force);
 }
 
 export async function heartbeatLiveControl(setup) {
@@ -114,13 +140,4 @@ export async function releaseLiveControl(setup) {
   if (error) throw error;
   clearLocalLiveControl(setup.matchId);
   return Boolean(data);
-}
-
-export async function getLiveControlStatus(matchId) {
-  if (!matchId) return { active: false };
-  const { data, error } = await supabase.rpc("get_live_match_control", {
-    p_match_id: matchId,
-  });
-  if (error) throw error;
-  return data || { active: false };
 }
