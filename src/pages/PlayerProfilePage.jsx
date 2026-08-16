@@ -52,7 +52,9 @@ export default function PlayerProfilePage() {
         </div>
       </section>
       <PlayerCareerPanel playerId={player?.id} playerName={player?.name || decodedName} />
-      <Player key={`${activeSeasonId}:${decodedName}`} />
+      <div className="player-season-detail">
+        <Player key={`${activeSeasonId}:${decodedName}`} />
+      </div>
     </>
   );
 }

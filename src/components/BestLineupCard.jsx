@@ -12,6 +12,7 @@ export default function BestLineupCard({ lineup, players = [], compact = false }
     const player = byId.get(String(id));
     return player ? `#${player.number} ${player.name}` : String(id);
   });
+  const stintCount = Number(lineup.stints || 0);
 
   return (
     <article className={`best-lineup card card--p ${compact ? "best-lineup--compact" : ""}`}>
@@ -21,7 +22,7 @@ export default function BestLineupCard({ lineup, players = [], compact = false }
         <strong>{Number(lineup.plusMinus) > 0 ? "+" : ""}{Number(lineup.plusMinus || 0)}</strong>
         <span>{formatMinutes(lineup.durationMs)} juntos</span>
         <span>{Number(lineup.gazalbidePts || 0)}–{Number(lineup.opponentPts || 0)} parcial</span>
-        <span>{Number(lineup.stints || 0)} stint{Number(lineup.stints || 0) === 1 ? "" : "s"}</span>
+        <span>{stintCount} {stintCount === 1 ? "tramo" : "tramos"} en pista</span>
       </div>
       {!compact ? (
         <div className="best-lineup__foot">
