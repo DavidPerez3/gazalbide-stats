@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getMatches, getMatchStats, getPlayers, getTechs } from "../lib/data";
 import { useSeason } from "../context/SeasonContext.jsx";
 import DashboardHighlights from "../components/DashboardHighlights";
+import PublicLiveBanner from "../components/PublicLiveBanner.jsx";
 
 const num = (v) => Number(v || 0);
 
@@ -107,6 +108,8 @@ export default function Home() {
         </h2>
         <p className="text-dim">Temporada {activeSeason.label} · resultados, estadísticas y rankings.</p>
       </div>
+
+      <PublicLiveBanner />
 
       {!loading && matches.length === 0 ? (
         <div className="card season-empty">
