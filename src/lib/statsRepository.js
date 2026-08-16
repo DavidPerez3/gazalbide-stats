@@ -6,6 +6,7 @@ export async function getMatchesFromSupabase(seasonId) {
     .select(
       "id,season,date,opponent,source_file,source_sheet,gazal_pts,opp_pts,q_pf,q_pa,result,status"
     )
+    .eq("status", "published")
     .order("date", { ascending: true });
 
   if (seasonId) query = query.eq("season", seasonId);
