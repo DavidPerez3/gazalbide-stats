@@ -7,14 +7,38 @@ function isExternalUrl(value) {
   return /^(https?:|data:|blob:)/i.test(value);
 }
 
+function bundledStaffImageUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const base = String(import.meta.env.BASE_URL || "/");
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+
+  // Ruta legacy guardada en BD, por ejemplo /images/coaches/david.png.
+  if (/^\/?images\//i.test(raw)) {
+    return `${normalizedBase}${raw.replace(/^\/+/, "")}`;
+  }
+
+  // El resolver puede recibir de nuevo una URL local que él mismo resolvió
+  // previamente (p. ej. /gazalbide-stats/images/coaches/david.png). Debe ser
+  // idempotente: no convertirla por error en una ruta de Supabase Storage.
+  if (
+    raw.startsWith(normalizedBase) &&
+    /^images\//i.test(raw.slice(normalizedBase.length))
+  ) {
+    return raw;
+  }
+
+  return null;
+}
+
 export function resolveStaffPhotoSrc(staff) {
   const raw = String(staff?.photo_url || staff?.photo_path || staff?.image || "").trim();
   if (!raw) return null;
   if (isExternalUrl(raw)) return raw;
 
-  if (/^\/?images\//i.test(raw)) {
-    return `${import.meta.env.BASE_URL}${raw.replace(/^\/+/, "")}`;
-  }
+  const bundledUrl = bundledStaffImageUrl(raw);
+  if (bundledUrl) return bundledUrl;
 
   const storagePath = raw
     .replace(new RegExp(`^${STAFF_PHOTO_BUCKET}/`, "i"), "")
@@ -40,7 +64,7 @@ export async function uploadStaffPhoto(staffId, file) {
 
 export async function removeStaffPhoto(photoPath) {
   const raw = String(photoPath || "").trim();
-  if (!raw || /^\/?images\//i.test(raw) || isExternalUrl(raw)) return;
+  if (!raw || bundledStaffImageUrl(raw) || isExternalUrl(raw)) return;
 
   const path = raw
     .replace(new RegExp(`^${STAFF_PHOTO_BUCKET}/`, "i"), "")
