@@ -26,7 +26,8 @@ svg {
 .notifications-page,
 .exports-page,
 .live-center,
-.player-season-detail {
+.player-season-detail,
+.players-page {
   min-width: 0;
 }
 
@@ -40,6 +41,40 @@ p,
 
 .navbar {
   padding-top: env(safe-area-inset-top);
+}
+
+.player-list-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.player-list-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.player-list-card__copy {
+  min-width: 0;
+}
+
+.player-list-card__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.player-list-card__link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-weight: 700;
 }
 
 /* Tables must remain real tables. Horizontal scrolling belongs to their
@@ -303,6 +338,27 @@ p,
   .admin-players__header h1,
   .admin-center__title {
     overflow-wrap: anywhere;
+  }
+
+  .player-list-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .player-list-card__identity {
+    width: 100%;
+  }
+
+  .player-list-card__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 42px;
+    padding: 7px 10px;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 10px;
+    background: rgba(212, 175, 55, 0.055);
   }
 
   .active-live-shortcut {
