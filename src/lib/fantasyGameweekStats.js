@@ -1,5 +1,9 @@
 import { supabase } from "./supabaseClient.js";
 
+const LIVE_STATS_FILE_PREFIX = "live:";
+const FETCH_MARKER = "/data/player_stats/live:";
+const ADAPTER_KEY = "__gazalbideFantasyStatsFetchAdapter";
+
 function toFantasyRow(stat, roster) {
   return {
     number: String(roster?.jersey_number ?? ""),
@@ -79,6 +83,10 @@ async function loadLegacyJson(statsFile, baseUrl) {
   return { rows, map: rowsToMap(rows), source: "legacy-json" };
 }
 
+export function liveStatsFileForMatch(matchId) {
+  return `${LIVE_STATS_FILE_PREFIX}${matchId}`;
+}
+
 export async function loadFantasyGameweekStats(gameweek, baseUrl = "/") {
   if (!gameweek) return null;
 
@@ -92,4 +100,54 @@ export async function loadFantasyGameweekStats(gameweek, baseUrl = "/") {
   }
 
   return null;
+}
+
+// Transitional compatibility layer: existing Fantasy screens already consume
+// gameweeks.stats_file. A Live publication stores `live:<matchId>` there. Only
+// that virtual path is intercepted; every historical/static request continues
+// through the browser's original fetch unchanged.
+export function installFantasyStatsFetchAdapter() {
+  if (typeof window === "undefined" || typeof window.fetch !== "function") return;
+  if (window[ADAPTER_KEY]) return;
+
+  const nativeFetch = window.fetch.bind(window);
+  window[ADAPTER_KEY] = true;
+
+  window.fetch = async (input, init) => {
+    const rawUrl = typeof input === "string" ? input : input?.url;
+    const markerIndex = typeof rawUrl === "string" ? rawUrl.indexOf(FETCH_MARKER) : -1;
+    if (markerIndex < 0) return nativeFetch(input, init);
+
+    const suffix = rawUrl.slice(markerIndex + FETCH_MARKER.length);
+    const matchId = decodeURIComponent(suffix.split(/[?#]/, 1)[0] || "");
+    if (!matchId) {
+      return new Response(JSON.stringify([]), {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    try {
+      const official = await loadFromSupabase(matchId);
+      if (!official) {
+        return new Response(JSON.stringify([]), {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify(official.rows), {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "x-gazalbide-stats-source": "supabase",
+        },
+      });
+    } catch (error) {
+      console.error("Error resolviendo estadísticas Fantasy desde Supabase:", error);
+      return new Response(JSON.stringify({ error: "supabase_stats_unavailable" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  };
 }
