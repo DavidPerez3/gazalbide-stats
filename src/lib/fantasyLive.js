@@ -5,6 +5,8 @@ import { matchIdentityMatchesGameweek } from "./liveCenter.js";
 import { CURRENT_SEASON_ID } from "./seasons.js";
 
 const BASE = import.meta.env.BASE_URL || "/";
+const statsMapCache = new Map();
+const traitConfigCache = new Map();
 
 function key(teamId, gameweekId) {
   return `${teamId}:${gameweekId}`;
@@ -17,19 +19,43 @@ function validPlayers(lineup) {
   return nums.every(Number.isFinite) ? nums : null;
 }
 
+function getTraitConfig(seasonId) {
+  if (!traitConfigCache.has(seasonId)) {
+    traitConfigCache.set(
+      seasonId,
+      loadFantasyTraitConfig(seasonId).catch((error) => {
+        traitConfigCache.delete(seasonId);
+        throw error;
+      })
+    );
+  }
+  return traitConfigCache.get(seasonId);
+}
+
 async function loadStatsMap(gameweek) {
   if (!gameweek?.stats_file) return null;
   const cleaned = String(gameweek.stats_file).trim().replace(/\s+/g, "");
   if (!cleaned) return null;
-
-  const response = await fetch(`${BASE}data/player_stats/${cleaned}`);
-  if (!response.ok) return null;
-  const rows = await response.json();
-  return new Map(
-    (rows || [])
-      .map((row) => [Number(row.number), row])
-      .filter(([number, row]) => Number.isFinite(number) && row)
-  );
+  const cacheKey = `${gameweek.id}:${cleaned}`;
+  if (!statsMapCache.has(cacheKey)) {
+    statsMapCache.set(
+      cacheKey,
+      (async () => {
+        const response = await fetch(`${BASE}data/player_stats/${cleaned}`);
+        if (!response.ok) return null;
+        const rows = await response.json();
+        return new Map(
+          (rows || [])
+            .map((row) => [Number(row.number), row])
+            .filter(([number, row]) => Number.isFinite(number) && row)
+        );
+      })().catch((error) => {
+        statsMapCache.delete(cacheKey);
+        throw error;
+      })
+    );
+  }
+  return statsMapCache.get(cacheKey);
 }
 
 function liveStatsMap(snapshot) {
@@ -69,7 +95,7 @@ export async function loadFantasyLive(snapshot, userId) {
       .from("fantasy_teams")
       .select("id,user_id,name,season_id")
       .eq("season_id", seasonId),
-    loadFantasyTraitConfig(seasonId),
+    getTraitConfig(seasonId),
   ]);
 
   if (gameweeksResult.error) throw gameweeksResult.error;
@@ -118,8 +144,6 @@ export async function loadFantasyLive(snapshot, userId) {
     ])
   );
 
-  // Keep only the latest row if an old installation ever produced more than one
-  // lineup for the same team/gameweek.
   const lineupByTeamGameweek = new Map();
   for (const lineup of (lineupsResult.data || []).sort((a, b) =>
     String(a.created_at || "").localeCompare(String(b.created_at || ""))
