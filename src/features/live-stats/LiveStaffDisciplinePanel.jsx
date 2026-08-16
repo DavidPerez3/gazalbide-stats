@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { CURRENT_SEASON_ID } from "../../lib/seasons.js";
 import { supabase } from "../../lib/supabaseClient.js";
 import { LIVE_EVENT } from "./domain.js";
-import { FOUL_KIND } from "./rules.js";
+import {
+  FOUL_KIND,
+  RULE_PROFILE,
+  getRuleProfileForDate,
+} from "./rules.js";
 import {
   loadLiveEvents,
   loadLiveRuntime,
@@ -13,10 +17,17 @@ import {
 import { createInitialGameState, deriveGameState } from "./stateEngine.js";
 import "./liveStaffDiscipline.css";
 
-const STAFF_ACTIONS = [
-  { kind: FOUL_KIND.TECHNICAL, label: "Técnica" },
-  { kind: FOUL_KIND.DISQUALIFYING, label: "Descalificante" },
-];
+function getStaffActions(matchDate) {
+  const profile = getRuleProfileForDate(matchDate);
+  const technicalKind = profile === RULE_PROFILE.FIBA_2026
+    ? FOUL_KIND.TECHNICAL_CAT_1
+    : FOUL_KIND.TECHNICAL;
+
+  return [
+    { kind: technicalKind, label: "Técnica" },
+    { kind: FOUL_KIND.DISQUALIFYING, label: "Descalificante" },
+  ];
+}
 
 function staffLabel(staff) {
   if (!staff) return "Staff";
@@ -40,6 +51,7 @@ function deriveCurrentState(setup, events) {
 
 export default function LiveStaffDisciplinePanel() {
   const setup = useMemo(() => loadLiveSetup(), []);
+  const staffActions = useMemo(() => getStaffActions(setup?.matchDate), [setup?.matchDate]);
   const [staff, setStaff] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState(null);
@@ -139,7 +151,7 @@ export default function LiveStaffDisciplinePanel() {
       };
 
       // Validate through the same state engine before persisting locally. Staff
-      // fouls intentionally mutate no player statistics.
+      // fouls intentionally mutate no player statistics and do not add a team foul.
       deriveGameState(
         createInitialGameState({
           roster: setup.roster,
@@ -157,10 +169,8 @@ export default function LiveStaffDisciplinePanel() {
         updatedAt: createdAt,
       });
 
-      // LiveStatsPage currently owns its React event state. Reloading is safe:
-      // it already restores setup/events/runtime from local storage, and this
-      // keeps staff support compatible with the offline recovery flow until the
-      // Supabase sync work in the next block centralizes event state.
+      // LiveStatsPage owns its React event state. Reloading is safe because the
+      // scorer restores setup/events/runtime from the local-first session.
       window.location.reload();
     } catch (saveError) {
       console.error("Error registrando disciplina de staff:", saveError);
@@ -207,7 +217,7 @@ export default function LiveStaffDisciplinePanel() {
               </label>
 
               <div className="live-staff-discipline__actions">
-                {STAFF_ACTIONS.map((action) => (
+                {staffActions.map((action) => (
                   <button
                     key={action.kind}
                     type="button"

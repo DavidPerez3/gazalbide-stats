@@ -35,6 +35,7 @@ const EMPTY_STATS = Object.freeze({
   blk: 0,
   pf: 0,
   pfd: 0,
+  plus_minus: 0,
   pf_defensive: 0,
   pf_offensive: 0,
   pf_technical: 0,
@@ -68,6 +69,141 @@ function normaliseRosterPlayer(player) {
     number: String(player.number ?? player.jersey_number ?? ""),
     name: player.name ?? player.player_name ?? "",
   };
+}
+
+function periodDurationMs(period) {
+  return Number(period || 1) <= 4
+    ? LIVE_STATS_CONFIG.regulationPeriodMs
+    : LIVE_STATS_CONFIG.overtimePeriodMs;
+}
+
+function clampPeriodClock(period, clockMs) {
+  return Math.min(
+    periodDurationMs(period),
+    Math.max(0, Math.round(Number(clockMs || 0)))
+  );
+}
+
+function lineupKey(lineupIds) {
+  return [...(lineupIds || [])].map(String).sort().join("|");
+}
+
+function makeLineupStint(sequence, period, lineupIds, startClockMs) {
+  return {
+    sequence,
+    period: Number(period || 1),
+    lineupIds: [...lineupIds],
+    lineupKey: lineupKey(lineupIds),
+    startClockMs: clampPeriodClock(period, startClockMs),
+    endClockMs: null,
+    durationMs: null,
+    gazalbidePts: 0,
+    opponentPts: 0,
+    plusMinus: 0,
+    endReason: null,
+  };
+}
+
+function findOpenStintIndex(stints) {
+  for (let index = (stints || []).length - 1; index >= 0; index -= 1) {
+    if (stints[index]?.endClockMs == null) return index;
+  }
+  return -1;
+}
+
+function closeOpenLineupStint(state, endClockMs, reason) {
+  const stints = [...(state.lineupStints || [])];
+  const index = findOpenStintIndex(stints);
+  if (index < 0) return state;
+
+  const current = stints[index];
+  const safeEndClock = clampPeriodClock(current.period, endClockMs);
+  const safeStartClock = clampPeriodClock(current.period, current.startClockMs);
+  stints[index] = {
+    ...current,
+    endClockMs: safeEndClock,
+    durationMs: Math.max(0, safeStartClock - safeEndClock),
+    endReason: reason || "lineup_change",
+  };
+
+  return { ...state, lineupStints: stints };
+}
+
+function openLineupStint(state, period, lineupIds, startClockMs) {
+  if (!Array.isArray(lineupIds) || lineupIds.length !== LIVE_STATS_CONFIG.maxOnCourt) {
+    return state;
+  }
+  if (!lineupIds.every((playerId) => state.players[playerId])) return state;
+
+  const sequence = Math.max(1, Number(state.nextLineupStintSequence || 1));
+  return {
+    ...state,
+    lineupStints: [
+      ...(state.lineupStints || []),
+      makeLineupStint(sequence, period, lineupIds, startClockMs),
+    ],
+    nextLineupStintSequence: sequence + 1,
+  };
+}
+
+function applyScoreImpactToLineup(state, scoreDelta) {
+  const gazalbidePts = Number(scoreDelta?.gazalbide || 0);
+  const opponentPts = Number(scoreDelta?.opponent || 0);
+  if (!gazalbidePts && !opponentPts) return state;
+
+  const differential = gazalbidePts - opponentPts;
+  const players = { ...state.players };
+
+  for (const playerId of state.onCourtIds) {
+    const player = players[playerId];
+    if (!player) continue;
+    players[playerId] = {
+      ...player,
+      stats: {
+        ...player.stats,
+        plus_minus: Number(player.stats?.plus_minus || 0) + differential,
+      },
+    };
+  }
+
+  const stints = [...(state.lineupStints || [])];
+  const openIndex = findOpenStintIndex(stints);
+  if (openIndex >= 0) {
+    const stint = stints[openIndex];
+    stints[openIndex] = {
+      ...stint,
+      gazalbidePts: Number(stint.gazalbidePts || 0) + gazalbidePts,
+      opponentPts: Number(stint.opponentPts || 0) + opponentPts,
+      plusMinus: Number(stint.plusMinus || 0) + differential,
+    };
+  }
+
+  return { ...state, players, lineupStints: stints };
+}
+
+function sameLineup(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((playerId, index) => String(playerId) === String(b[index]));
+}
+
+function updateStintsAfterEvent(previousState, nextState, event, eventClockMs) {
+  if (event.event_type === LIVE_EVENT.PERIOD_START) {
+    let state = closeOpenLineupStint(nextState, 0, "period_end");
+    state = openLineupStint(state, nextState.period, nextState.onCourtIds, nextState.clockMs);
+    return state;
+  }
+
+  if (event.event_type === LIVE_EVENT.PERIOD_END) {
+    return closeOpenLineupStint(nextState, eventClockMs, "period_end");
+  }
+
+  if (!sameLineup(previousState.onCourtIds, nextState.onCourtIds)) {
+    let state = closeOpenLineupStint(nextState, eventClockMs, "substitution");
+    state = openLineupStint(state, nextState.period, nextState.onCourtIds, eventClockMs);
+    return state;
+  }
+
+  return nextState;
 }
 
 function isStaffFoul(event) {
@@ -121,13 +257,15 @@ export function createInitialGameState({ roster, starterIds, matchDate, period =
   return {
     ruleProfile: getRuleProfileForDate(matchDate),
     period,
-    clockMs: LIVE_STATS_CONFIG.regulationPeriodMs,
+    clockMs: periodDurationMs(period),
     clockRunning: false,
     score: { gazalbide: 0, opponent: 0 },
     teamFouls: {},
     players,
     // Order is meaningful: these five ids are the five visual court slots.
     onCourtIds: [...starterIds],
+    lineupStints: [makeLineupStint(1, period, starterIds, periodDurationMs(period))],
+    nextLineupStintSequence: 2,
     pendingSubstitutionFor: [],
     lastEvent: null,
   };
@@ -361,6 +499,12 @@ export function applyLiveEvent(previousState, event) {
     lastEvent: isSystemEvent ? state.lastEvent : event,
   };
 
+  // +/- belongs to the five players who are actually on court when the score
+  // changes. Because substitutions are separate zero-score events, the lineup
+  // in state here is the correct lineup for every scoring event.
+  state = applyScoreImpactToLineup(state, scoreDelta);
+  state = updateStintsAfterEvent(previousState, state, event, eventClockMs);
+
   return state;
 }
 
@@ -369,6 +513,46 @@ export function deriveGameState(initialState, events = []) {
     .filter((event) => !event.is_void)
     .sort((a, b) => Number(a.client_sequence || 0) - Number(b.client_sequence || 0))
     .reduce(applyLiveEvent, initialState);
+}
+
+export function getLineupPlusMinusSummary(state) {
+  if (!state) return [];
+
+  const summaries = new Map();
+  for (const stint of state.lineupStints || []) {
+    const endClockMs = stint.endClockMs == null
+      ? stint.period === state.period
+        ? clampPeriodClock(stint.period, state.clockMs)
+        : 0
+      : clampPeriodClock(stint.period, stint.endClockMs);
+    const startClockMs = clampPeriodClock(stint.period, stint.startClockMs);
+    const durationMs = stint.durationMs == null
+      ? Math.max(0, startClockMs - endClockMs)
+      : Math.max(0, Number(stint.durationMs || 0));
+
+    const key = stint.lineupKey || lineupKey(stint.lineupIds);
+    const current = summaries.get(key) || {
+      lineupKey: key,
+      lineupIds: [...(stint.lineupIds || [])],
+      stints: 0,
+      durationMs: 0,
+      gazalbidePts: 0,
+      opponentPts: 0,
+      plusMinus: 0,
+    };
+
+    current.stints += 1;
+    current.durationMs += durationMs;
+    current.gazalbidePts += Number(stint.gazalbidePts || 0);
+    current.opponentPts += Number(stint.opponentPts || 0);
+    current.plusMinus += Number(stint.plusMinus || 0);
+    summaries.set(key, current);
+  }
+
+  return [...summaries.values()].sort((a, b) => {
+    if (b.durationMs !== a.durationMs) return b.durationMs - a.durationMs;
+    return b.plusMinus - a.plusMinus;
+  });
 }
 
 export function canStartClock(state) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { hapticDrop, hapticTap } from "./haptics.js";
 
 export function usePointerDrag(onDrop) {
   const [drag, setDrag] = useState(null);
@@ -17,6 +18,7 @@ export function usePointerDrag(onDrop) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     cleanup();
+    hapticTap();
 
     const pointerId = event.pointerId;
     setDrag({ item, x: event.clientX, y: event.clientY });
@@ -47,6 +49,7 @@ export function usePointerDrag(onDrop) {
             zone: dropTarget.dataset.zone || null,
             playerId: dropTarget.dataset.playerId || null,
           });
+          hapticDrop();
         }
       }
 

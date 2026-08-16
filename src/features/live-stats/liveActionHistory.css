@@ -1,0 +1,230 @@
+.live-history {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 85;
+  font-family: inherit;
+}
+
+.live-history__toggle {
+  min-width: 92px;
+  min-height: 44px;
+  border: 1px solid rgba(250, 204, 21, 0.65);
+  border-radius: 999px;
+  background: rgba(24, 24, 27, 0.96);
+  color: #facc15;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+}
+
+.live-history__panel {
+  position: absolute;
+  left: 0;
+  bottom: 54px;
+  width: min(560px, calc(100vw - 28px));
+  max-height: min(72dvh, 560px);
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 14px;
+  background: rgba(24, 24, 27, 0.985);
+  color: #fafafa;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.52);
+}
+
+.live-history__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.live-history__header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.live-history__header strong {
+  color: #facc15;
+  font-size: 0.9rem;
+}
+
+.live-history__header small {
+  color: #a1a1aa;
+  font-size: 0.68rem;
+}
+
+.live-history__header > button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fafafa;
+  font-size: 1.25rem;
+}
+
+.live-history__notice,
+.live-history__error {
+  padding: 7px 9px;
+  border-radius: 9px;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.live-history__notice {
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  color: #fde68a;
+}
+
+.live-history__error {
+  background: rgba(248, 113, 113, 0.11);
+  border: 1px solid rgba(248, 113, 113, 0.38);
+  color: #fecaca;
+}
+
+.live-history__list {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.live-history__empty {
+  margin: 8px 0;
+  color: #a1a1aa;
+  font-size: 0.75rem;
+}
+
+.live-history__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.live-history__item--void {
+  opacity: 0.58;
+  border-style: dashed;
+}
+
+.live-history__item--void .live-history__item-main strong {
+  text-decoration: line-through;
+}
+
+.live-history__item-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.live-history__item-main span,
+.live-history__item-main small {
+  color: #a1a1aa;
+  font-size: 0.62rem;
+}
+
+.live-history__item-main strong {
+  overflow: hidden;
+  color: #f4f4f5;
+  font-size: 0.74rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.live-history__item-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.live-history__item-actions button,
+.live-history__editor-actions button {
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fafafa;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.live-history__item-actions button:first-child {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.live-history__item-actions button:disabled {
+  opacity: 0.28;
+}
+
+.live-history__editor {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.live-history__editor label {
+  display: grid;
+  gap: 4px;
+  color: #d4d4d8;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.live-history__editor select {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #18181b;
+  color: #fafafa;
+  padding: 0 8px;
+}
+
+.live-history__editor-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.live-history__editor-actions button:first-child {
+  border-color: rgba(250, 204, 21, 0.45);
+  color: #fde68a;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .live-history {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  .live-history__panel {
+    bottom: 48px;
+    width: min(520px, 70vw);
+    max-height: 78dvh;
+    padding: 9px;
+  }
+
+  .live-history__item {
+    padding: 6px;
+  }
+
+  .live-history__editor select {
+    min-height: 32px;
+  }
+}
