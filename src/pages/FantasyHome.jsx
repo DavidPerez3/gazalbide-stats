@@ -214,7 +214,7 @@ export default function FantasyHome() {
           setLineupId(null);
           setLineupGameweek(null);
           setCaptainNumber(null);
-          setCoachCode("david");
+          setCoachCode(null);
         }
 
         // Mercado y staff de la temporada actual desde Supabase.
@@ -448,7 +448,7 @@ export default function FantasyHome() {
     [fantasyCoaches, coachCode]
   );
 
-  const hasCoach = !!coachCode;
+  const hasCoach = Boolean(selectedCoach);
   const hasCaptain =
     captainNumber != null && !Number.isNaN(captainNumber) && captainNumber >= 0;
 
