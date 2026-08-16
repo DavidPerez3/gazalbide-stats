@@ -27,6 +27,7 @@
 }
 
 .player-profile-hero__season {
+  display: block;
   color: var(--color-gold);
   font-size: 0.76rem;
   font-weight: 800;
@@ -49,10 +50,62 @@
   margin: 8px 0 0;
 }
 
+.player-profile-status {
+  margin-bottom: 18px;
+}
+
+.player-profile-unavailable {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border-color: rgba(212, 175, 55, 0.32);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06), rgba(17, 17, 17, 0.98));
+}
+
+.player-profile-unavailable__copy {
+  min-width: 0;
+}
+
+.player-profile-unavailable h1 {
+  margin: 0;
+  font-size: clamp(1.55rem, 6vw, 2.2rem);
+}
+
+.player-profile-unavailable p {
+  margin: 7px 0 0;
+  max-width: 720px;
+  line-height: 1.45;
+}
+
+.player-profile-unavailable__switch {
+  min-height: 42px;
+  margin-top: 12px;
+  padding: 8px 13px;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--color-gold);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 @media (max-width: 560px) {
   .player-profile-hero {
     align-items: center;
     gap: 15px;
     padding: 15px;
+  }
+
+  .player-profile-unavailable {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .player-profile-unavailable__switch {
+    width: 100%;
   }
 }

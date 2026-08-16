@@ -16,6 +16,7 @@ import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
+import AdminFantasyPage from "./pages/AdminFantasyPage.jsx";
 import AdminPlayers from "./pages/AdminPlayers.jsx";
 import ExportCenterPage from "./pages/ExportCenterPage.jsx";
 import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
@@ -35,7 +36,9 @@ import { installFantasyStatsFetchAdapter } from "./lib/fantasyGameweekStats.js";
 import "./index.css";
 import "./mobile.css";
 import "./fantasy-mobile.css";
+import "./fantasy-history-polish.css";
 import "./responsive-cleanup.css";
+import "./ux-final-polish.css";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 
@@ -120,6 +123,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute adminOnly={true}>
             <AdminCenter />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin/fantasy",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <AdminFantasyPage />
           </PrivateRoute>
         ),
       },

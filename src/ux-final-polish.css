@@ -1,0 +1,36 @@
+/* Last-mile overrides loaded after legacy/mobile cleanup styles. */
+
+.compare-empty-season {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-color: rgba(212, 175, 55, 0.24);
+}
+
+.compare-empty-season strong {
+  color: var(--color-gold);
+  font-size: 1rem;
+}
+
+.compare-empty-season span {
+  line-height: 1.5;
+}
+
+/* responsive-cleanup.css has a generic phone rule for the old Live shortcut.
+   Keep the compact pill truly tucked to one side after it is minimized. */
+@media (max-width: 560px) {
+  .active-live-shortcut.active-live-shortcut--minimized {
+    left: auto !important;
+    right: max(12px, env(safe-area-inset-right)) !important;
+    width: auto !important;
+    min-width: 76px;
+    transform: none !important;
+  }
+
+  .active-live-shortcut:not(.active-live-shortcut--minimized) {
+    left: max(14px, env(safe-area-inset-left)) !important;
+    right: max(14px, env(safe-area-inset-right)) !important;
+    width: auto !important;
+    transform: none !important;
+  }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ExcelExportButton from "../components/ExcelExportButton.jsx";
 import { useSeason } from "../context/SeasonContext.jsx";
 import {
@@ -21,6 +22,7 @@ function scopeLabel(scope) {
 }
 
 export default function ExportCenterPage() {
+  const navigate = useNavigate();
   const { activeSeason } = useSeason();
   const [scope, setScope] = useState(activeSeason.id);
   const [playerRows, setPlayerRows] = useState([]);
@@ -101,6 +103,10 @@ export default function ExportCenterPage() {
 
   return (
     <section className="exports-page">
+      <button type="button" className="exports-page__back" onClick={() => navigate("/admin")}>
+        ← Volver a Admin
+      </button>
+
       <header className="exports-page__header">
         <div>
           <p className="exports-page__eyebrow">Administración · Datos oficiales</p>
@@ -157,7 +163,7 @@ export default function ExportCenterPage() {
             </div>
             <div className="exports-card__meta">
               <span>{lineupRows.length} registros de quinteto</span>
-              {lineupRows.length === 0 ? <span>El histórico 2025-2026 no dispone de stints.</span> : null}
+              {lineupRows.length === 0 ? <span>El histórico 2025-2026 no dispone de tramos de quinteto registrados.</span> : null}
             </div>
             <ExcelExportButton
               onExport={() => exportLineupsExcel({ scope, lineupRows, playerRows, disciplineAdjustments })}

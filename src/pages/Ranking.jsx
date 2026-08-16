@@ -291,11 +291,20 @@ export default function Ranking() {
             </label>
           </div>
 
+          <details className="ranking-mode-help card">
+            <summary>¿Qué significa Por partido / Total / Por 40?</summary>
+            <div>
+              <p><strong>Por partido:</strong> media de producción en cada partido jugado.</p>
+              <p><strong>Total:</strong> acumulado de toda la temporada o periodo seleccionado.</p>
+              <p><strong>Por 40 min:</strong> rendimiento normalizado al mismo tiempo en pista; ayuda a comparar jugadores con minutos muy distintos.</p>
+            </div>
+          </details>
+
           {ranking.length === 0 ? (
             <div className="card stats-empty-card"><strong>Sin estadísticas publicadas</strong></div>
           ) : (
-            <div className="card stats-table-card">
-              <table className="table ranking-table">
+            <div className="card stats-table-card history-player-table-wrap">
+              <table className="table ranking-table history-player-table">
                 <thead><tr><th>#</th><th>Jugador</th><th>{modeLabel}</th><th>PJ</th><th>MIN</th></tr></thead>
                 <tbody>
                   {ranking.map((row, index) => (
@@ -330,7 +339,7 @@ export default function Ranking() {
               </select>
             </label>
             <p className="text-dim history-ranking__hint">
-              Los quintetos solo existen para partidos publicados desde Live Stats; el histórico importado no tenía stints.
+              Los quintetos solo existen para partidos publicados desde Live Stats; el histórico importado no tenía tramos de quinteto registrados.
             </p>
           </div>
 
@@ -339,7 +348,7 @@ export default function Ranking() {
           ) : (
             <div className="card stats-table-card">
               <table className="table ranking-table history-lineup-table">
-                <thead><tr><th>#</th><th>Quinteto</th><th>MIN</th><th>Stints</th><th>PF-PC</th><th>+/-</th><th>+/- /40</th></tr></thead>
+                <thead><tr><th>#</th><th>Quinteto</th><th>MIN</th><th>Tramos</th><th>PF-PC</th><th>+/-</th><th>+/- /40</th></tr></thead>
                 <tbody>
                   {lineups.map((row, index) => (
                     <tr key={row.key}>
@@ -367,8 +376,8 @@ export default function Ranking() {
           {staff.length === 0 ? (
             <div className="card stats-empty-card"><strong>Sin disciplina de staff registrada.</strong></div>
           ) : (
-            <div className="card stats-table-card">
-              <table className="table ranking-table">
+            <div className="card stats-table-card history-staff-table-wrap">
+              <table className="table ranking-table history-staff-table">
                 <thead><tr><th>#</th><th>Staff</th><th>Técnicas</th><th>Disruptivas</th><th>Flagrantes</th><th>DQ</th><th>Total</th></tr></thead>
                 <tbody>
                   {staff.map((row, index) => (
@@ -384,6 +393,7 @@ export default function Ranking() {
                   ))}
                 </tbody>
               </table>
+              <div className="history-table-scroll-hint">Desliza horizontalmente para ver todas las columnas ↔</div>
             </div>
           )}
         </>

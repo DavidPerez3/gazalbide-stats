@@ -1,1 +1,20 @@
-.season-tabs-wrap{border-bottom:1px solid rgba(212,175,55,.14);background:rgba(12,12,12,.96)}.season-tabs{display:flex;gap:.45rem;padding:.5rem 0;overflow-x:auto;scrollbar-width:none}.season-tabs::-webkit-scrollbar{display:none}.season-tab{display:flex;align-items:center;gap:.45rem;min-height:36px;padding:.45rem .75rem;border:1px solid #2c2c2c;border-radius:999px;background:#151515;color:#aaa;white-space:nowrap;cursor:pointer}.season-tab span{font-weight:800;font-size:.8rem}.season-tab small{font-size:.62rem;color:#777;text-transform:uppercase;letter-spacing:.05em}.season-tab--active{border-color:rgba(212,175,55,.58);background:rgba(212,175,55,.10);color:var(--color-gold)}.season-tab--active small{color:#c9b66c}.season-empty{padding:1.1rem;text-align:center}.season-empty strong{display:block;color:var(--color-gold);font-size:1rem;margin-bottom:.25rem}.season-empty span{color:#888;font-size:.82rem}@media(max-width:700px){.season-tabs{padding:.4rem 0}.season-tab{flex:1;justify-content:center;min-width:max-content;padding:.42rem .6rem}.season-tab span{font-size:.76rem}}
+.season-tabs-wrap{border-bottom:1px solid rgba(212,175,55,.14);background:rgba(12,12,12,.96)}
+.season-tabs{display:flex;gap:.45rem;padding:.5rem 0;overflow-x:auto;scrollbar-width:none}
+.season-tabs::-webkit-scrollbar{display:none}
+.season-tab{display:flex;align-items:center;gap:.45rem;min-height:36px;padding:.45rem .75rem;border:1px solid #2c2c2c;border-radius:999px;background:#151515;color:#aaa;white-space:nowrap;cursor:pointer}
+.season-tab span{font-weight:800;font-size:.8rem}
+.season-tab small{font-size:.62rem;color:#777;text-transform:uppercase;letter-spacing:.05em}
+.season-tab--active{border-color:rgba(212,175,55,.58);background:rgba(212,175,55,.10);color:var(--color-gold)}
+.season-tab--active small{color:#c9b66c}
+.season-select{display:grid;grid-template-columns:auto minmax(180px,300px);align-items:center;justify-content:flex-end;gap:.7rem;padding:.48rem 0;color:var(--color-ink-dim);font-size:.78rem;font-weight:800}
+.season-select .input{min-height:38px}
+.season-empty{padding:1.1rem;text-align:center}
+.season-empty strong{display:block;color:var(--color-gold);font-size:1rem;margin-bottom:.25rem}
+.season-empty span{color:#888;font-size:.82rem}
+@media(max-width:700px){
+  .season-tabs{padding:.4rem 0}
+  .season-tab{flex:1;justify-content:center;min-width:max-content;padding:.42rem .6rem}
+  .season-tab span{font-size:.76rem}
+  .season-select{grid-template-columns:1fr;gap:.3rem;justify-content:stretch}
+  .season-select .input{width:100%;min-width:0}
+}
