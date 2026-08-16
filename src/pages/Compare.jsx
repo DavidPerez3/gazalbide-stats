@@ -183,6 +183,8 @@ export default function Compare() {
     return <section className="stats-page"><div className="text-dim">Cargando…</div></section>;
   }
 
+  const hasPublishedStats = players.length > 0;
+
   return (
     <section className="stats-page compare-page">
       <header className="stats-page__header">
@@ -194,7 +196,7 @@ export default function Compare() {
         <div className="stats-page__controls stats-page__controls--single">
           <div className="stats-field">
             <label htmlFor="mode">Modo</label>
-            <select id="mode" className="input" value={mode} onChange={(e) => setMode(e.target.value)}>
+            <select id="mode" className="input" value={mode} disabled={!hasPublishedStats} onChange={(e) => setMode(e.target.value)}>
               <option value="media">Media</option>
               <option value="total">Total</option>
             </select>
@@ -202,86 +204,97 @@ export default function Compare() {
         </div>
       </header>
 
-      <div className="card compare-selectors">
-        <div className="compare-selectors__grid">
-          <div className="compare-player-field">
-            <label htmlFor="compare-player-a">Jugador A</label>
-            <select
-              id="compare-player-a"
-              className="input"
-              value={p1}
-              onChange={(e) => {
-                const v = e.target.value;
-                setP1(v);
-                if (v && v === p2) setP2("");
-              }}
-            >
-              <option value="">— Selecciona un jugador —</option>
-              {players.map((n) => (
-                <option key={n} value={n} disabled={n === p2}>{n}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="compare-player-field">
-            <label htmlFor="compare-player-b">Jugador B</label>
-            <select
-              id="compare-player-b"
-              className="input"
-              value={p2}
-              onChange={(e) => {
-                const v = e.target.value;
-                setP2(v);
-                if (v && v === p1) setP1("");
-              }}
-            >
-              <option value="">— Selecciona un jugador —</option>
-              {players.map((n) => (
-                <option key={n} value={n} disabled={n === p1}>{n}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {p1 && p2 ? (
-        <div className="card stats-table-card">
-          <table className="table compare-table">
-            <thead>
-              <tr>
-                <th>Métrica</th>
-                <th>{p1}</th>
-                <th>{p2}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const aWins = r.lowerIsBetter ? r.aCompare < r.bCompare : r.aCompare > r.bCompare;
-                const bWins = r.lowerIsBetter ? r.bCompare < r.aCompare : r.bCompare > r.aCompare;
-                const tie = !aWins && !bWins;
-                const aStyle = tie ? {} : (aWins ? styleWinner : styleLoser);
-                const bStyle = tie ? {} : (bWins ? styleWinner : styleLoser);
-
-                return (
-                  <tr key={r.label}>
-                    <td className="text-dim">{r.label}</td>
-                    <td style={aStyle}>{r.aDisplay}</td>
-                    <td style={bStyle}>{r.bDisplay}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <div className="compare-legend">
-            Verde = mejor valor · Rojo = peor valor · TOV y PF: menor es mejor.
-          </div>
+      {!hasPublishedStats ? (
+        <div className="card stats-empty-card compare-empty-season">
+          <strong>Aún no hay estadísticas publicadas en {activeSeason.label}</strong>
+          <span className="text-dim">
+            La lista de jugadores para comparar aparece cuando existe al menos un partido oficial con estadísticas en esta temporada. La plantilla no está vacía: simplemente todavía no hay datos comparables.
+          </span>
         </div>
       ) : (
-        <div className="card stats-empty-card">
-          <strong>Elige dos jugadores</strong>
-          <span className="text-dim">Selecciona un jugador A y un jugador B para ver la comparación.</span>
-        </div>
+        <>
+          <div className="card compare-selectors">
+            <div className="compare-selectors__grid">
+              <div className="compare-player-field">
+                <label htmlFor="compare-player-a">Jugador A</label>
+                <select
+                  id="compare-player-a"
+                  className="input"
+                  value={p1}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setP1(v);
+                    if (v && v === p2) setP2("");
+                  }}
+                >
+                  <option value="">— Selecciona un jugador —</option>
+                  {players.map((n) => (
+                    <option key={n} value={n} disabled={n === p2}>{n}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="compare-player-field">
+                <label htmlFor="compare-player-b">Jugador B</label>
+                <select
+                  id="compare-player-b"
+                  className="input"
+                  value={p2}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setP2(v);
+                    if (v && v === p1) setP1("");
+                  }}
+                >
+                  <option value="">— Selecciona un jugador —</option>
+                  {players.map((n) => (
+                    <option key={n} value={n} disabled={n === p1}>{n}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {p1 && p2 ? (
+            <div className="card stats-table-card">
+              <table className="table compare-table">
+                <thead>
+                  <tr>
+                    <th>Métrica</th>
+                    <th>{p1}</th>
+                    <th>{p2}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const aWins = r.lowerIsBetter ? r.aCompare < r.bCompare : r.aCompare > r.bCompare;
+                    const bWins = r.lowerIsBetter ? r.bCompare < r.aCompare : r.bCompare > r.aCompare;
+                    const tie = !aWins && !bWins;
+                    const aStyle = tie ? {} : (aWins ? styleWinner : styleLoser);
+                    const bStyle = tie ? {} : (bWins ? styleWinner : styleLoser);
+
+                    return (
+                      <tr key={r.label}>
+                        <td className="text-dim">{r.label}</td>
+                        <td style={aStyle}>{r.aDisplay}</td>
+                        <td style={bStyle}>{r.bDisplay}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              <div className="compare-legend">
+                Verde = mejor valor · Rojo = peor valor · TOV y PF: menor es mejor.
+              </div>
+            </div>
+          ) : (
+            <div className="card stats-empty-card">
+              <strong>Elige dos jugadores</strong>
+              <span className="text-dim">Selecciona un jugador A y un jugador B para ver la comparación.</span>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
