@@ -26,12 +26,15 @@ import FantasyTeamHistory from "./pages/FantasyTeamHistory.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { SeasonProvider } from "./context/SeasonContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
+import { installFantasyStatsFetchAdapter } from "./lib/fantasyGameweekStats.js";
 
 import "./index.css";
 import "./mobile.css";
 import "./fantasy-mobile.css";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+
+installFantasyStatsFetchAdapter();
 
 const router = createHashRouter([
   {

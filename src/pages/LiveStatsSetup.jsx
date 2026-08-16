@@ -9,6 +9,7 @@ import {
   listRecoverableLiveSessions,
   loadRemoteLiveSession,
 } from "../features/live-stats/supabaseSync.js";
+import PublishedLiveMatchesPanel from "../features/live-stats/PublishedLiveMatchesPanel.jsx";
 import { getPlayers } from "../lib/data.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import "../live-stats.css";
@@ -170,6 +171,8 @@ export default function LiveStatsSetup() {
       ) : null}
 
       {recoveryError ? <div className="live-alert live-alert--error">{recoveryError}</div> : null}
+
+      <PublishedLiveMatchesPanel />
 
       <section className="live-setup__meta card card--p">
         <label>Rival<input className="input" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="Nombre del rival" /></label>
