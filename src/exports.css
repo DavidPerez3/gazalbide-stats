@@ -1,0 +1,26 @@
+.exports-page{display:grid;gap:16px;max-width:1180px;margin:0 auto}
+.exports-page__header{display:flex;justify-content:space-between;align-items:flex-end;gap:18px}
+.exports-page__header h1{margin:.2rem 0 .35rem}
+.exports-page__header p{max-width:720px;margin:0}
+.exports-page__eyebrow,.exports-card__kicker{display:block;color:var(--color-gold);font-size:.72rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+.exports-page__scope{min-width:220px}
+.exports-page__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.exports-card{display:grid;gap:12px;align-content:start;min-width:0}
+.exports-card--match{grid-column:1/-1}
+.exports-card__icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(212,175,55,.09);border:1px solid rgba(212,175,55,.24);font-size:1.35rem}
+.exports-card h2{margin:.18rem 0 .35rem;font-size:1.2rem}
+.exports-card p{margin:0;color:var(--color-ink-dim);line-height:1.5}
+.exports-card__meta{display:flex;gap:8px;flex-wrap:wrap}
+.exports-card__meta span{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.045);color:var(--color-ink-dim);font-size:.75rem}
+.exports-card__match-select{max-width:680px}
+.excel-export-control{display:grid;gap:5px;justify-items:start}
+.excel-export-error{color:#ff9696;font-size:.75rem;max-width:420px}
+.exports-page__error{color:#ff9696;border-color:rgba(255,80,80,.3)}
+@media(max-width:760px){
+  .exports-page__header{align-items:stretch;flex-direction:column}
+  .exports-page__scope{min-width:0;width:100%}
+  .exports-page__grid{grid-template-columns:1fr}
+  .exports-card--match{grid-column:auto}
+  .excel-export-control,.excel-export-control .btn{width:100%}
+  .excel-export-control .btn{justify-content:center}
+}
