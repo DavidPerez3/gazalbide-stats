@@ -2,6 +2,27 @@ import { supabase } from "../../lib/supabaseClient.js";
 import { LIVE_STATS_CONFIG } from "./domain.js";
 
 let syncQueue = Promise.resolve({ ok: true });
+let syncStatus = {
+  phase: typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "idle",
+  lastSyncedAt: null,
+  error: null,
+};
+const syncListeners = new Set();
+
+function publishSyncStatus(patch) {
+  syncStatus = { ...syncStatus, ...patch };
+  for (const listener of syncListeners) listener(syncStatus);
+}
+
+export function getLiveSyncStatus() {
+  return { ...syncStatus };
+}
+
+export function subscribeLiveSyncStatus(listener) {
+  syncListeners.add(listener);
+  listener({ ...syncStatus });
+  return () => syncListeners.delete(listener);
+}
 
 function isOffline() {
   return typeof navigator !== "undefined" && navigator.onLine === false;
@@ -15,6 +36,10 @@ function databasePlayerId(player) {
   const value = player?.databaseId ?? player?.id;
   if (value == null || String(value).startsWith("num:")) return null;
   return value;
+}
+
+function controlToken(setup) {
+  return setup?.controlToken || null;
 }
 
 function rosterRows(setup) {
@@ -33,6 +58,7 @@ function rosterRows(setup) {
       sort_order: index,
       is_starter: starterIds.has(String(player.id)),
       is_active: true,
+      control_token: controlToken(setup),
     };
   });
 }
@@ -63,6 +89,7 @@ function liveStateRow(setup, gameState) {
     clock_running: Boolean(gameState.clockRunning),
     period_duration_ms: LIVE_STATS_CONFIG.regulationPeriodMs,
     overtime_duration_ms: LIVE_STATS_CONFIG.overtimePeriodMs,
+    control_token: controlToken(setup),
     updated_at: new Date().toISOString(),
   };
 }
@@ -84,8 +111,6 @@ async function ensureRemoteMatch(setup) {
     status: "live",
   };
 
-  // Do nothing when the match already exists. This makes retries safe and,
-  // importantly, prevents a future published match from being reset to live.
   const { error: matchError } = await supabase
     .from("matches")
     .upsert(match, { onConflict: "id", ignoreDuplicates: true });
@@ -98,6 +123,12 @@ async function ensureRemoteMatch(setup) {
       .upsert(rows, { onConflict: "match_id,player_id" });
     if (rosterError) throw rosterError;
   }
+}
+
+export async function ensureRemoteLiveSession(setup) {
+  if (isOffline()) return { ok: false, offline: true };
+  await ensureRemoteMatch(setup);
+  return { ok: true };
 }
 
 function eventRows(setup, events, userId) {
@@ -121,6 +152,7 @@ function eventRows(setup, events, userId) {
     void_reason: event.void_reason ?? null,
     metadata: event.metadata || {},
     created_by: event.created_by ?? userId,
+    control_token: controlToken(setup),
     updated_at: new Date().toISOString(),
   }));
 }
@@ -130,9 +162,6 @@ async function pushEvents(setup, events) {
   const userId = await currentUserId();
   const rows = eventRows(setup, events, userId);
 
-  // The database has UNIQUE(match_id, client_id, client_sequence). Retrying the
-  // same local history therefore updates the same logical events instead of
-  // duplicating them. This also propagates a later is_void=true from Undo.
   const { error } = await supabase
     .from("game_events")
     .upsert(rows, { onConflict: "match_id,client_id,client_sequence" });
@@ -161,7 +190,10 @@ async function pushPlayedTime(setup, gameState) {
 }
 
 async function syncSession(snapshot) {
-  if (isOffline()) return { ok: false, offline: true };
+  if (isOffline()) {
+    publishSyncStatus({ phase: "offline", error: null });
+    return { ok: false, offline: true };
+  }
 
   await ensureRemoteMatch(snapshot.setup);
   const syncedEvents = await pushEvents(snapshot.setup, snapshot.events);
@@ -171,7 +203,10 @@ async function syncSession(snapshot) {
 }
 
 async function syncState(snapshot) {
-  if (isOffline()) return { ok: false, offline: true };
+  if (isOffline()) {
+    publishSyncStatus({ phase: "offline", error: null });
+    return { ok: false, offline: true };
+  }
 
   await ensureRemoteMatch(snapshot.setup);
   await pushLiveState(snapshot.setup, snapshot.gameState);
@@ -182,9 +217,27 @@ async function syncState(snapshot) {
 function enqueue(task) {
   syncQueue = syncQueue
     .catch(() => ({ ok: false }))
-    .then(task)
+    .then(async () => {
+      if (isOffline()) {
+        publishSyncStatus({ phase: "offline", error: null });
+      } else {
+        publishSyncStatus({ phase: "saving", error: null });
+      }
+      const result = await task();
+      if (result?.ok) {
+        publishSyncStatus({
+          phase: "synced",
+          lastSyncedAt: new Date().toISOString(),
+          error: null,
+        });
+      } else if (result?.offline) {
+        publishSyncStatus({ phase: "offline", error: null });
+      }
+      return result;
+    })
     .catch((error) => {
       console.warn("Live Stats seguirá en local; sincronización pendiente:", error);
+      publishSyncStatus({ phase: isOffline() ? "offline" : "pending", error });
       return { ok: false, error };
     });
   return syncQueue;
