@@ -23,6 +23,35 @@ type PushSubscriptionRow = {
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
+function randomSecret() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function authorizeDispatcher(
+  supabase: ReturnType<typeof createClient>,
+  request: Request,
+) {
+  const { data: currentSecret, error } = await supabase.rpc(
+    "notification_push_dispatch_secret",
+  );
+  if (error) throw error;
+
+  if (!currentSecret) {
+    const generated = randomSecret();
+    const { error: initError } = await supabase.rpc(
+      "notification_initialize_dispatch_secret",
+      { p_secret: generated },
+    );
+    if (initError) throw initError;
+    return true;
+  }
+
+  return request.headers.get("x-dispatch-key") === currentSecret;
+}
+
 async function markOutbox(
   supabase: ReturnType<typeof createClient>,
   id: number,
@@ -189,6 +218,13 @@ export default {
       const supabase = createClient(supabaseUrl, serviceRoleKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
+
+      if (!(await authorizeDispatcher(supabase, req))) {
+        return new Response(JSON.stringify({ error: "unauthorized_dispatch" }), {
+          status: 401,
+          headers: JSON_HEADERS,
+        });
+      }
 
       const vapid = await ensureVapid(supabase);
       webpush.setVapidDetails(
