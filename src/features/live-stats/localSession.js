@@ -41,12 +41,20 @@ function getNextSequenceFromEvents(events, clientId = null) {
 
 function eventSyncVersion(events) {
   const list = Array.isArray(events) ? events : [];
-  const maxSequence = list.reduce(
-    (max, event) => Math.max(max, Number(event?.server_sequence || event?.client_sequence || 0)),
-    0
-  );
-  const voidCount = list.filter((event) => event?.is_void).length;
-  return `${list.length}:${maxSequence}:${voidCount}`;
+  return list
+    .map((event) => [
+      event?.id || "",
+      Number(event?.client_sequence || 0),
+      event?.event_type || "",
+      event?.player_id ?? "",
+      event?.related_player_id ?? "",
+      event?.staff_id ?? "",
+      event?.foul_kind ?? "",
+      event?.is_void ? 1 : 0,
+      event?.voided_at || "",
+      event?.metadata?.correctedAt || "",
+    ].join("~"))
+    .join("|");
 }
 
 function markSyncPending() {
