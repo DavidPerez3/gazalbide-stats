@@ -125,7 +125,7 @@
 }
 
 .admin-module__description {
-  margin: 0;
+  margin: 0 0 1.15rem;
   color: var(--color-ink-dim);
   font-size: 0.86rem;
   line-height: 1.45;
@@ -261,6 +261,10 @@
   .admin-module {
     min-height: 0;
     padding: 0.9rem;
+  }
+
+  .admin-module__description {
+    margin-bottom: 1rem;
   }
 
   .admin-module__action {
