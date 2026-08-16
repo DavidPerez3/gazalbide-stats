@@ -3,6 +3,7 @@ import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
 import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
 import FantasyLeGazalOffer from "./components/FantasyLeGazalOffer.jsx";
+import FantasyLivePreview from "./components/FantasyLivePreview.jsx";
 import ActiveLiveShortcut from "./components/ActiveLiveShortcut.jsx";
 import "./mobile-polish.css";
 import "./active-live.css";
@@ -52,6 +53,7 @@ export default function App() {
       {!hidesSeasonTabs && <SeasonTabs />}
       <main className="main">
         <div className="container">
+          {isFantasyHome && <FantasyLivePreview />}
           <Outlet />
         </div>
       </main>
