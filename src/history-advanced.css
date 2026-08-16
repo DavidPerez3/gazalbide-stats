@@ -1,0 +1,157 @@
+.history-ranking__header {
+  align-items: end;
+  gap: 1rem;
+}
+
+.history-ranking__top-controls,
+.history-ranking__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.history-ranking__filters {
+  margin-bottom: 1rem;
+}
+
+.history-view-tabs {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+  padding-bottom: 0.15rem;
+}
+
+.history-view-tabs button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  font-weight: 750;
+}
+
+.history-view-tabs button.is-active {
+  border-color: rgba(232, 196, 90, 0.56);
+  background: rgba(232, 196, 90, 0.12);
+  color: var(--color-gold, #e8c45a);
+}
+
+.history-ranking__hint {
+  margin: 0;
+  max-width: 680px;
+  font-size: 0.8rem;
+}
+
+.history-ranking__staff-note {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+}
+
+.history-table-sub {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.7rem;
+}
+
+.history-error {
+  border-color: rgba(255, 94, 87, 0.36);
+  color: #ffaaa5;
+}
+
+.history-lineup-table td:nth-child(2) {
+  min-width: 280px;
+}
+
+.player-career-panel {
+  margin: 1rem 0 1.25rem;
+}
+
+.player-career-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 0.8rem;
+}
+
+.player-career-panel__header h2,
+.player-career-panel__header p {
+  margin: 0;
+}
+
+.player-career-panel__header p {
+  margin-top: 0.25rem;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.82rem;
+}
+
+.player-career-kpis,
+.player-record-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 0.6rem;
+}
+
+.player-career-kpi,
+.player-record-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.72rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.player-career-kpi span,
+.player-record-card span {
+  display: block;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.7rem;
+}
+
+.player-career-kpi strong,
+.player-record-card strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.15rem;
+}
+
+.player-record-card small {
+  display: block;
+  margin-top: 0.24rem;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.67rem;
+}
+
+.player-career-section-title {
+  margin: 1rem 0 0.55rem;
+  font-size: 1rem;
+}
+
+.player-season-table-wrap {
+  overflow-x: auto;
+}
+
+.player-season-delta {
+  margin-left: 0.25rem;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.player-season-delta--up { color: #71dd8c; }
+.player-season-delta--down { color: #ff8c86; }
+
+@media (max-width: 680px) {
+  .history-ranking__header,
+  .player-career-panel__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .history-ranking__filters > .stats-field,
+  .history-ranking__top-controls > .stats-field {
+    flex: 1 1 145px;
+  }
+}
