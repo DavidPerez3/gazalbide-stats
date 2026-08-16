@@ -1,3 +1,5 @@
+import "../best-lineup.css";
+
 function formatMinutes(ms) {
   const seconds = Math.max(0, Math.round(Number(ms || 0) / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
