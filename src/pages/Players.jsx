@@ -34,7 +34,7 @@ export default function Players() {
   }, [players, q]);
 
   return (
-    <section>
+    <section className="players-page">
       <div className="mb-4">
         <h2 style={{fontSize:22,fontWeight:700,color:"var(--color-gold)"}}>Jugadores</h2>
         <div className="text-dim" style={{fontSize:12}}>Plantilla · {activeSeason.label}</div>
@@ -50,18 +50,18 @@ export default function Players() {
       ) : (
         <>
           <input className="input mb-4" placeholder="Buscar por nombre o dorsal..." value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="grid grid--3">
+          <div className="grid grid--3 players-page__grid">
             {filtered.map((p) => (
-              <div key={`${p.number}-${p.name}`} className="card card--p flex justify-between items-center" style={{gap:12}}>
-                <div className="flex items-center gap-3" style={{minWidth:0}}>
+              <article key={`${p.number}-${p.name}`} className="card card--p player-list-card">
+                <div className="player-list-card__identity">
                   <PlayerPhoto player={p} size="card" />
-                  <div style={{minWidth:0}}>
+                  <div className="player-list-card__copy">
                     <div className="badge" style={{width:"fit-content",marginBottom:5}}>#{p.number}</div>
-                    <div style={{fontWeight:700,overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+                    <div className="player-list-card__name">{p.name}</div>
                   </div>
                 </div>
-                <Link to={`/jugador/${encodeURIComponent(p.name)}`}>Ver detalle</Link>
-              </div>
+                <Link className="player-list-card__link" to={`/jugador/${encodeURIComponent(p.name)}`}>Ver detalle</Link>
+              </article>
             ))}
           </div>
         </>
