@@ -66,6 +66,75 @@
   min-width: 280px;
 }
 
+.ranking-mode-help {
+  margin: -0.25rem 0 1rem;
+  padding: 0;
+  border-color: rgba(212, 175, 55, 0.2);
+  background: rgba(212, 175, 55, 0.035);
+  overflow: hidden;
+}
+
+.ranking-mode-help summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 13px;
+  color: var(--color-gold, #e8c45a);
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ranking-mode-help summary::-webkit-details-marker { display: none; }
+.ranking-mode-help summary::after { content: "+"; margin-left: auto; font-size: 1.05rem; }
+.ranking-mode-help[open] summary::after { content: "−"; }
+.ranking-mode-help > div {
+  display: grid;
+  gap: 5px;
+  padding: 0 13px 12px;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.ranking-mode-help p { margin: 0; }
+.ranking-mode-help strong { color: #e5e7eb; }
+
+.history-player-table,
+.history-staff-table {
+  table-layout: auto !important;
+}
+
+.history-player-table th,
+.history-player-table td,
+.history-staff-table th,
+.history-staff-table td {
+  vertical-align: middle;
+}
+
+.history-player-table th:last-child,
+.history-player-table td:last-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-staff-table {
+  min-width: 720px;
+}
+
+.history-staff-table th,
+.history-staff-table td {
+  white-space: nowrap !important;
+}
+
+.history-table-scroll-hint {
+  display: none;
+  padding: 7px 10px 3px;
+  color: var(--color-text-dim, #aab0bb);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
 .player-career-panel {
   margin: 1rem 0 1.25rem;
 }
@@ -153,5 +222,80 @@
   .history-ranking__filters > .stats-field,
   .history-ranking__top-controls > .stats-field {
     flex: 1 1 145px;
+  }
+
+  .history-player-table-wrap {
+    overflow-x: auto;
+  }
+
+  .history-player-table {
+    width: 100%;
+    min-width: 355px !important;
+  }
+
+  .history-player-table th,
+  .history-player-table td {
+    padding: 9px 5px !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
+  }
+
+  .history-player-table th:nth-child(1),
+  .history-player-table td:nth-child(1) {
+    width: 28px;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  .history-player-table th:nth-child(2),
+  .history-player-table td:nth-child(2) {
+    min-width: 108px;
+    max-width: 150px;
+    white-space: normal !important;
+    line-height: 1.25;
+  }
+
+  .history-player-table th:nth-child(3),
+  .history-player-table td:nth-child(3) {
+    min-width: 76px;
+  }
+
+  .history-player-table th:nth-child(4),
+  .history-player-table td:nth-child(4) {
+    width: 36px;
+    text-align: center;
+  }
+
+  .history-player-table th:nth-child(5),
+  .history-player-table td:nth-child(5) {
+    min-width: 64px;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  .history-staff-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-staff-table {
+    width: 720px !important;
+    min-width: 720px !important;
+  }
+
+  .history-staff-table th,
+  .history-staff-table td {
+    padding: 9px 11px !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  .history-table-scroll-hint {
+    display: block;
+    position: sticky;
+    left: 0;
+    width: min(100%, 360px);
   }
 }
