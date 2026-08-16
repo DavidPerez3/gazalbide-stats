@@ -17,6 +17,7 @@ export default function App() {
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isFantasy = pathname.startsWith("/fantasy");
   const isFantasyHome = pathname === "/fantasy";
+  const isNotifications = pathname.startsWith("/notificaciones");
   const publishedMatchId = pathname.startsWith("/partido/")
     ? decodeURIComponent(pathname.slice("/partido/".length))
     : null;
@@ -25,6 +26,7 @@ export default function App() {
     isPublicLive ||
     isFantasy ||
     isLeGazal ||
+    isNotifications ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
