@@ -76,6 +76,8 @@ export default function LiveReliabilityGuard({ children }) {
 
   const hasControl = control.state === "owned" || control.state === "owned-offline";
   const hasRemoteControl = control.state === "owned";
+  const hasDivergentPendingHistory = pending && control.state === "locked";
+  const canTakeOver = online && !hasDivergentPendingHistory;
 
   const claim = useCallback(async (force = false) => {
     if (!setup?.matchId || !localSessionExists(setup.matchId)) return;
@@ -260,12 +262,14 @@ export default function LiveReliabilityGuard({ children }) {
               <div>
                 <strong>Modo solo lectura</strong>
                 <span>
-                  {control.state === "locked"
-                    ? `El Live está controlado por ${otherLabel}.`
-                    : control.error || "No tienes el control de escritura."}
+                  {hasDivergentPendingHistory
+                    ? "Este dispositivo conserva acciones offline sin subir y otro dispositivo controla el partido. Se bloquea el takeover para no mezclar historiales."
+                    : control.state === "locked"
+                      ? `El Live está controlado por ${otherLabel}.`
+                      : control.error || "No tienes el control de escritura."}
                 </span>
               </div>
-              {online ? (
+              {canTakeOver ? (
                 <button
                   type="button"
                   className="live-control-takeover"
