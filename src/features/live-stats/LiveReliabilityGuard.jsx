@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { loadLiveSetup } from "./localSession.js";
+import { loadLiveSetup, retryPendingLiveSync } from "./localSession.js";
 import {
   getLiveSyncStatus,
   subscribeLiveSyncStatus,
@@ -13,6 +13,10 @@ import "./liveReliability.css";
 
 const SYNC_PENDING_KEY = "gazalbide.live.sync-pending.v1";
 const SETUP_KEY = "gazalbide.live.setup.v1";
+
+function browserOnline() {
+  return typeof navigator === "undefined" || navigator.onLine !== false;
+}
 
 function hasPendingLocalSync() {
   try {
@@ -57,19 +61,30 @@ function syncCopy(status, pending, online) {
 
 export default function LiveReliabilityGuard({ children }) {
   const setup = useMemo(() => loadLiveSetup(), []);
-  const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine !== false);
+  const [online, setOnline] = useState(browserOnline);
   const [syncStatus, setSyncStatus] = useState(() => getLiveSyncStatus());
   const [pending, setPending] = useState(() => hasPendingLocalSync());
-  const [control, setControl] = useState({ state: "loading", holder: null, error: null });
+  const [control, setControl] = useState(() =>
+    browserOnline()
+      ? { state: "loading", holder: null, error: null }
+      : { state: "owned-offline", holder: null, error: null }
+  );
   const [takingControl, setTakingControl] = useState(false);
   const [now, setNow] = useState(Date.now());
   const wakeLockRef = useRef(null);
-  const hadControlRef = useRef(false);
+  const hadControlRef = useRef(!browserOnline());
 
-  const hasControl = control.state === "owned";
+  const hasControl = control.state === "owned" || control.state === "owned-offline";
+  const hasRemoteControl = control.state === "owned";
 
   const claim = useCallback(async (force = false) => {
     if (!setup?.matchId || !localSessionExists(setup.matchId)) return;
+    if (!browserOnline()) {
+      setControl({ state: "owned-offline", holder: null, error: null });
+      hadControlRef.current = true;
+      return;
+    }
+
     setTakingControl(true);
     setControl((current) => ({ ...current, state: force ? "taking" : "loading", error: null }));
     try {
@@ -77,19 +92,27 @@ export default function LiveReliabilityGuard({ children }) {
       if (result?.granted) {
         setControl({ state: "owned", holder: result, error: null });
         hadControlRef.current = true;
+        // A failed pre-lease/temporary offline sync can now be resent with the
+        // fresh server control token stored in the local setup.
+        void retryPendingLiveSync();
       } else {
         setControl({ state: "locked", holder: result || null, error: null });
       }
     } catch (error) {
-      setControl({
-        state: online ? "error" : "offline",
-        holder: null,
-        error: error?.message || "No se pudo obtener el control del Live.",
-      });
+      if (!browserOnline()) {
+        setControl({ state: "owned-offline", holder: null, error: null });
+        hadControlRef.current = true;
+      } else {
+        setControl({
+          state: "error",
+          holder: null,
+          error: error?.message || "No se pudo obtener el control del Live.",
+        });
+      }
     } finally {
       setTakingControl(false);
     }
-  }, [online, setup]);
+  }, [setup]);
 
   useEffect(() => {
     if (!setup?.matchId) return undefined;
@@ -109,19 +132,24 @@ export default function LiveReliabilityGuard({ children }) {
   useEffect(() => {
     const handleOnline = () => {
       setOnline(true);
-      if (control.state === "offline" || control.state === "error") void claim(false);
+      if (localSessionExists(setup?.matchId)) void claim(false);
     };
-    const handleOffline = () => setOnline(false);
+    const handleOffline = () => {
+      setOnline(false);
+      if (localSessionExists(setup?.matchId) && hasControl) {
+        setControl((current) => ({ ...current, state: "owned-offline", error: null }));
+      }
+    };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [claim, control.state]);
+  }, [claim, hasControl, setup?.matchId]);
 
   useEffect(() => {
-    if (!setup?.matchId || !hasControl) return undefined;
+    if (!setup?.matchId || !hasRemoteControl) return undefined;
 
     let cancelled = false;
     const beat = async () => {
@@ -137,7 +165,11 @@ export default function LiveReliabilityGuard({ children }) {
           setControl((current) => ({ ...current, state: "owned", holder: { ...current.holder, ...result } }));
         }
       } catch (error) {
-        if (!cancelled && navigator.onLine !== false) {
+        if (cancelled) return;
+        if (!browserOnline()) {
+          setOnline(false);
+          setControl((current) => ({ ...current, state: "owned-offline", error: null }));
+        } else {
           setControl((current) => ({ ...current, error: error?.message || "No se pudo renovar el control." }));
         }
       }
@@ -148,7 +180,7 @@ export default function LiveReliabilityGuard({ children }) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [hasControl, setup]);
+  }, [hasRemoteControl, setup]);
 
   useEffect(() => {
     if (!hasControl || !navigator.wakeLock?.request) return undefined;
@@ -208,7 +240,12 @@ export default function LiveReliabilityGuard({ children }) {
         </div>
 
         <div className={`live-control-state live-control-state--${hasControl ? "owned" : "locked"}`}>
-          {hasControl ? (
+          {control.state === "owned-offline" ? (
+            <>
+              <strong>Control local: ESTE DISPOSITIVO</strong>
+              <span>Modo offline · las acciones quedan pendientes hasta recuperar Internet</span>
+            </>
+          ) : hasRemoteControl ? (
             <>
               <strong>Control del anotador: ESTE DISPOSITIVO</strong>
               <span>Pantalla activa · Wake Lock {navigator.wakeLock?.request ? "disponible" : "no compatible"}</span>
