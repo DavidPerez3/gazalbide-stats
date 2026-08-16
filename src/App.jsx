@@ -13,6 +13,7 @@ export default function App() {
   const { pathname } = useLocation();
   const isLiveScorer = pathname === "/admin/live";
   const isLiveFlow = pathname.startsWith("/admin/live");
+  const isPublicLive = pathname.startsWith("/live/");
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isFantasy = pathname.startsWith("/fantasy");
   const isFantasyHome = pathname === "/fantasy";
@@ -21,6 +22,7 @@ export default function App() {
     : null;
   const hidesSeasonTabs =
     pathname.startsWith("/admin") ||
+    isPublicLive ||
     isFantasy ||
     isLeGazal ||
     pathname.startsWith("/login") ||
