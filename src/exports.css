@@ -1,4 +1,6 @@
 .exports-page{display:grid;gap:16px;max-width:1180px;margin:0 auto}
+.exports-page__back{width:max-content;min-height:42px;padding:8px 12px;border:1px solid rgba(212,175,55,.42);border-radius:11px;background:rgba(212,175,55,.06);color:var(--color-gold);font:inherit;font-weight:800;cursor:pointer}
+.exports-page__back:hover{background:rgba(212,175,55,.12);border-color:rgba(212,175,55,.65)}
 .exports-page__header{display:flex;justify-content:space-between;align-items:flex-end;gap:18px}
 .exports-page__header h1{margin:.2rem 0 .35rem}
 .exports-page__header p{max-width:720px;margin:0}
@@ -23,6 +25,7 @@
 .excel-export-error{color:#ff9696;font-size:.75rem;max-width:420px}
 .exports-page__error{color:#ff9696;border-color:rgba(255,80,80,.3)}
 @media(max-width:760px){
+  .exports-page__back{width:100%}
   .exports-page__header{align-items:stretch;flex-direction:column}
   .exports-page__scope{min-width:0;width:100%}
   .exports-page__grid{grid-template-columns:1fr}
