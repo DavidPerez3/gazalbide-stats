@@ -18,10 +18,9 @@ export default function Navbar() {
   const handleSignOut = async () => {
     await signOut();
     setIsOpen(false);
-    navigate("/"); // o "/login" si prefieres que redirija al login
+    navigate("/");
   };
 
-  // criterio de admin: is_admin TRUE o email concreto
   const isAdmin =
     user &&
     (profile?.is_admin === true ||
@@ -48,7 +47,6 @@ export default function Navbar() {
           </NavLink>
         </div>
 
-        {/* Botón hamburger */}
         <button
           className={toggleClassName}
           type="button"
@@ -61,7 +59,6 @@ export default function Navbar() {
           <span className="navbar__toggle-bar" />
         </button>
 
-        {/* Menú navegación */}
         <nav className={`nav ${isOpen ? "nav--open" : ""}`}>
           <NavLink to="/" className={link} onClick={handleLinkClick}>
             Inicio
@@ -79,17 +76,18 @@ export default function Navbar() {
             Fantasy
           </NavLink>
 
-          {/* Si NO hay usuario → mostrar Login */}
           {!user && (
             <NavLink to="/login" className={link} onClick={handleLinkClick}>
               Login
             </NavLink>
           )}
 
-          {/* Si hay usuario → mostrar Fantasy y Salir */}
           {user && (
             <>
-              {/* Solo admin → mostrar Admin */}
+              <NavLink to="/notificaciones" className={link} onClick={handleLinkClick}>
+                Avisos
+              </NavLink>
+
               {isAdmin && (
                 <NavLink
                   to="/admin"

@@ -14,6 +14,7 @@ import LeGazalPage from "./pages/LeGazalPage.jsx";
 
 import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
 import AdminPlayers from "./pages/AdminPlayers.jsx";
 import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
@@ -55,6 +56,14 @@ const router = createHashRouter([
       { path: "login", element: <AuthPage /> },
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "reset-password", element: <ResetPassword /> },
+      {
+        path: "notificaciones",
+        element: (
+          <PrivateRoute>
+            <NotificationSettingsPage />
+          </PrivateRoute>
+        ),
+      },
 
       {
         path: "fantasy",

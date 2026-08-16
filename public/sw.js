@@ -1,4 +1,4 @@
-const CACHE_NAME = "gazalbide-stats-v2";
+const CACHE_NAME = "gazalbide-stats-v3";
 const APP_SHELL = [
   "/gazalbide-stats/",
   "/gazalbide-stats/manifest.webmanifest",
@@ -52,4 +52,49 @@ self.addEventListener("fetch", (event) => {
       });
     })
   );
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data?.text?.() || "Tienes un nuevo aviso de Gazalbide Stats." };
+  }
+
+  const title = payload.title || "Gazalbide Stats";
+  const options = {
+    body: payload.body || "Tienes un nuevo aviso.",
+    icon: "/gazalbide-stats/logo.png",
+    badge: "/gazalbide-stats/logo.png",
+    tag: payload.tag || "gazalbide-notification",
+    renotify: false,
+    data: {
+      route: payload.route || "/",
+      payload: payload.payload || {},
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const route = event.notification.data?.route || "/";
+  const normalizedRoute = route.startsWith("/") ? route : `/${route}`;
+  const targetUrl = `${self.registration.scope}#${normalizedRoute}`;
+
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      try {
+        if ("navigate" in client) await client.navigate(targetUrl);
+        if ("focus" in client) await client.focus();
+        return;
+      } catch {
+        // Try another matching client or open a new window below.
+      }
+    }
+    if (self.clients.openWindow) await self.clients.openWindow(targetUrl);
+  })());
 });
