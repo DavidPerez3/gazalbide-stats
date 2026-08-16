@@ -3,6 +3,7 @@ import LiveStatsPage from "./LiveStatsPage.jsx";
 import LiveStaffDisciplinePanel from "../features/live-stats/LiveStaffDisciplinePanel.jsx";
 import LiveActionHistoryPanel from "../features/live-stats/LiveActionHistoryPanel.jsx";
 import LiveClockPeriodPanel from "../features/live-stats/LiveClockPeriodPanel.jsx";
+import LiveReviewEntry from "../features/live-stats/LiveReviewEntry.jsx";
 import { hapticTap } from "../features/live-stats/haptics.js";
 import { retryPendingLiveSync } from "../features/live-stats/localSession.js";
 
@@ -37,6 +38,7 @@ export default function LiveStatsWithStaffPage() {
       <LiveActionHistoryPanel />
       <LiveClockPeriodPanel />
       <LiveStaffDisciplinePanel />
+      <LiveReviewEntry />
     </>
   );
 }

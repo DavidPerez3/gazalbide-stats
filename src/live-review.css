@@ -1,0 +1,377 @@
+.live-review {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.live-review__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 22px;
+}
+
+.live-review__eyebrow,
+.live-review__section-title span,
+.live-review__metric span,
+.live-review__publish-gate > div > span {
+  display: block;
+  color: var(--muted, #a1a1aa);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.live-review__hero h1,
+.live-review__section-title h2,
+.live-review__publish-gate h2 {
+  margin: 4px 0 0;
+}
+
+.live-review__hero p,
+.live-review__publish-gate p {
+  margin: 6px 0 0;
+  color: var(--muted, #a1a1aa);
+}
+
+.live-review__score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-review__score strong {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  line-height: 1;
+}
+
+.live-review__score span {
+  color: var(--muted, #a1a1aa);
+  font-size: 1.6rem;
+}
+
+.live-review__status {
+  min-width: 170px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.live-review__status strong {
+  font-size: 0.78rem;
+}
+
+.live-review__status span {
+  color: var(--muted, #a1a1aa);
+  font-size: 0.72rem;
+}
+
+.live-review__status.is-ready,
+.live-review__publish-gate.is-ready {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.06);
+}
+
+.live-review__status.is-ready strong,
+.is-positive {
+  color: #86efac;
+}
+
+.live-review__status.is-blocked,
+.live-review__publish-gate.is-blocked {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.live-review__status.is-blocked strong,
+.is-negative {
+  color: #fca5a5;
+}
+
+.live-review__actions,
+.live-review__publish-gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.live-review__actions > div:first-child,
+.live-review__publish-gate > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.live-review__actions span {
+  color: var(--muted, #a1a1aa);
+  font-size: 0.78rem;
+}
+
+.live-review__action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.live-review button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+}
+
+.live-review button:not(:disabled):hover {
+  border-color: rgba(250, 204, 21, 0.55);
+}
+
+.live-review button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.live-review__action-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 10px;
+  background: rgba(248, 113, 113, 0.08);
+  color: #fecaca;
+  font-weight: 800;
+}
+
+.live-review__section-title {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.live-review__validation-counts,
+.live-review__team-total {
+  display: flex;
+  gap: 12px;
+  font-size: 0.78rem;
+}
+
+.live-review__issues {
+  display: grid;
+  gap: 8px;
+}
+
+.live-review__issue {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.live-review__issue > span {
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.live-review__issue strong {
+  font-size: 0.88rem;
+}
+
+.live-review__issue p {
+  margin: 3px 0 0;
+  color: var(--muted, #a1a1aa);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.live-review__issue--error {
+  border-color: rgba(248, 113, 113, 0.32);
+}
+
+.live-review__issue--error > span {
+  color: #fca5a5;
+}
+
+.live-review__issue--warning {
+  border-color: rgba(250, 204, 21, 0.32);
+}
+
+.live-review__issue--warning > span {
+  color: #fde68a;
+}
+
+.live-review__issue--info > span {
+  color: #93c5fd;
+}
+
+.live-review__all-good {
+  padding: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.06);
+  color: #bbf7d0;
+  font-weight: 800;
+}
+
+.live-review__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.live-review__metric {
+  display: grid;
+  gap: 5px;
+}
+
+.live-review__metric strong {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-review__metric small {
+  color: var(--muted, #a1a1aa);
+}
+
+.live-review__table-wrap {
+  overflow-x: auto;
+}
+
+.live-review__table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-review__table th,
+.live-review__table td {
+  padding: 8px 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.live-review__table th:first-child,
+.live-review__table td:first-child {
+  text-align: left;
+}
+
+.live-review__table thead th {
+  color: var(--muted, #a1a1aa);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.live-review__table tfoot th {
+  border-top: 1px solid rgba(250, 204, 21, 0.28);
+  border-bottom: 0;
+}
+
+.live-review__player-name,
+.live-review__lineup-names {
+  max-width: 360px;
+  white-space: normal;
+}
+
+.live-review__table--lineups td:first-child {
+  min-width: 300px;
+}
+
+.live-review__staff-list {
+  display: grid;
+  gap: 8px;
+}
+
+.live-review__staff-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+}
+
+.live-review__staff-list span,
+.live-review__empty {
+  color: var(--muted, #a1a1aa);
+  font-size: 0.76rem;
+}
+
+.live-review__publish-gate button {
+  min-width: 210px;
+}
+
+@media (max-width: 900px) {
+  .live-review__hero {
+    grid-template-columns: 1fr auto;
+  }
+
+  .live-review__status {
+    grid-column: 1 / -1;
+  }
+
+  .live-review__summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-review__actions,
+  .live-review__publish-gate {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .live-review__action-buttons {
+    justify-content: flex-start;
+  }
+
+  .live-review__publish-gate button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .live-review {
+    gap: 12px;
+  }
+
+  .live-review__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .live-review__score {
+    justify-content: flex-start;
+  }
+
+  .live-review__summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .live-review__section-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .live-review__issue {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .live-review__action-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .live-review__action-buttons button {
+    width: 100%;
+  }
+}
