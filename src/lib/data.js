@@ -103,9 +103,18 @@ export async function getMatches(seasonId) {
 export async function getPlayers(seasonId) {
   const resolved = resolveSeasonId(seasonId);
 
-  // The current-season mobile draft remains usable until it is explicitly synced
-  // to Supabase. Once synced, the draft is cleared and the canonical roster wins.
-  if (resolved === CURRENT_SEASON_ID) {
+  // Supabase is canonical as soon as the current-season roster exists there.
+  // A stale mobile draft must never override real player ids, because Live Stats
+  // persists player_id as bigint. Keep the local draft only as an offline/first
+  // setup fallback while the canonical season roster is genuinely absent.
+  if (resolved === CURRENT_SEASON_ID && STATS_SOURCE === "supabase") {
+    try {
+      const canonical = await getPlayersFromSupabase(resolved);
+      if (Array.isArray(canonical) && canonical.length > 0) return canonical;
+    } catch (error) {
+      console.warn("[stats] No se pudo cargar la plantilla canónica; comprobando borrador local.", error);
+    }
+
     const localDraft = getLocalRosterDraft({ includeInactive: false });
     if (localDraft.length) return localDraft;
   }
