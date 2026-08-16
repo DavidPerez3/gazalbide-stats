@@ -1,5 +1,6 @@
 import { supabase } from "../../lib/supabaseClient.js";
 import { ensureRemoteLiveSession } from "./supabaseSync.js";
+import { repairLocalLiveRosterIds } from "./liveSetupRepair.js";
 
 const SETUP_KEY = "gazalbide.live.setup.v1";
 const DEVICE_KEY = "gazalbide.live.physical-device.v1";
@@ -89,8 +90,19 @@ export async function claimLiveControl(setup, { force = false } = {}) {
     throw new Error("Necesitas conexión para obtener el control del anotador.");
   }
 
+  // Older mobile roster drafts used ids such as `draft:<uuid>`. They are valid
+  // local UI ids but can never be persisted into bigint player_id columns. If
+  // such a session is still open, remap setup + starters + events + minutes to
+  // the canonical Supabase player ids and reload once before any remote write.
+  const repaired = await repairLocalLiveRosterIds(setup);
+  if (repaired.changed) {
+    window.location.reload();
+    return { granted: false, reason: "roster_ids_repaired" };
+  }
+  const activeSetup = repaired.setup || setup;
+
   const deviceId = getLivePhysicalDeviceId();
-  const current = await getLiveControlStatus(setup.matchId).catch(() => ({ active: false }));
+  const current = await getLiveControlStatus(activeSetup.matchId).catch(() => ({ active: false }));
 
   // If a lease row already exists, even expired, the match already exists remotely.
   // Claim first so protected roster/state writes never run with a stale/null token.
@@ -98,13 +110,13 @@ export async function claimLiveControl(setup, { force = false } = {}) {
     if (current.active && String(current.device_id) !== String(deviceId) && !force) {
       return { granted: false, ...current, reason: "held_by_other_device" };
     }
-    return requestClaim(setup, deviceId, force);
+    return requestClaim(activeSetup, deviceId, force);
   }
 
   // Brand-new local sessions need their match+roster created before the FK-backed lease.
-  const prepared = await ensureRemoteLiveSession(setup);
+  const prepared = await ensureRemoteLiveSession(activeSetup);
   if (!prepared?.ok) throw new Error("No se pudo preparar el Live remoto.");
-  return requestClaim(setup, deviceId, force);
+  return requestClaim(activeSetup, deviceId, force);
 }
 
 export async function heartbeatLiveControl(setup) {
