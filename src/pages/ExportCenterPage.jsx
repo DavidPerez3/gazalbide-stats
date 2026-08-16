@@ -157,7 +157,7 @@ export default function ExportCenterPage() {
             </div>
             <div className="exports-card__meta">
               <span>{lineupRows.length} registros de quinteto</span>
-              {lineupRows.length === 0 ? <span>El histórico 2025-2026 no dispone de stints.</span> : null}
+              {lineupRows.length === 0 ? <span>El histórico 2025-2026 no dispone de tramos de quinteto registrados.</span> : null}
             </div>
             <ExcelExportButton
               onExport={() => exportLineupsExcel({ scope, lineupRows, playerRows, disciplineAdjustments })}
