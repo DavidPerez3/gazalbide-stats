@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  margin-bottom: 16px;
   text-decoration: none;
   color: inherit;
   border-color: rgba(248,113,113,.35);
@@ -45,7 +46,7 @@
 }
 
 @media (max-width: 520px) {
-  .public-live-banner { align-items: flex-start; }
+  .public-live-banner { align-items: flex-start; margin-bottom: 18px; }
   .public-live-banner__score b { font-size: 1.35rem; }
   .public-live-banner__score span { max-width: 85px; }
 }
