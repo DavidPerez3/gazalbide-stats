@@ -1,5 +1,5 @@
 .admin-center {
-  padding: 2rem 0 0;
+  padding: 2rem 0 2rem;
 }
 
 .admin-center__hero {
@@ -79,6 +79,11 @@
   background: rgba(29, 25, 14, 0.82);
 }
 
+.admin-module--pending {
+  border-style: dashed;
+  opacity: 0.72;
+}
+
 .admin-module__top {
   display: flex;
   align-items: center;
@@ -127,7 +132,7 @@
 }
 
 .admin-module__action,
-.admin-module__pending {
+.admin-module__pending-copy {
   margin-top: auto;
   padding-top: 1rem;
 }
@@ -153,21 +158,79 @@
   background: rgba(212, 175, 55, 0.1);
 }
 
-.admin-module__pending {
+.admin-module__pending-copy {
   color: #777;
   font-size: 0.78rem;
 }
 
-.admin-center__fantasy {
-  scroll-margin-top: 76px;
+.admin-fantasy-page {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 32px;
 }
 
-.admin-center__fantasy .admin {
-  padding-top: 1.25rem;
+.admin-subpage-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
 }
 
-.admin-center__fantasy .admin__card {
-  border: 1px solid rgba(212, 175, 55, 0.18);
+.admin-subpage-header h1,
+.admin-subpage-header p {
+  margin: 0;
+}
+
+.admin-subpage-header h1 {
+  margin-top: 3px;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.admin-subpage-header .text-dim {
+  max-width: 720px;
+  margin-top: 7px;
+  line-height: 1.45;
+}
+
+.admin-subpage-back {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.07);
+  color: var(--color-gold);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-fantasy-page__proposal,
+.admin-fantasy-page__settings,
+.admin-fantasy-page__settings .admin,
+.admin-fantasy-page__settings .admin > .container {
+  min-width: 0;
+}
+
+.admin-fantasy-page__proposal > *,
+.admin-fantasy-page__settings .admin__card {
+  margin: 0;
+}
+
+.admin-fantasy-page__settings .admin {
+  padding: 0;
+}
+
+.admin-fantasy-page__settings .admin > .container {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+/* El encabezado de la subpágina ya explica el contexto; evitamos repetir un
+   segundo "Panel Admin" justo debajo. */
+.admin-fantasy-page__settings .admin__header {
+  display: none;
 }
 
 @media (max-width: 900px) {
@@ -204,11 +267,17 @@
     width: 100%;
   }
 
-  .admin-center__fantasy .admin {
-    padding-top: 0.85rem;
+  .admin-subpage-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 13px;
   }
 
-  .admin-center__fantasy .admin__card {
+  .admin-subpage-back {
+    width: 100%;
+  }
+
+  .admin-fantasy-page__settings .admin__card {
     padding: 1rem;
   }
 }
