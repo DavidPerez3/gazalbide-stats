@@ -1,6 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import AdminPage from "./AdminPage.jsx";
-import FantasyPriceProposalPanel from "../components/FantasyPriceProposalPanel.jsx";
 import "../admin.css";
 
 const modules = [
@@ -8,7 +6,7 @@ const modules = [
     id: "matches",
     icon: "🏀",
     title: "Partidos",
-    description: "Crear, revisar y publicar partidos de Gazalbide.",
+    description: "Gestión independiente de partidos fuera del flujo Live Stats.",
     status: "Próximamente",
   },
   {
@@ -18,29 +16,35 @@ const modules = [
     description: "Gestionar la plantilla 2026-2027, dorsales y fotos de perfil.",
     status: "Operativo",
     available: true,
+    path: "/admin/players",
+    action: "Abrir jugadores",
   },
   {
     id: "stats",
     icon: "📊",
     title: "Estadísticas",
-    description: "Revisar y administrar las estadísticas de cada partido.",
+    description: "Herramientas administrativas específicas de estadísticas y correcciones fuera del Live.",
     status: "Próximamente",
   },
   {
     id: "fantasy",
     icon: "🎮",
     title: "Fantasy",
-    description: "Gestionar jornadas, deadlines y alineaciones Fantasy.",
+    description: "Mercado, precios, rasgos, jornadas, deadlines y economía Fantasy.",
     status: "Operativo",
     available: true,
+    path: "/admin/fantasy",
+    action: "Abrir Fantasy",
   },
   {
     id: "live",
     icon: "⚡",
     title: "Live Stats",
-    description: "Preparar convocatoria y registrar el partido en horizontal con almacenamiento local.",
+    description: "Preparar convocatoria, registrar el partido, revisar y publicar.",
     status: "Operativo",
     available: true,
+    path: "/admin/live/setup",
+    action: "Abrir Live Stats",
   },
   {
     id: "exports",
@@ -49,32 +53,13 @@ const modules = [
     description: "Descargar Excel de partidos, temporadas, histórico y quintetos/+/-.",
     status: "Operativo",
     available: true,
+    path: "/admin/exportaciones",
+    action: "Abrir exportaciones",
   },
 ];
 
 export default function AdminCenter() {
   const navigate = useNavigate();
-
-  const openModule = (module) => {
-    if (module.id === "players") {
-      navigate("/admin/players");
-      return;
-    }
-    if (module.id === "live") {
-      navigate("/admin/live/setup");
-      return;
-    }
-    if (module.id === "exports") {
-      navigate("/admin/exportaciones");
-      return;
-    }
-    if (module.id === "fantasy") {
-      document.getElementById("admin-fantasy")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
 
   return (
     <div className="admin-center">
@@ -83,7 +68,7 @@ export default function AdminCenter() {
           <p className="admin-center__eyebrow">Administración · Gazalbide Stats</p>
           <h1 className="admin-center__title">Centro de administración</h1>
           <p className="admin-center__subtitle">
-            Todas las herramientas de gestión de Gazalbide se irán centralizando aquí.
+            Cada herramienta vive en su propia página para que el panel siga limpio y sea cómodo también desde el móvil.
           </p>
         </header>
 
@@ -91,7 +76,7 @@ export default function AdminCenter() {
           <div className="admin-center__section-heading">
             <div>
               <h2 id="admin-modules-title">Módulos</h2>
-              <p>Plantilla, Fantasy, Live Stats y exportaciones ya tienen módulos propios dentro del rol admin.</p>
+              <p>Los módulos operativos se abren como subpáginas. Partidos y Estadísticas quedan marcados como pendientes hasta que tengan una gestión propia.</p>
             </div>
           </div>
 
@@ -99,7 +84,7 @@ export default function AdminCenter() {
             {modules.map((module) => (
               <article
                 key={module.id}
-                className={`admin-module${module.available ? " admin-module--available" : ""}`}
+                className={`admin-module${module.available ? " admin-module--available" : " admin-module--pending"}`}
               >
                 <div className="admin-module__top">
                   <span className="admin-module__icon" aria-hidden="true">{module.icon}</span>
@@ -112,26 +97,17 @@ export default function AdminCenter() {
                 <p className="admin-module__description">{module.description}</p>
 
                 {module.available ? (
-                  <button type="button" className="admin-module__action" onClick={() => openModule(module)}>
-                    Abrir {module.id === "live" ? "Live Stats" : module.id === "exports" ? "exportaciones" : "gestión"} <span aria-hidden="true">→</span>
+                  <button type="button" className="admin-module__action" onClick={() => navigate(module.path)}>
+                    {module.action} <span aria-hidden="true">→</span>
                   </button>
                 ) : (
-                  <span className="admin-module__pending">Aún no disponible</span>
+                  <span className="admin-module__pending-copy">Sin controles activos todavía</span>
                 )}
               </article>
             ))}
           </div>
         </section>
       </div>
-
-      <section id="admin-fantasy" className="admin-center__fantasy" aria-label="Gestión Fantasy">
-        <div className="admin">
-          <div className="container">
-            <FantasyPriceProposalPanel />
-          </div>
-        </div>
-        <AdminPage />
-      </section>
     </div>
   );
 }
