@@ -1,0 +1,372 @@
+/* Final cross-app responsive pass.
+   Page-specific CSS remains the source of the visual design; this file only
+   hardens shared layout behaviour, safe areas and awkward breakpoint edges. */
+
+html,
+body,
+#root,
+.h-100,
+.main,
+.main > .container {
+  min-width: 0;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.card,
+.stats-page,
+.admin,
+.admin-center,
+.admin-players,
+.notifications-page,
+.exports-page,
+.live-center,
+.player-season-detail {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3,
+p,
+.text-dim {
+  overflow-wrap: anywhere;
+}
+
+.navbar {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Tables must remain real tables. Horizontal scrolling belongs to their
+   wrappers; display:block on <table> caused column/sticky glitches on phones. */
+@media (max-width: 900px) {
+  .table {
+    display: table !important;
+  }
+
+  .table-wrap,
+  .stats-table-card,
+  .player-season-table-wrap,
+  .fantasy__ranking,
+  .fantasy__section-card,
+  .live-review__table-wrap,
+  .live-center__table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .container {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+
+  /* These routes already sit inside App's .container. Avoid double gutters. */
+  .auth > .container,
+  .admin > .container,
+  .admin-center > .container,
+  .admin-center__fantasy .admin > .container,
+  .fantasy > .container,
+  .fantasy-builder > .container {
+    width: 100%;
+    max-width: none;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .nav {
+    max-height: calc(100dvh - 82px - env(safe-area-inset-top));
+    overscroll-behavior: contain;
+  }
+
+  .auth__card,
+  .admin__card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin__input,
+  .auth__input,
+  input[type="date"],
+  input[type="datetime-local"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .admin__list-item,
+  .admin__list-main,
+  .admin__gw-meta {
+    min-width: 0;
+  }
+
+  .admin__list-item strong,
+  .admin__gw-name,
+  .admin__gw-sub,
+  .admin__text {
+    overflow-wrap: anywhere;
+  }
+
+  .best-lineup__names,
+  .best-lineup__metrics,
+  .best-lineup__foot {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .notifications-page__pref > div,
+  .notifications-page__history-list > div > div {
+    min-width: 0;
+  }
+
+  .notifications-page__pref strong,
+  .notifications-page__pref span,
+  .notifications-page__history-list strong,
+  .notifications-page__history-list span {
+    overflow-wrap: anywhere;
+  }
+
+  .active-live-shortcut {
+    max-width: calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right)));
+  }
+
+  /* Full-screen tools also need room for notches in standalone PWA mode. */
+  .live-reliability-bar {
+    padding-left: max(0.65rem, env(safe-area-inset-left));
+    padding-right: max(0.65rem, env(safe-area-inset-right));
+  }
+
+  .le-gazal-app-container {
+    padding-left: max(5px, env(safe-area-inset-left)) !important;
+    padding-right: max(5px, env(safe-area-inset-right)) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+}
+
+/* Small tablets should use their width instead of inheriting the one-column
+   phone layout from mobile.css. */
+@media (min-width: 700px) and (max-width: 1023px) {
+  .grid--2,
+  .grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .admin-center__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .admin-center__section-heading,
+  .player-career-panel__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin__list-item {
+    flex-wrap: wrap;
+  }
+
+  .admin__field--inline {
+    width: 100%;
+  }
+
+  .admin__field--inline > label {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .history-ranking__filters,
+  .history-ranking__top-controls {
+    width: 100%;
+  }
+
+  .history-ranking__filters > .stats-field,
+  .history-ranking__top-controls > .stats-field {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  /* Player/staff ranking fits on a phone. Wide lineup tables scroll instead
+     of squeezing five names and seven metrics into unreadable columns. */
+  .history-lineup-table {
+    min-width: 760px;
+    table-layout: auto !important;
+  }
+
+  .history-lineup-table th,
+  .history-lineup-table td {
+    white-space: nowrap !important;
+  }
+
+  .history-lineup-table td:nth-child(2) {
+    min-width: 280px;
+    white-space: normal !important;
+  }
+
+  .history-ranking__staff-note + .stats-table-card .ranking-table {
+    min-width: 620px;
+    table-layout: auto !important;
+  }
+
+  .player-season-table-wrap .table {
+    min-width: 650px;
+    table-layout: auto !important;
+  }
+
+  .player-season-detail > section > .flex.justify-between.items-center {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .player-season-detail > section > .flex.justify-between.items-center > .flex {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .player-season-detail > section > .flex.justify-between.items-center .input {
+    min-width: 120px;
+  }
+
+  .player-season-detail > section > .card[style*="overflow"] .table {
+    min-width: 1120px;
+    table-layout: auto !important;
+    white-space: nowrap !important;
+  }
+
+  .sticky-first-two {
+    min-width: 1120px;
+  }
+
+  .sticky-first-two .col-name {
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+
+  .main {
+    padding-top: 10px;
+  }
+
+  .auth {
+    padding: 1rem 0 1.5rem;
+  }
+
+  .auth__card {
+    padding: 1.25rem 1rem;
+    border-radius: 14px;
+  }
+
+  .auth__title {
+    margin-top: 0;
+    font-size: clamp(1.5rem, 8vw, 1.9rem);
+  }
+
+  .auth__tab,
+  .auth__button,
+  .auth__input {
+    min-height: 46px;
+  }
+
+  .admin-center__hero,
+  .admin__card,
+  .admin-players__form-card,
+  .admin-players__roster-card,
+  .exports-card,
+  .notifications-page .card {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .notifications-page__actions .btn {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+
+  .notifications-page__pref {
+    align-items: flex-start;
+  }
+
+  .exports-page__header h1,
+  .admin-players__header h1,
+  .admin-center__title {
+    overflow-wrap: anywhere;
+  }
+
+  .active-live-shortcut {
+    width: auto;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    transform: none;
+  }
+
+  .active-live-shortcut b {
+    font-size: 0.66rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .player-profile-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .player-profile-hero h1 {
+    font-size: clamp(1.45rem, 9vw, 1.9rem);
+    overflow-wrap: anywhere;
+  }
+
+  .player-career-kpis,
+  .player-record-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .best-lineup__metrics strong {
+    width: 100%;
+  }
+
+  .notifications-page__history-list time {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 350px) {
+  .player-career-kpis,
+  .player-record-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .brand__title {
+    font-size: 14px;
+  }
+}
+
+/* Landscape scorer: leave the intentionally dense console intact, but make
+   sure screen cut-outs do not cover the edge controls. */
+@media (orientation: landscape) and (max-height: 700px) {
+  .live-reliability-bar {
+    padding-left: max(0.45rem, env(safe-area-inset-left));
+    padding-right: max(0.45rem, env(safe-area-inset-right));
+    padding-top: max(0.28rem, env(safe-area-inset-top));
+  }
+
+  .live-reliability-content {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
