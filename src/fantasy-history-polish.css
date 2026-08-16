@@ -1,0 +1,94 @@
+/* History/detail pages share the existing Fantasy markup. These rules focus on
+   the journey cards and their wide player breakdown without touching scoring. */
+
+.fantasy__section-card {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.fantasy__section-card-header {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.fantasy__section-card-header h3 {
+  margin: 0;
+  color: #f4f4f5;
+  line-height: 1.3;
+}
+
+.fantasy__section-card-header strong {
+  color: var(--color-gold, #e8c45a);
+}
+
+@media (max-width: 900px) {
+  .fantasy__section-card {
+    position: relative;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fantasy__section-card .fantasy__ranking-table {
+    width: 680px;
+    min-width: 680px;
+    table-layout: auto;
+  }
+
+  .fantasy__section-card .fantasy__ranking-table th,
+  .fantasy__section-card .fantasy__ranking-table td {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .fantasy__section-card .fantasy__ranking-table th:nth-child(1),
+  .fantasy__section-card .fantasy__ranking-table td:nth-child(1) {
+    width: 42px;
+    min-width: 42px;
+  }
+
+  .fantasy__section-card .fantasy__ranking-table th:nth-child(2),
+  .fantasy__section-card .fantasy__ranking-table td:nth-child(2) {
+    min-width: 150px;
+    max-width: 190px;
+    white-space: normal;
+  }
+
+  .fantasy__section-card::after {
+    content: "Desliza para ver el desglose completo ↔";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: min(100%, 330px);
+    padding-top: 7px;
+    color: var(--color-ink-dim, #9ca3af);
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .fantasy__section-card-header h3 {
+    font-size: 1rem;
+  }
+
+  .fantasy__section-card-header .fantasy__text {
+    margin-top: 0 !important;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .fantasy__section-card .fantasy__ranking-table {
+    width: 640px;
+    min-width: 640px;
+    font-size: 0.76rem;
+  }
+
+  .fantasy__section-card .fantasy__ranking-table th,
+  .fantasy__section-card .fantasy__ranking-table td {
+    padding: 8px 7px !important;
+  }
+}
