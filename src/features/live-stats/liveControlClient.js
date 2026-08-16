@@ -92,20 +92,16 @@ export async function claimLiveControl(setup, { force = false } = {}) {
   const deviceId = getLivePhysicalDeviceId();
   const current = await getLiveControlStatus(setup.matchId).catch(() => ({ active: false }));
 
-  // An active lease belongs to a real remote match. Do not touch roster/state
-  // before claiming: those writes are intentionally protected by the current token.
-  if (current?.active) {
-    if (String(current.device_id) !== String(deviceId) && !force) {
-      return {
-        granted: false,
-        ...current,
-        reason: "held_by_other_device",
-      };
+  // If a lease row already exists, even expired, the match already exists remotely.
+  // Claim first so protected roster/state writes never run with a stale/null token.
+  if (current?.device_id) {
+    if (current.active && String(current.device_id) !== String(deviceId) && !force) {
+      return { granted: false, ...current, reason: "held_by_other_device" };
     }
     return requestClaim(setup, deviceId, force);
   }
 
-  // New/local sessions need their match+roster created before the FK-backed lease.
+  // Brand-new local sessions need their match+roster created before the FK-backed lease.
   const prepared = await ensureRemoteLiveSession(setup);
   if (!prepared?.ok) throw new Error("No se pudo preparar el Live remoto.");
   return requestClaim(setup, deviceId, force);
