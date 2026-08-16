@@ -35,6 +35,7 @@ import { installFantasyStatsFetchAdapter } from "./lib/fantasyGameweekStats.js";
 import "./index.css";
 import "./mobile.css";
 import "./fantasy-mobile.css";
+import "./responsive-cleanup.css";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 
