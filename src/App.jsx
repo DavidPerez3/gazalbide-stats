@@ -4,6 +4,7 @@ import SeasonTabs from "./components/SeasonTabs.jsx";
 import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
 import FantasyLeGazalOffer from "./components/FantasyLeGazalOffer.jsx";
 import FantasyLivePreview from "./components/FantasyLivePreview.jsx";
+import PublishedBestLineup from "./components/PublishedBestLineup.jsx";
 import ActiveLiveShortcut from "./components/ActiveLiveShortcut.jsx";
 import "./mobile-polish.css";
 import "./active-live.css";
@@ -15,6 +16,9 @@ export default function App() {
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isFantasy = pathname.startsWith("/fantasy");
   const isFantasyHome = pathname === "/fantasy";
+  const publishedMatchId = pathname.startsWith("/partido/")
+    ? decodeURIComponent(pathname.slice("/partido/".length))
+    : null;
   const hidesSeasonTabs =
     pathname.startsWith("/admin") ||
     isFantasy ||
@@ -55,6 +59,7 @@ export default function App() {
         <div className="container">
           {isFantasyHome && <FantasyLivePreview />}
           <Outlet />
+          {publishedMatchId && <PublishedBestLineup matchId={publishedMatchId} />}
         </div>
       </main>
       <footer className="footer">
