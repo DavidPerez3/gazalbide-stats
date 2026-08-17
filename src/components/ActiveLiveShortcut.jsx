@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { loadLiveRuntime, loadLiveSetup } from "../features/live-stats/localSession.js";
+import { supabase } from "../lib/supabaseClient.js";
+import {
+  clearLiveSession,
+  loadLiveRuntime,
+  loadLiveSetup,
+} from "../features/live-stats/localSession.js";
 
 function formatClock(ms) {
   const total = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
@@ -23,17 +28,81 @@ function readMinimized(matchId) {
   }
 }
 
+function removeMinimizedState(matchId) {
+  if (!matchId) return;
+  try {
+    window.sessionStorage.removeItem(storageKey(matchId));
+  } catch {
+    // sessionStorage puede estar bloqueado; no impide limpiar el Live local.
+  }
+}
+
 export default function ActiveLiveShortcut() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const setup = loadLiveSetup();
-  const runtime = loadLiveRuntime();
+  const [setup, setSetup] = useState(() => loadLiveSetup());
+  const [runtime, setRuntime] = useState(() => loadLiveRuntime());
   const matchId = setup?.matchId || null;
   const [minimized, setMinimized] = useState(() => readMinimized(matchId));
 
   useEffect(() => {
     setMinimized(readMinimized(matchId));
   }, [matchId]);
+
+  // El acceso rápido no puede depender solo de localStorage. Si el partido se
+  // borra, publica o deja de estar Live desde otro dispositivo, limpiamos la
+  // sesión local obsoleta. Un error de red NO borra nada para preservar el
+  // funcionamiento offline del anotador.
+  useEffect(() => {
+    if (!profile?.is_admin || !matchId) return undefined;
+
+    let cancelled = false;
+
+    async function validateRemoteLive() {
+      const { data, error } = await supabase
+        .from("matches")
+        .select("id,status")
+        .eq("id", matchId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("No se pudo validar el Live activo contra Supabase:", error);
+        return;
+      }
+
+      if (!data || data.status !== "live") {
+        clearLiveSession();
+        removeMinimizedState(matchId);
+        setSetup(null);
+        setRuntime(null);
+        setMinimized(false);
+        return;
+      }
+
+      // Refresca el pequeño resumen cuando volvemos a la app.
+      setRuntime(loadLiveRuntime());
+    }
+
+    void validateRemoteLive();
+
+    const intervalId = window.setInterval(validateRemoteLive, 15000);
+    const handleFocus = () => void validateRemoteLive();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void validateRemoteLive();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [profile?.is_admin, matchId]);
 
   useEffect(() => {
     if (!profile?.is_admin || !matchId) return undefined;
