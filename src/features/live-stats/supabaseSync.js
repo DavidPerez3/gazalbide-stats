@@ -142,22 +142,41 @@ async function maybePrepareFantasyLive(setup) {
   }
 }
 
+async function getExistingRemoteMatch(matchId) {
+  const { data, error } = await supabase
+    .from("matches")
+    .select("id,status")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
 async function ensureRemoteMatch(setup) {
   if (!setup?.matchId) throw new Error("La sesión Live no tiene matchId persistente.");
 
-  const match = {
-    id: setup.matchId,
-    season: setup.seasonId,
-    date: setup.matchDate,
-    opponent: setup.opponent || "Rival",
-    gazal_side: setup.gazalSide || "home",
-    status: "live",
-  };
+  // Una sesión local antigua no debe poder resucitar un partido que ya fue
+  // finalizado/publicado/descartado desde servidor u otro dispositivo.
+  const existing = await getExistingRemoteMatch(setup.matchId);
+  if (existing && existing.status !== "live") {
+    return { closed: true, status: existing.status };
+  }
 
-  const { error: matchError } = await supabase
-    .from("matches")
-    .upsert(match, { onConflict: "id", ignoreDuplicates: true });
-  if (matchError) throw matchError;
+  if (!existing) {
+    const match = {
+      id: setup.matchId,
+      season: setup.seasonId,
+      date: setup.matchDate,
+      opponent: setup.opponent || "Rival",
+      gazal_side: setup.gazalSide || "home",
+      status: "live",
+    };
+
+    const { error: matchError } = await supabase
+      .from("matches")
+      .upsert(match, { onConflict: "id", ignoreDuplicates: true });
+    if (matchError) throw matchError;
+  }
 
   const rows = rosterRows(setup);
   if (rows.length > 0) {
@@ -168,11 +187,13 @@ async function ensureRemoteMatch(setup) {
   }
 
   await maybePrepareFantasyLive(setup);
+  return { closed: false, status: "live" };
 }
 
 export async function ensureRemoteLiveSession(setup) {
   if (isOffline()) return { ok: false, offline: true };
-  await ensureRemoteMatch(setup);
+  const remote = await ensureRemoteMatch(setup);
+  if (remote?.closed) return { ok: true, closed: true, status: remote.status };
   return { ok: true };
 }
 
@@ -240,7 +261,9 @@ async function syncSession(snapshot) {
     return { ok: false, offline: true };
   }
 
-  await ensureRemoteMatch(snapshot.setup);
+  const remote = await ensureRemoteMatch(snapshot.setup);
+  if (remote?.closed) return { ok: true, closed: true, status: remote.status };
+
   const syncedEvents = await pushEvents(snapshot.setup, snapshot.events);
   await pushLiveState(snapshot.setup, snapshot.gameState);
   await pushPlayedTime(snapshot.setup, snapshot.gameState);
@@ -253,7 +276,9 @@ async function syncState(snapshot) {
     return { ok: false, offline: true };
   }
 
-  await ensureRemoteMatch(snapshot.setup);
+  const remote = await ensureRemoteMatch(snapshot.setup);
+  if (remote?.closed) return { ok: true, closed: true, status: remote.status };
+
   await pushLiveState(snapshot.setup, snapshot.gameState);
   await pushPlayedTime(snapshot.setup, snapshot.gameState);
   return { ok: true };
@@ -271,8 +296,8 @@ function enqueue(task) {
       const result = await task();
       if (result?.ok) {
         publishSyncStatus({
-          phase: "synced",
-          lastSyncedAt: new Date().toISOString(),
+          phase: result?.closed ? "idle" : "synced",
+          lastSyncedAt: result?.closed ? syncStatus.lastSyncedAt : new Date().toISOString(),
           error: null,
         });
       } else if (result?.offline) {
