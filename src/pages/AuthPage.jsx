@@ -11,6 +11,7 @@ export default function AuthPage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [infoMsg, setInfoMsg] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const { user } = useAuth();
@@ -19,6 +20,25 @@ export default function AuthPage() {
   useEffect(() => {
     if (user) navigate("/");
   }, [user, navigate]);
+
+  async function handleGoogleAuth() {
+    setErrorMsg(null);
+    setInfoMsg(null);
+    setOauthLoading(true);
+
+    const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).href;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) {
+      setOauthLoading(false);
+      setErrorMsg(error.message);
+    }
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -46,9 +66,9 @@ export default function AuthPage() {
     setErrorMsg(null);
     setInfoMsg(null);
     setLoading(true);
-    
-    const redirectTo = "https://davidperez3.github.io/gazalbide-stats/";
-    
+
+    const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).href;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -57,17 +77,17 @@ export default function AuthPage() {
         emailRedirectTo: redirectTo,
       },
     });
-  
+
     console.log("signup data:", data);
     console.log("signup error:", error);
-  
+
     setLoading(false);
-  
+
     if (error) {
       setErrorMsg(error.message);
       return;
     }
-  
+
     // Si email confirmations está activo, normalmente data.user existe pero data.session es null
     // Si está desactivado, data.session puede venir ya creada
     setInfoMsg("Te hemos enviado un correo para confirmar tu cuenta. Revisa tu bandeja de entrada.");
@@ -101,6 +121,20 @@ export default function AuthPage() {
             >
               Registro
             </button>
+          </div>
+
+          <button
+            type="button"
+            className="auth__google-button"
+            onClick={handleGoogleAuth}
+            disabled={loading || oauthLoading}
+          >
+            <span className="auth__google-icon" aria-hidden="true">G</span>
+            <span>{oauthLoading ? "Abriendo Google..." : "Continuar con Google"}</span>
+          </button>
+
+          <div className="auth__divider" role="separator">
+            <span>o continúa con email</span>
           </div>
 
           <form
@@ -163,7 +197,6 @@ export default function AuthPage() {
                     }
                   >
                     {showPassword ? (
-                      // ojo cerrado
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -196,7 +229,6 @@ export default function AuthPage() {
                         />
                       </svg>
                     ) : (
-                      // ojo abierto
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -232,7 +264,7 @@ export default function AuthPage() {
               )}
             </div>
 
-            <button type="submit" disabled={loading} className="auth__button">
+            <button type="submit" disabled={loading || oauthLoading} className="auth__button">
               {loading
                 ? "Cargando..."
                 : mode === "login"
