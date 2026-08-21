@@ -21,6 +21,22 @@ export default function AdminFantasyPage() {
         </button>
       </header>
 
+      <section className="card card--p" style={{ marginBottom: "1rem" }}>
+        <p className="admin-center__eyebrow">QA · Solo administradores</p>
+        <h2 style={{ marginTop: "0.25rem" }}>🎰 Probar Le Gazal</h2>
+        <p className="text-dim" style={{ marginBottom: "1rem" }}>
+          Abre un sandbox con 20 🍺 ficticias. Puedes probar tiradas, premios, CLUTCH TIME,
+          CLUTCH TIME+ y cashout sin jornada abierta y sin modificar Fantasy ni Supabase.
+        </p>
+        <button
+          type="button"
+          className="admin-subpage-back"
+          onClick={() => navigate("/fantasy/le-gazal-demo")}
+        >
+          Abrir modo prueba →
+        </button>
+      </section>
+
       <section className="admin-fantasy-page__proposal">
         <FantasyPriceProposalPanel />
       </section>
