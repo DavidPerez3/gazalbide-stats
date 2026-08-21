@@ -1,0 +1,22 @@
+/* Porra adds one more primary destination. Keep the shared menu usable on
+   small screens and compact desktop widths without clipping Admin/Salir. */
+@media (max-width: 899px) {
+  .nav--open {
+    max-height: min(620px, calc(100dvh - 82px - env(safe-area-inset-top)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1180px) {
+  .nav {
+    gap: 1rem;
+  }
+
+  .nav__link {
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 13px;
+  }
+}
