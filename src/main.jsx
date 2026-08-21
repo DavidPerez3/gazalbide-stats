@@ -11,6 +11,7 @@ import PlayerProfilePage from "./pages/PlayerProfilePage.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Compare from "./pages/Compare.jsx";
 import LeGazalPage from "./pages/LeGazalPage.jsx";
+import LeGazalAdminDemoPage from "./features/le-gazal/LeGazalAdminDemoPage.jsx";
 import PorraPage from "./pages/PorraPage.jsx";
 
 import AuthPage from "./pages/AuthPage.jsx";
@@ -127,6 +128,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute>
             <LeGazalPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "fantasy/le-gazal-demo",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <LeGazalAdminDemoPage />
           </PrivateRoute>
         ),
       },
