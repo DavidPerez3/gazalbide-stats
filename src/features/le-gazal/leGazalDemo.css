@@ -1,0 +1,119 @@
+.le-gazal-demo__toolbar,
+.le-gazal-demo__end {
+  width: min(1180px, calc(100% - 24px));
+  margin: 18px auto;
+  border: 1px solid rgba(250, 204, 21, 0.42);
+  border-radius: 18px;
+  background: rgba(24, 24, 27, 0.96);
+  color: #fafafa;
+}
+
+.le-gazal-demo__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+.le-gazal-demo__toolbar > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.le-gazal-demo__badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  color: #facc15;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.le-gazal-demo__toolbar-actions,
+.le-gazal-demo__actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.le-gazal-demo__toolbar-actions label {
+  display: grid;
+  gap: 5px;
+  color: #a1a1aa;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.le-gazal-demo__toolbar select,
+.le-gazal-demo__toolbar button,
+.le-gazal-demo__actions button {
+  min-height: 42px;
+  border: 1px solid rgba(250, 204, 21, 0.42);
+  border-radius: 11px;
+  padding: 9px 12px;
+  background: rgba(250, 204, 21, 0.1);
+  color: #fafafa;
+  font: inherit;
+  font-weight: 800;
+}
+
+.le-gazal-demo__toolbar select {
+  min-width: 170px;
+  background: #18181b;
+}
+
+.le-gazal-demo__toolbar button:disabled {
+  opacity: 0.45;
+}
+
+.le-gazal-demo__end {
+  max-width: 680px;
+  padding: 24px;
+}
+
+.le-gazal-demo__end h1 {
+  margin: 14px 0 8px;
+}
+
+.le-gazal-demo__end p {
+  color: #d4d4d8;
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .le-gazal-demo__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .le-gazal-demo__toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+
+  .le-gazal-demo__toolbar-actions label {
+    grid-column: 1 / -1;
+  }
+
+  .le-gazal-demo__toolbar select,
+  .le-gazal-demo__toolbar button {
+    width: 100%;
+  }
+
+  .le-gazal-demo__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .le-gazal-demo__actions button {
+    width: 100%;
+  }
+}
