@@ -15,6 +15,7 @@ export default function App() {
   const isLiveFlow = pathname.startsWith("/admin/live");
   const isPublicLive = pathname.startsWith("/live/");
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
+  const isLeGazalDemo = pathname === "/fantasy/le-gazal-demo";
   const isFantasy = pathname.startsWith("/fantasy");
   const isFantasyHome = pathname === "/fantasy";
   const isNotifications = pathname.startsWith("/notificaciones");
@@ -40,11 +41,12 @@ export default function App() {
   }
 
   if (isLeGazal) {
+    const demoSuffix = isLeGazalDemo ? " le-gazal-demo-shell" : "";
     return (
-      <div className="le-gazal-app-shell">
+      <div className={`le-gazal-app-shell${demoSuffix}`}>
         <Navbar />
-        <main className="main le-gazal-app-main">
-          <div className="container le-gazal-app-container">
+        <main className={`main le-gazal-app-main${demoSuffix}`}>
+          <div className={`container le-gazal-app-container${demoSuffix}`}>
             <Outlet />
           </div>
         </main>
