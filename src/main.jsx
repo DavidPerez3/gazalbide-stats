@@ -11,12 +11,14 @@ import PlayerProfilePage from "./pages/PlayerProfilePage.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Compare from "./pages/Compare.jsx";
 import LeGazalPage from "./pages/LeGazalPage.jsx";
+import PorraPage from "./pages/PorraPage.jsx";
 
 import AuthPage from "./pages/AuthPage.jsx";
 import FantasyHome from "./pages/FantasyHome.jsx";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage.jsx";
 import AdminCenter from "./pages/AdminCenter.jsx";
 import AdminFantasyPage from "./pages/AdminFantasyPage.jsx";
+import AdminPorraPage from "./pages/AdminPorraPage.jsx";
 import AdminPlayers from "./pages/AdminPlayers.jsx";
 import ExportCenterPage from "./pages/ExportCenterPage.jsx";
 import LiveStatsSetup from "./pages/LiveStatsSetup.jsx";
@@ -62,6 +64,14 @@ const router = createHashRouter([
       { path: "login", element: <AuthPage /> },
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "reset-password", element: <ResetPassword /> },
+      {
+        path: "porra",
+        element: (
+          <PrivateRoute>
+            <PorraPage />
+          </PrivateRoute>
+        ),
+      },
       {
         path: "notificaciones",
         element: (
@@ -132,6 +142,14 @@ const router = createHashRouter([
         element: (
           <PrivateRoute adminOnly={true}>
             <AdminFantasyPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin/porra",
+        element: (
+          <PrivateRoute adminOnly={true}>
+            <AdminPorraPage />
           </PrivateRoute>
         ),
       },

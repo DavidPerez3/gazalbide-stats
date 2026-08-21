@@ -75,6 +75,9 @@ export default function Navbar() {
           <NavLink to="/fantasy" className={link} onClick={handleLinkClick}>
             Fantasy
           </NavLink>
+          <NavLink to="/porra" className={link} onClick={handleLinkClick}>
+            Porra
+          </NavLink>
 
           {!user && (
             <NavLink to="/login" className={link} onClick={handleLinkClick}>
