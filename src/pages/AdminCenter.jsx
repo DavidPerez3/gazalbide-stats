@@ -37,6 +37,16 @@ const modules = [
     action: "Abrir Fantasy",
   },
   {
+    id: "porra",
+    icon: "🎯",
+    title: "La Porra del Gazal",
+    description: "Crear jornadas, preguntas, deadlines, resultados y clasificación de la Porra.",
+    status: "Operativo",
+    available: true,
+    path: "/admin/porra",
+    action: "Abrir Porra",
+  },
+  {
     id: "live",
     icon: "⚡",
     title: "Live Stats",
