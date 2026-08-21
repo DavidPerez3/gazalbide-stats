@@ -39,6 +39,7 @@ import "./fantasy-mobile.css";
 import "./fantasy-history-polish.css";
 import "./responsive-cleanup.css";
 import "./ux-final-polish.css";
+import "./google-oauth.css";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 
