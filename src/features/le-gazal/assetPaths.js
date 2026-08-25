@@ -16,4 +16,10 @@ export const LE_GAZAL_ASSETS = {
   whistle: `${BASE}assets/Silbato.png`,
   trophy: `${BASE}assets/Trofeo.png`,
   promo: `${BASE}assets/le-gazal-promo.png`,
+  characters: {
+    polIdle: `${BASE}assets/le-gazal/characters/pol-idle.webp`,
+    polClutch: `${BASE}assets/le-gazal/characters/pol-clutch.webp`,
+    polEntrance: `${BASE}assets/le-gazal/characters/pol-entrance.webp`,
+    pelosIdle: `${BASE}assets/le-gazal/characters/pelos-idle.webp`,
+  },
 };
