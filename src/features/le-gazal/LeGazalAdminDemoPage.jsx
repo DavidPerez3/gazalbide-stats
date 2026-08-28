@@ -2,19 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LE_GAZAL_ASSETS } from "./assetPaths";
 import { createDisplayGrid, spinSlot } from "./slotEngine";
-import { SLOT_COLUMNS } from "./slotTypes";
+import { SLOT_COLUMNS, SPECIAL_SYMBOLS } from "./slotTypes";
 import LeGazalGrid from "./components/LeGazalGrid";
 import LeGazalControlPanel from "./components/LeGazalControlPanel";
 import LeGazalRulesModal from "./components/LeGazalRulesModal";
 import LeGazalBonusModal from "./components/LeGazalBonusModal";
 import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
 import LeGazalClutchAnimation from "./components/LeGazalClutchAnimation";
+import LeGazalClutchPlusAnimation from "./components/LeGazalClutchPlusAnimation";
 import "./leGazal.css";
 import "./leGazalMobile.css";
 import "./leGazalDemo.css";
 
 const INITIAL_BALANCE = 20;
 const DEMO_SCATTER_FREE_SPINS = 10;
+const DEMO_SCATTER4_FREE_SPINS = 15;
+const DEMO_SCATTER4_MULTIPLIER = 3;
 
 const SCENARIOS = [
   { value: "random", label: "Aleatoria" },
@@ -24,7 +27,8 @@ const SCENARIOS = [
   { value: "high", label: "Premio grande" },
   { value: "wild", label: "Wild" },
   { value: "scatter", label: "3 Scatter · CLUTCH TIME" },
-  { value: "bonus", label: "Bonus actual · CLUTCH TIME+" },
+  { value: "scatter4", label: "4 Scatter · CLUTCH TIME+" },
+  { value: "bonus", label: "Bonus legacy · CLUTCH TIME+" },
 ];
 
 function getReducedMotionPreference() {
@@ -49,6 +53,22 @@ function mergeSpinFrame(previousGrid, nextGrid, stoppedColumns) {
   );
 }
 
+function ensureScatterCount(grid, desiredCount) {
+  const nextGrid = grid.map((row) => [...row]);
+  let count = nextGrid.flat().filter((symbol) => symbol === SPECIAL_SYMBOLS.SCATTER).length;
+
+  for (let row = 0; row < nextGrid.length && count < desiredCount; row += 1) {
+    for (let col = 0; col < nextGrid[row].length && count < desiredCount; col += 1) {
+      if (nextGrid[row][col] !== SPECIAL_SYMBOLS.SCATTER) {
+        nextGrid[row][col] = SPECIAL_SYMBOLS.SCATTER;
+        count += 1;
+      }
+    }
+  }
+
+  return nextGrid;
+}
+
 function createDemoSession() {
   return {
     id: `admin-demo-${Date.now()}`,
@@ -68,8 +88,11 @@ function demoResultMessage(result) {
   if (result.scenario === "scatter") {
     return `CLUTCH TIME: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺 de prueba.`;
   }
+  if (result.scenario === "scatter4") {
+    return `CLUTCH TIME+: ${result.free_spins_awarded} tiradas gratis con calderos multi y jackpot multi. Saldo ${result.balance} 🍺 de prueba.`;
+  }
   if (result.scenario === "bonus") {
-    return `CLUTCH TIME+: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺 de prueba.`;
+    return `CLUTCH TIME+ legacy: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺 de prueba.`;
   }
   if (Number(result.payout || 0) > 0) {
     return `Premio de ${result.payout} 🍺. Saldo de prueba: ${result.balance} 🍺.`;
@@ -94,11 +117,12 @@ export default function LeGazalAdminDemoPage() {
   const [bonusIntro, setBonusIntro] = useState(null);
   const [bonusSummary, setBonusSummary] = useState(null);
   const [clutchAnimation, setClutchAnimation] = useState(null);
+  const [clutchPlusAnimation, setClutchPlusAnimation] = useState(null);
   const [coinBurstKey, setCoinBurstKey] = useState(0);
   const [forcedScenario, setForcedScenario] = useState("random");
   const [cashoutSummary, setCashoutSummary] = useState(null);
 
-  const isBusy = isSpinning || Boolean(clutchAnimation);
+  const isBusy = isSpinning || Boolean(clutchAnimation) || Boolean(clutchPlusAnimation);
 
   const clearTimers = useCallback(() => {
     timeoutRefs.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
@@ -124,6 +148,10 @@ export default function LeGazalAdminDemoPage() {
     setClutchAnimation(null);
   }, []);
 
+  const closeClutchPlusAnimation = useCallback(() => {
+    setClutchPlusAnimation(null);
+  }, []);
+
   const finishAnimation = useCallback((spinOutcome, nextResult, previousSession) => {
     clearTimers();
     setGrid(spinOutcome.grid);
@@ -138,6 +166,11 @@ export default function LeGazalAdminDemoPage() {
     if (Number(nextResult.free_spins_awarded || 0) > 0) {
       if (nextResult.scenario === "scatter") {
         setClutchAnimation({
+          freeSpins: Number(nextResult.free_spins_awarded),
+          multiplier: Number(nextResult.bonus_multiplier),
+        });
+      } else if (nextResult.scenario === "scatter4") {
+        setClutchPlusAnimation({
           freeSpins: Number(nextResult.free_spins_awarded),
           multiplier: Number(nextResult.bonus_multiplier),
         });
@@ -176,30 +209,52 @@ export default function LeGazalAdminDemoPage() {
     setBonusIntro(null);
     setBonusSummary(null);
     setClutchAnimation(null);
+    setClutchPlusAnimation(null);
     setIsSpinning(true);
     clearTimers();
 
     const previousSession = session;
     const roundMultiplier = hasFreeSpin ? Number(session.bonus_multiplier || 1) : 1;
-    const visualOutcome = spinSlot({
+    const requestedScenario = forcedScenario;
+    const engineScenario = requestedScenario === "scatter4"
+      ? "scatter"
+      : requestedScenario === "random"
+        ? null
+        : requestedScenario;
+
+    let visualOutcome = spinSlot({
       bet: spinBet,
       roundMultiplier,
-      forcedOutcome: forcedScenario === "random" ? null : forcedScenario,
+      forcedOutcome: engineScenario,
     });
+
+    if (requestedScenario === "scatter4") {
+      visualOutcome = {
+        ...visualOutcome,
+        grid: ensureScatterCount(visualOutcome.grid, 4),
+        scenarioId: "scatter4",
+        scatterCount: 4,
+      };
+    }
+
     if (forcedScenario !== "random") setForcedScenario("random");
 
     const betSpent = hasFreeSpin ? 0 : spinBet;
     const engineFreeSpins = Number(visualOutcome.freeSpinsAwarded || 0);
     const freeSpinsAwarded = visualOutcome.scenarioId === "scatter"
       ? DEMO_SCATTER_FREE_SPINS
-      : engineFreeSpins;
+      : visualOutcome.scenarioId === "scatter4"
+        ? DEMO_SCATTER4_FREE_SPINS
+        : engineFreeSpins;
     const remainingAfterConsumed = Math.max(
       0,
       Number(session.free_spins_remaining || 0) - (hasFreeSpin ? 1 : 0)
     );
     const freeSpinsRemaining = remainingAfterConsumed + freeSpinsAwarded;
     const bonusMultiplier = freeSpinsAwarded > 0
-      ? Number(visualOutcome.awardedMultiplier || 1)
+      ? visualOutcome.scenarioId === "scatter4"
+        ? DEMO_SCATTER4_MULTIPLIER
+        : Number(visualOutcome.awardedMultiplier || 1)
       : freeSpinsRemaining > 0
         ? Number(session.bonus_multiplier || 1)
         : 1;
@@ -288,6 +343,7 @@ export default function LeGazalAdminDemoPage() {
     setBonusIntro(null);
     setBonusSummary(null);
     setClutchAnimation(null);
+    setClutchPlusAnimation(null);
     setCashoutSummary(null);
     setForcedScenario("random");
     setIsSpinning(false);
@@ -356,7 +412,7 @@ export default function LeGazalAdminDemoPage() {
         <div className="le-gazal-cabinet">
           <header className="le-gazal-marquee">
             <img src={LE_GAZAL_ASSETS.titleLogo} alt="Le Gazal" className="le-gazal-marquee__title-logo" />
-            <p>Sandbox Admin · nuevas animaciones en prueba · saldo totalmente ficticio</p>
+            <p>Sandbox Admin · 3 y 4 Scatter animados · saldo totalmente ficticio</p>
           </header>
 
           <div className="le-gazal-cabinet__body">
@@ -414,6 +470,13 @@ export default function LeGazalAdminDemoPage() {
         multiplier={Number(clutchAnimation?.multiplier || 1)}
         reduceMotion={prefersReducedMotion}
         onComplete={closeClutchAnimation}
+      />
+      <LeGazalClutchPlusAnimation
+        open={Boolean(clutchPlusAnimation)}
+        freeSpins={Number(clutchPlusAnimation?.freeSpins || DEMO_SCATTER4_FREE_SPINS)}
+        multiplier={Number(clutchPlusAnimation?.multiplier || DEMO_SCATTER4_MULTIPLIER)}
+        reduceMotion={prefersReducedMotion}
+        onComplete={closeClutchPlusAnimation}
       />
     </section>
   );
