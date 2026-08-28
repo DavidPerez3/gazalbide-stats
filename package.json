@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/validate_le_gazal_assets.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "data": "node scripts/convert_excel_to_json.mjs ./excels",
