@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { LE_GAZAL_ASSETS } from "../assetPaths";
 import "../leGazalClutchPlus.css";
 import "../leGazalClutchMobileFix.css";
+import "../leGazalScatterSequences.css";
 
 const SPARKS = Array.from({ length: 24 }, (_, index) => index);
 const CAULDRONS = [2, 3, 5];
@@ -62,15 +63,27 @@ export default function LeGazalClutchPlusAnimation({
 
       <div className="le-gazal-clutch-plus__characters" aria-hidden="true">
         <img
-          src={LE_GAZAL_ASSETS.characters.polClutch}
+          src={LE_GAZAL_ASSETS.characters.polEntrance}
           alt=""
-          className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pol"
+          className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pol-entry"
           draggable="false"
         />
         <img
-          src={LE_GAZAL_ASSETS.characters.pelosIdle}
+          src={LE_GAZAL_ASSETS.characters.pelosPoint}
           alt=""
-          className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pelos"
+          className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pelos-entry"
+          draggable="false"
+        />
+        <img
+          src={LE_GAZAL_ASSETS.characters.pelosPower}
+          alt=""
+          className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pelos-power"
+          draggable="false"
+        />
+        <img
+          src={LE_GAZAL_ASSETS.characters.duoClutch}
+          alt=""
+          className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--duo"
           draggable="false"
         />
       </div>

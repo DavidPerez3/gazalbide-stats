@@ -1,0 +1,368 @@
+.le-gazal-madness {
+  position: fixed;
+  inset: 0;
+  z-index: 110000;
+  width: 100dvw;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: #020003;
+  color: #fff;
+  animation: madness-screen 7.2s linear both;
+}
+
+.le-gazal-madness::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, transparent 0 3px, rgba(255,255,255,.045) 3px 4px);
+  mix-blend-mode: overlay;
+  animation: madness-scan .16s steps(2) infinite;
+}
+
+.le-gazal-madness__void {
+  position: absolute;
+  inset: 0;
+  z-index: -5;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255,224,52,.36), transparent 24%),
+    radial-gradient(circle at 18% 72%, rgba(255,0,111,.26), transparent 35%),
+    radial-gradient(circle at 82% 68%, rgba(70,0,255,.3), transparent 35%),
+    linear-gradient(145deg, #030003, #19000d 45%, #090016 72%, #020202);
+  animation: madness-colors .48s steps(2) infinite;
+}
+
+.le-gazal-madness__tunnel {
+  position: absolute;
+  z-index: -4;
+  left: 50%;
+  top: 50%;
+  width: min(145vw, 1300px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255,230,62,.8) 0 2deg, transparent 2deg 9deg),
+    repeating-radial-gradient(circle, transparent 0 5.5%, rgba(255,48,146,.28) 6% 6.7%, transparent 7% 12%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.08) rotate(-40deg);
+  filter: drop-shadow(0 0 20px #ffb700);
+  animation: madness-tunnel 6.6s .32s cubic-bezier(.12,.72,.2,1) both;
+}
+
+.le-gazal-madness__alarm {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff1a3;
+  font-size: clamp(2.8rem, 14vw, 10rem);
+  font-weight: 1000;
+  letter-spacing: -.06em;
+  text-align: center;
+  text-shadow: 0 0 18px #ffbd00, 0 0 52px #ff164f, 5px 5px 0 #36000d;
+  opacity: 0;
+  animation: madness-alarm 1.22s .05s cubic-bezier(.16,.9,.2,1) both;
+}
+
+.le-gazal-madness__shocks,
+.le-gazal-madness__confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.le-gazal-madness__shocks { z-index: 8; }
+
+.le-gazal-madness__shocks span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(3px, .5vw, 8px);
+  height: clamp(90px, 19vw, 220px);
+  border-radius: 999px;
+  background: linear-gradient(to top, transparent, #fff9ae 45%, #ff226e 80%);
+  box-shadow: 0 0 18px #ffb600;
+  opacity: 0;
+  transform-origin: 50% 0;
+  animation: madness-shock 1.55s calc(.85s + var(--shock-index) * .025s) ease-out both;
+}
+
+.le-gazal-madness__characters {
+  position: absolute;
+  inset: max(5dvh, 38px) 0 max(12dvh, 76px);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.le-gazal-madness__pose {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  max-height: 79dvh;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 0 20px rgba(255,204,0,.95)) drop-shadow(0 0 62px rgba(255,31,117,.55));
+  will-change: transform, opacity, filter;
+}
+
+.le-gazal-madness__pose--pol-run {
+  width: min(48vw, 430px);
+  animation: madness-pol-run 1.35s .82s cubic-bezier(.12,.82,.18,1) both;
+}
+
+.le-gazal-madness__pose--pelos-point {
+  width: min(47vw, 420px);
+  animation: madness-pelos-point 1.35s 1.42s cubic-bezier(.12,.82,.18,1) both;
+}
+
+.le-gazal-madness__pose--pol-horns {
+  width: min(52vw, 470px);
+  animation: madness-pol-horns 1.38s 2.08s cubic-bezier(.12,.88,.18,1) both;
+}
+
+.le-gazal-madness__pose--pelos-power {
+  width: min(50vw, 450px);
+  animation: madness-pelos-power 1.38s 2.72s cubic-bezier(.12,.88,.18,1) both;
+}
+
+.le-gazal-madness__pose--duo-tease {
+  width: min(88vw, 820px);
+  max-height: 70dvh;
+  animation: madness-duo-tease 1.3s 3.42s cubic-bezier(.16,.9,.2,1) both;
+}
+
+.le-gazal-madness__pose--duo-final {
+  width: min(112vw, 1180px);
+  max-height: 82dvh;
+  animation: madness-duo-final 2.8s 4.18s cubic-bezier(.12,.9,.18,1) both;
+}
+
+.le-gazal-madness__impact {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  background: #fffbd0;
+  opacity: 0;
+  animation: madness-impact .72s 4.12s ease-out both;
+}
+
+.le-gazal-madness__confetti { z-index: 26; }
+
+.le-gazal-madness__confetti span {
+  position: absolute;
+  left: var(--piece-x);
+  top: -8%;
+  width: clamp(6px, 1vw, 13px);
+  height: clamp(14px, 2.2vw, 26px);
+  background: var(--piece-color);
+  box-shadow: 0 0 9px currentColor;
+  opacity: 0;
+  animation: madness-confetti 2.45s calc(4.16s + var(--piece-index) * .025s) cubic-bezier(.18,.72,.3,1) both;
+}
+
+.le-gazal-madness__copy {
+  position: absolute;
+  z-index: 32;
+  left: 50%;
+  bottom: max(3dvh, calc(env(safe-area-inset-bottom) + 12px));
+  width: min(96vw, 980px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translate(-50%, 56px) scale(.45) rotate(-2deg);
+  text-shadow: 0 4px 0 #210009, 0 0 20px #ffbc00, 0 0 54px #ff176c;
+  animation: madness-copy 2.15s 4.72s cubic-bezier(.16,1.12,.22,1) both;
+}
+
+.le-gazal-madness__eyebrow {
+  padding: 5px 13px;
+  border: 1px solid #ffe66e;
+  border-radius: 999px;
+  background: rgba(27,0,14,.82);
+  color: #fff2a2;
+  font-weight: 950;
+  letter-spacing: .18em;
+}
+
+.le-gazal-madness__title {
+  color: #ffe036;
+  font-size: clamp(2.7rem, 11.5vw, 7.5rem);
+  font-weight: 1000;
+  line-height: .84;
+  letter-spacing: -.065em;
+  -webkit-text-stroke: clamp(1px, .14vw, 3px) #8a002c;
+}
+
+.le-gazal-madness__reward {
+  color: #fff;
+  font-size: clamp(.95rem, 3.9vw, 1.9rem);
+  font-weight: 950;
+}
+
+.le-gazal-madness__features {
+  color: #ffdb58;
+  font-size: clamp(.68rem, 2.6vw, 1.05rem);
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.le-gazal-madness__skip {
+  position: absolute;
+  z-index: 80;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  min-width: 84px;
+  min-height: 42px;
+  border: 1px solid rgba(255,226,82,.8);
+  border-radius: 999px;
+  background: rgba(12,0,8,.78);
+  color: #ffe96e;
+  font: inherit;
+  font-weight: 900;
+  opacity: 0;
+  animation: madness-skip .35s .5s ease forwards;
+}
+
+@keyframes madness-screen {
+  0%, 100% { transform: translate3d(0,0,0); }
+  14% { transform: translate3d(-5px,3px,0); }
+  16% { transform: translate3d(7px,-4px,0); }
+  35% { transform: translate3d(-8px,-3px,0) rotate(-.2deg); }
+  37% { transform: translate3d(8px,4px,0) rotate(.2deg); }
+  59% { transform: translate3d(-12px,5px,0) rotate(-.35deg); }
+  61% { transform: translate3d(11px,-6px,0) rotate(.3deg); }
+  66% { transform: translate3d(0,0,0); }
+}
+
+@keyframes madness-scan { to { transform: translateY(4px); } }
+@keyframes madness-colors { 50% { filter: hue-rotate(24deg) saturate(1.35); } }
+
+@keyframes madness-tunnel {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.08) rotate(-40deg); }
+  14% { opacity: .85; }
+  100% { opacity: .22; transform: translate(-50%,-50%) scale(1.55) rotate(110deg); }
+}
+
+@keyframes madness-alarm {
+  0% { opacity: 0; transform: scale(5); filter: blur(14px); }
+  22% { opacity: 1; transform: scale(.86); filter: blur(0); }
+  42% { transform: scale(1.08); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.8); filter: blur(5px); }
+}
+
+@keyframes madness-shock {
+  0% { opacity: 0; transform: rotate(var(--shock-angle)) translateY(-3vh) scaleY(.1); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--shock-angle)) translateY(-64vh) scaleY(1.4); }
+}
+
+@keyframes madness-pol-run {
+  0% { opacity: 0; transform: translate3d(-72vw,22dvh,0) scale(.48) rotate(-11deg); }
+  35%, 66% { opacity: 1; transform: translate3d(-50%,0,0) scale(1.06) rotate(2deg); }
+  100% { opacity: 0; transform: translate3d(42vw,-5dvh,0) scale(1.28) rotate(8deg); }
+}
+
+@keyframes madness-pelos-point {
+  0% { opacity: 0; transform: translate3d(62vw,12dvh,0) scale(.5) rotate(10deg); }
+  32%, 68% { opacity: 1; transform: translate3d(-50%,0,0) scale(1.08) rotate(-2deg); }
+  100% { opacity: 0; transform: translate3d(-78vw,-4dvh,0) scale(1.32) rotate(-8deg); }
+}
+
+@keyframes madness-pol-horns {
+  0% { opacity: 0; transform: translate(-50%,8dvh) scale(.5); filter: brightness(3); }
+  24%, 68% { opacity: 1; transform: translate(-50%,0) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%,-4dvh) scale(1.46); filter: brightness(1.5); }
+}
+
+@keyframes madness-pelos-power {
+  0% { opacity: 0; transform: translate(-50%,8dvh) scale(.45) rotate(-4deg); filter: brightness(3); }
+  24%, 68% { opacity: 1; transform: translate(-50%,0) scale(1.14) rotate(2deg); }
+  100% { opacity: 0; transform: translate(-50%,-5dvh) scale(1.5) rotate(5deg); filter: brightness(1.5); }
+}
+
+@keyframes madness-duo-tease {
+  0% { opacity: 0; transform: translate(-50%,12dvh) scale(.42); filter: brightness(3); }
+  24%, 66% { opacity: 1; transform: translate(-50%,0) scale(1.03); }
+  100% { opacity: 0; transform: translate(-50%,-4dvh) scale(1.32); filter: brightness(1.6); }
+}
+
+@keyframes madness-duo-final {
+  0% { opacity: 0; transform: translate(-50%,18dvh) scale(.32); filter: brightness(4) blur(6px); }
+  13% { opacity: 1; transform: translate(-50%,-2dvh) scale(1.16); filter: brightness(1.5) blur(0); }
+  27% { transform: translate(-50%,0) scale(.96); }
+  42%, 100% { opacity: 1; transform: translate(-50%,0) scale(1); filter: brightness(1); }
+}
+
+@keyframes madness-impact {
+  0%, 10% { opacity: 0; }
+  26% { opacity: 1; }
+  48% { opacity: .08; }
+  66% { opacity: .62; }
+  100% { opacity: 0; }
+}
+
+@keyframes madness-confetti {
+  0% { opacity: 0; transform: translate3d(0,-8dvh,0) rotate(0); }
+  14% { opacity: 1; }
+  100% { opacity: .8; transform: translate3d(var(--piece-drift),112dvh,0) rotate(760deg); }
+}
+
+@keyframes madness-copy {
+  0% { opacity: 0; transform: translate(-50%,56px) scale(.45) rotate(-2deg); }
+  18% { opacity: 1; transform: translate(-50%,-8px) scale(1.1) rotate(1deg); }
+  34% { transform: translate(-50%,2px) scale(.97); }
+  52%, 100% { opacity: 1; transform: translate(-50%,0) scale(1); }
+}
+
+@keyframes madness-skip { to { opacity: 1; } }
+
+.le-gazal-madness--reduced { animation: none; }
+.le-gazal-madness--reduced .le-gazal-madness__alarm,
+.le-gazal-madness--reduced .le-gazal-madness__shocks,
+.le-gazal-madness--reduced .le-gazal-madness__impact,
+.le-gazal-madness--reduced .le-gazal-madness__confetti,
+.le-gazal-madness--reduced .le-gazal-madness__pose:not(.le-gazal-madness__pose--duo-final) { display: none; }
+.le-gazal-madness--reduced .le-gazal-madness__tunnel { opacity: .3; transform: translate(-50%,-50%) scale(1); animation: none; }
+.le-gazal-madness--reduced .le-gazal-madness__pose--duo-final { opacity: 1; transform: translate(-50%,0); filter: none; animation: none; }
+.le-gazal-madness--reduced .le-gazal-madness__copy { opacity: 1; transform: translate(-50%,0); animation: none; }
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .le-gazal-madness__characters { inset: 10dvh 0 20dvh; }
+  .le-gazal-madness__pose--pol-run,
+  .le-gazal-madness__pose--pelos-point,
+  .le-gazal-madness__pose--pol-horns,
+  .le-gazal-madness__pose--pelos-power { width: 69vw; max-height: 67dvh; }
+  .le-gazal-madness__pose--duo-tease { width: 112vw; max-height: 55dvh; }
+  .le-gazal-madness__pose--duo-final { width: 142vw; max-height: 64dvh; }
+  .le-gazal-madness__copy { bottom: max(1.5dvh, calc(env(safe-area-inset-bottom) + 6px)); width: calc(100vw - 18px); }
+  .le-gazal-madness__title { font-size: clamp(2.25rem, 11.4vw, 4rem); white-space: nowrap; }
+  .le-gazal-madness__reward { font-size: clamp(.82rem, 3.8vw, 1.12rem); }
+  .le-gazal-madness__features { font-size: clamp(.58rem, 2.7vw, .76rem); }
+  .le-gazal-madness__skip { top: max(10px,env(safe-area-inset-top)); right: 10px; min-width: 72px; min-height: 38px; }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .le-gazal-madness__characters { inset: 2dvh 44vw 2dvh 0; }
+  .le-gazal-madness__pose--pol-run,
+  .le-gazal-madness__pose--pelos-point,
+  .le-gazal-madness__pose--pol-horns,
+  .le-gazal-madness__pose--pelos-power { width: 35vw; max-height: 94dvh; }
+  .le-gazal-madness__pose--duo-tease { width: 56vw; max-height: 92dvh; }
+  .le-gazal-madness__pose--duo-final { width: 66vw; max-height: 98dvh; }
+  .le-gazal-madness__copy { left: auto; right: 3vw; bottom: 8dvh; width: 44vw; transform: none; align-items: flex-end; text-align: right; }
+  .le-gazal-madness__title { font-size: clamp(2.3rem, 5.8vw, 4.5rem); }
+  @keyframes madness-copy {
+    0% { opacity: 0; transform: translateX(48px) scale(.6); }
+    22% { opacity: 1; transform: translateX(-5px) scale(1.06); }
+    45%, 100% { opacity: 1; transform: translateX(0) scale(1); }
+  }
+}

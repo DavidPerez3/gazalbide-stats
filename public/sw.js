@@ -1,4 +1,4 @@
-const CACHE_NAME = "gazalbide-stats-v4";
+const CACHE_NAME = "gazalbide-stats-v5";
 const LE_GAZAL_CHARACTER_PATH = "/gazalbide-stats/assets/le-gazal/characters/";
 const APP_SHELL = [
   "/gazalbide-stats/",
