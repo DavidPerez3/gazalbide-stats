@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { LE_GAZAL_ASSETS } from "../assetPaths";
 import "../leGazalClutchPlus.css";
+import "../leGazalClutchMobileFix.css";
 
 const SPARKS = Array.from({ length: 24 }, (_, index) => index);
 const CAULDRONS = [2, 3, 5];
@@ -38,9 +40,9 @@ export default function LeGazalClutchPlusAnimation({
     };
   }, [open, reduceMotion, finish]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className={`le-gazal-clutch-plus ${reduceMotion ? "le-gazal-clutch-plus--reduced" : ""}`}
       role="dialog"
@@ -63,11 +65,13 @@ export default function LeGazalClutchPlusAnimation({
           src={LE_GAZAL_ASSETS.characters.polClutch}
           alt=""
           className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pol"
+          draggable="false"
         />
         <img
           src={LE_GAZAL_ASSETS.characters.pelosIdle}
           alt=""
           className="le-gazal-clutch-plus__character le-gazal-clutch-plus__character--pelos"
+          draggable="false"
         />
       </div>
 
@@ -95,6 +99,7 @@ export default function LeGazalClutchPlusAnimation({
       <button type="button" className="le-gazal-clutch-plus__skip" onClick={finish}>
         SALTAR
       </button>
-    </div>
+    </div>,
+    document.body
   );
 }
