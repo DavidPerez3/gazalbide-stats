@@ -1,4 +1,5 @@
-const CACHE_NAME = "gazalbide-stats-v3";
+const CACHE_NAME = "gazalbide-stats-v4";
+const LE_GAZAL_CHARACTER_PATH = "/gazalbide-stats/assets/le-gazal/characters/";
 const APP_SHELL = [
   "/gazalbide-stats/",
   "/gazalbide-stats/manifest.webmanifest",
@@ -33,6 +34,26 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(() => caches.match("/gazalbide-stats/"))
+    );
+    return;
+  }
+
+  // Character artwork is replaced independently from the app shell. Prefer the
+  // network so a corrected image is visible immediately, while retaining the
+  // last valid response for offline use.
+  if (url.pathname.startsWith(LE_GAZAL_CHARACTER_PATH)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (!response || response.status !== 200 || response.type !== "basic") {
+            return response;
+          }
+
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
