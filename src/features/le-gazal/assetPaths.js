@@ -17,9 +17,10 @@ export const LE_GAZAL_ASSETS = {
   trophy: `${BASE}assets/Trofeo.png`,
   promo: `${BASE}assets/le-gazal-promo.png`,
   characters: {
-    polIdle: `${BASE}assets/le-gazal/characters/pol-idle.webp`,
-    polClutch: `${BASE}assets/le-gazal/characters/pol-clutch.webp`,
-    polEntrance: `${BASE}assets/le-gazal/characters/pol-entrance.webp`,
-    pelosIdle: `${BASE}assets/le-gazal/characters/pelos-idle.webp`,
+    // v2 filenames deliberately break any PWA/browser cache of the corrupt first upload.
+    polIdle: `${BASE}assets/le-gazal/characters/pol-clutch-v2.webp`,
+    polClutch: `${BASE}assets/le-gazal/characters/pol-clutch-v2.webp`,
+    polEntrance: `${BASE}assets/le-gazal/characters/pol-entrance-v2.webp`,
+    pelosIdle: `${BASE}assets/le-gazal/characters/pelos-idle-v2.webp`,
   },
 };
