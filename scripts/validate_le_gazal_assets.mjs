@@ -4,11 +4,15 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
-const MIN_WIDTH = 800;
-const MIN_HEIGHT = 1200;
 const REQUIRED_ASSETS = [
-  "public/assets/le-gazal/characters/pol-clutch-v4.webp",
-  "public/assets/le-gazal/characters/pelos-idle-v4.webp",
+  { path: "public/assets/le-gazal/characters/pol-idle-v5.webp", minWidth: 1000, minHeight: 1500 },
+  { path: "public/assets/le-gazal/characters/pol-run-v5.webp", minWidth: 1000, minHeight: 1500 },
+  { path: "public/assets/le-gazal/characters/pol-horns-v5.webp", minWidth: 1000, minHeight: 1500 },
+  { path: "public/assets/le-gazal/characters/pelos-idle-v5.webp", minWidth: 1000, minHeight: 1500 },
+  { path: "public/assets/le-gazal/characters/pelos-power-v5.webp", minWidth: 1000, minHeight: 1500 },
+  { path: "public/assets/le-gazal/characters/pelos-point-v5.webp", minWidth: 1000, minHeight: 1500 },
+  { path: "public/assets/le-gazal/characters/duo-clutch-v5.webp", minWidth: 1400, minHeight: 1000 },
+  { path: "public/assets/le-gazal/characters/duo-madness-v5.webp", minWidth: 1400, minHeight: 1000 },
 ];
 
 function readExtendedWebpSize(buffer) {
@@ -19,10 +23,11 @@ function readExtendedWebpSize(buffer) {
   return {
     width: buffer.readUIntLE(24, 3) + 1,
     height: buffer.readUIntLE(27, 3) + 1,
+    hasAlpha: Boolean(buffer[20] & 0x10),
   };
 }
 
-function validateAsset(relativePath) {
+function validateAsset({ path: relativePath, minWidth, minHeight }) {
   const absolutePath = path.join(ROOT, relativePath);
   const buffer = fs.readFileSync(absolutePath);
 
@@ -34,11 +39,15 @@ function validateAsset(relativePath) {
     throw new Error(`${relativePath} has an invalid or truncated RIFF container`);
   }
 
-  const { width, height } = readExtendedWebpSize(buffer);
-  if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+  const { width, height, hasAlpha } = readExtendedWebpSize(buffer);
+  if (width < minWidth || height < minHeight) {
     throw new Error(
-      `${relativePath} is only ${width}x${height}; expected at least ${MIN_WIDTH}x${MIN_HEIGHT}`
+      `${relativePath} is only ${width}x${height}; expected at least ${minWidth}x${minHeight}`
     );
+  }
+
+  if (!hasAlpha) {
+    throw new Error(`${relativePath} must preserve its transparent background`);
   }
 
   console.log(`Validated ${relativePath} (${width}x${height})`);

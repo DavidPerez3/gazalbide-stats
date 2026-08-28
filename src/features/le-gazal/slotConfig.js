@@ -134,9 +134,23 @@ export const BONUS_CONFIG = {
   [BONUS_MODES.SCATTER]: {
     mode: BONUS_MODES.SCATTER,
     title: "CLUTCH TIME",
-    description: "Tres tiradas gratis con multiplicador x2.",
-    freeSpins: 3,
+    description: "Diez tiradas gratis con multiplicador x2.",
+    freeSpins: 10,
     multiplier: 2,
+  },
+  [BONUS_MODES.SCATTER_PLUS]: {
+    mode: BONUS_MODES.SCATTER_PLUS,
+    title: "CLUTCH TIME+",
+    description: "Quince tiradas gratis con multiplicador x3.",
+    freeSpins: 15,
+    multiplier: 3,
+  },
+  [BONUS_MODES.SCATTER_MADNESS]: {
+    mode: BONUS_MODES.SCATTER_MADNESS,
+    title: "LOCURA GAZAL",
+    description: "Veinte tiradas gratis con multiplicador x5.",
+    freeSpins: 20,
+    multiplier: 5,
   },
   [BONUS_MODES.BONUS]: {
     mode: BONUS_MODES.BONUS,

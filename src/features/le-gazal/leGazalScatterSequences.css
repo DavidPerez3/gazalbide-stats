@@ -1,0 +1,118 @@
+/* Complete pose choreography layered after the original 3/4-scatter styles. */
+.le-gazal-clutch__pol--entrance {
+  animation: scatter3-pol-run 1.05s .08s cubic-bezier(.12,.78,.16,1) both;
+}
+
+.le-gazal-clutch__pol--idle {
+  opacity: 0;
+  animation: scatter3-pol-idle .78s .82s cubic-bezier(.16,.86,.24,1) both;
+}
+
+.le-gazal-clutch__pol--clutch {
+  animation: scatter3-pol-horns 2.25s 1.34s cubic-bezier(.16,.88,.24,1) both;
+}
+
+.le-gazal-clutch__copy {
+  animation-delay: 1.58s;
+}
+
+@keyframes scatter3-pol-run {
+  0% { opacity: 0; transform: translate3d(-58vw, 22dvh, 0) scale(.54) rotate(-8deg); }
+  24% { opacity: 1; }
+  70% { opacity: 1; transform: translate3d(3vw, -1dvh, 0) scale(1.07) rotate(2deg); }
+  100% { opacity: 0; transform: translate3d(9vw, -3dvh, 0) scale(1.24) rotate(5deg); }
+}
+
+@keyframes scatter3-pol-idle {
+  0% { opacity: 0; transform: scale(.76) translateY(4dvh); filter: brightness(2.2); }
+  24%, 64% { opacity: 1; transform: scale(1.02) translateY(0); }
+  100% { opacity: 0; transform: scale(1.15) translateY(-2dvh); filter: brightness(1.45); }
+}
+
+@keyframes scatter3-pol-horns {
+  0% { opacity: 0; transform: scale(.7) translateY(6dvh); filter: brightness(2.4) drop-shadow(0 0 0 transparent); }
+  15% { opacity: 1; transform: scale(1.13) translateY(-1dvh); }
+  30% { transform: scale(.98) translateY(0); }
+  48% { transform: scale(1.025) translateY(-.4dvh); }
+  100% { opacity: 1; transform: scale(1); filter: brightness(1) drop-shadow(0 0 22px rgba(255,190,0,.9)); }
+}
+
+.le-gazal-clutch--reduced .le-gazal-clutch__pol--idle {
+  display: none;
+}
+
+.le-gazal-clutch-plus__character--pol-entry {
+  width: min(45vw, 390px);
+  left: 6%;
+  animation: scatter4-pol-entry 1.48s .08s cubic-bezier(.12,.82,.2,1) both;
+}
+
+.le-gazal-clutch-plus__character--pelos-entry {
+  width: min(43vw, 370px);
+  right: 5%;
+  animation: scatter4-pelos-entry 1.42s .64s cubic-bezier(.12,.84,.2,1) both;
+}
+
+.le-gazal-clutch-plus__character--pelos-power {
+  width: min(48vw, 400px);
+  left: 50%;
+  animation: scatter4-pelos-power 1.25s 1.52s cubic-bezier(.16,.9,.22,1) both;
+}
+
+.le-gazal-clutch-plus__character--duo {
+  width: min(88vw, 790px);
+  left: 50%;
+  max-height: 68dvh;
+  animation: scatter4-duo 2.62s 2.2s cubic-bezier(.16,.9,.22,1) both;
+}
+
+@keyframes scatter4-pol-entry {
+  0% { opacity: 0; transform: translate3d(-44vw, 18dvh, 0) scale(.58) rotate(-9deg); }
+  28%, 70% { opacity: 1; transform: translate3d(5vw, 0, 0) scale(1.02) rotate(2deg); }
+  100% { opacity: 0; transform: translate3d(12vw, -4dvh, 0) scale(1.2) rotate(5deg); }
+}
+
+@keyframes scatter4-pelos-entry {
+  0% { opacity: 0; transform: translate3d(44vw, 14dvh, 0) scale(.58) rotate(8deg); }
+  30%, 72% { opacity: 1; transform: translate3d(-4vw, 0, 0) scale(1.02) rotate(-2deg); }
+  100% { opacity: 0; transform: translate3d(-10vw, -4dvh, 0) scale(1.2) rotate(-5deg); }
+}
+
+@keyframes scatter4-pelos-power {
+  0% { opacity: 0; transform: translate(-50%, 8dvh) scale(.58); filter: brightness(2.5); }
+  24%, 66% { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+  100% { opacity: 0; transform: translate(-50%, -3dvh) scale(1.32); filter: brightness(1.35); }
+}
+
+@keyframes scatter4-duo {
+  0% { opacity: 0; transform: translate(-50%, 12dvh) scale(.5); filter: brightness(2.4); }
+  16% { opacity: 1; transform: translate(-50%, -1dvh) scale(1.08); }
+  31% { transform: translate(-50%, 0) scale(.97); }
+  48%, 100% { opacity: 1; transform: translate(-50%, 0) scale(1); filter: brightness(1); }
+}
+
+.le-gazal-clutch-plus--reduced .le-gazal-clutch-plus__character--pol-entry,
+.le-gazal-clutch-plus--reduced .le-gazal-clutch-plus__character--pelos-entry,
+.le-gazal-clutch-plus--reduced .le-gazal-clutch-plus__character--pelos-power {
+  display: none;
+}
+
+.le-gazal-clutch-plus--reduced .le-gazal-clutch-plus__character--duo {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  animation: none;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .le-gazal-clutch-plus__character--pol-entry { width: 57vw; left: -4%; }
+  .le-gazal-clutch-plus__character--pelos-entry { width: 54vw; right: -4%; }
+  .le-gazal-clutch-plus__character--pelos-power { width: 62vw; }
+  .le-gazal-clutch-plus__character--duo { width: 105vw; max-height: 49dvh; }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .le-gazal-clutch-plus__character--pol-entry { width: 29vw; left: 0; }
+  .le-gazal-clutch-plus__character--pelos-entry { width: 28vw; right: 0; }
+  .le-gazal-clutch-plus__character--pelos-power { width: 31vw; }
+  .le-gazal-clutch-plus__character--duo { width: 48vw; max-height: 92dvh; }
+}

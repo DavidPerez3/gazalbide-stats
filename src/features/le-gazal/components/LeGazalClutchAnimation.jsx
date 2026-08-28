@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { LE_GAZAL_ASSETS } from "../assetPaths";
 import "../leGazalBonusAnimation.css";
 import "../leGazalClutchMobileFix.css";
+import "../leGazalScatterSequences.css";
 
 const SPARKS = Array.from({ length: 18 }, (_, index) => index);
 
@@ -63,6 +64,12 @@ export default function LeGazalClutchAnimation({
           src={LE_GAZAL_ASSETS.characters.polEntrance}
           alt=""
           className="le-gazal-clutch__pol le-gazal-clutch__pol--entrance"
+          draggable="false"
+        />
+        <img
+          src={LE_GAZAL_ASSETS.characters.polIdle}
+          alt=""
+          className="le-gazal-clutch__pol le-gazal-clutch__pol--idle"
           draggable="false"
         />
         <img

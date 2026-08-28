@@ -17,10 +17,33 @@ export const LE_GAZAL_ASSETS = {
   trophy: `${BASE}assets/Trofeo.png`,
   promo: `${BASE}assets/le-gazal-promo.png`,
   characters: {
-    // Versioned filenames prevent the PWA/browser from reusing the broken v1-v3 files.
-    polIdle: `${BASE}assets/le-gazal/characters/pol-clutch-v4.webp`,
-    polClutch: `${BASE}assets/le-gazal/characters/pol-clutch-v4.webp`,
-    polEntrance: `${BASE}assets/le-gazal/characters/pol-clutch-v4.webp`,
-    pelosIdle: `${BASE}assets/le-gazal/characters/pelos-idle-v4.webp`,
+    // v5 is the complete approved pose pack used by all three scatter reveals.
+    polIdle: `${BASE}assets/le-gazal/characters/pol-idle-v5.webp`,
+    polEntrance: `${BASE}assets/le-gazal/characters/pol-run-v5.webp`,
+    polClutch: `${BASE}assets/le-gazal/characters/pol-horns-v5.webp`,
+    pelosIdle: `${BASE}assets/le-gazal/characters/pelos-idle-v5.webp`,
+    pelosPower: `${BASE}assets/le-gazal/characters/pelos-power-v5.webp`,
+    pelosPoint: `${BASE}assets/le-gazal/characters/pelos-point-v5.webp`,
+    duoClutch: `${BASE}assets/le-gazal/characters/duo-clutch-v5.webp`,
+    duoMadness: `${BASE}assets/le-gazal/characters/duo-madness-v5.webp`,
   },
 };
+
+let characterPreloadPromise;
+
+export function preloadLeGazalCharacters() {
+  if (typeof Image === "undefined") return Promise.resolve();
+  if (characterPreloadPromise) return characterPreloadPromise;
+
+  const sources = [...new Set(Object.values(LE_GAZAL_ASSETS.characters))];
+  characterPreloadPromise = Promise.all(
+    sources.map((source) => new Promise((resolve) => {
+      const image = new Image();
+      image.onload = resolve;
+      image.onerror = resolve;
+      image.src = source;
+    }))
+  );
+
+  return characterPreloadPromise;
+}

@@ -131,9 +131,10 @@ function buildScenarioGrid(scenarioId, rng) {
     return grid;
   }
 
-  if (scenarioId === "scatter") {
+  if (["scatter", "scatter4", "scatter5"].includes(scenarioId)) {
     const used = new Set();
-    const cells = randomOpenCells(rng, 3, used);
+    const scatterTarget = scenarioId === "scatter5" ? 5 : scenarioId === "scatter4" ? 4 : 3;
+    const cells = randomOpenCells(rng, scatterTarget, used);
     for (const cell of cells) {
       grid[cell.row][cell.col] = SPECIAL_SYMBOLS.SCATTER;
       used.add(cell.key);
@@ -249,6 +250,10 @@ function evaluateGrid(grid, bet, roundMultiplier) {
 
   if (bonusCount >= 3) {
     clutchMode = BONUS_MODES.BONUS;
+  } else if (scatterCount >= 5) {
+    clutchMode = BONUS_MODES.SCATTER_MADNESS;
+  } else if (scatterCount >= 4) {
+    clutchMode = BONUS_MODES.SCATTER_PLUS;
   } else if (scatterCount >= 3) {
     clutchMode = BONUS_MODES.SCATTER;
   }
@@ -286,7 +291,15 @@ function buildResultMessage(result) {
   }
 
   if (result.clutchMode === BONUS_MODES.SCATTER) {
-    return "Tres scatters activan CLUTCH TIME con tres tiradas gratis.";
+    return "Tres scatters activan CLUTCH TIME con diez tiradas gratis.";
+  }
+
+  if (result.clutchMode === BONUS_MODES.SCATTER_PLUS) {
+    return "Cuatro scatters activan CLUTCH TIME+ con quince tiradas gratis.";
+  }
+
+  if (result.clutchMode === BONUS_MODES.SCATTER_MADNESS) {
+    return "Cinco scatters activan LOCURA GAZAL con veinte tiradas gratis.";
   }
 
   if (result.amountWon > 0) {
