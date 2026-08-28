@@ -8,11 +8,13 @@ import LeGazalControlPanel from "./components/LeGazalControlPanel";
 import LeGazalRulesModal from "./components/LeGazalRulesModal";
 import LeGazalBonusModal from "./components/LeGazalBonusModal";
 import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
+import LeGazalClutchAnimation from "./components/LeGazalClutchAnimation";
 import "./leGazal.css";
 import "./leGazalMobile.css";
 import "./leGazalDemo.css";
 
 const INITIAL_BALANCE = 20;
+const DEMO_SCATTER_FREE_SPINS = 10;
 
 const SCENARIOS = [
   { value: "random", label: "Aleatoria" },
@@ -21,8 +23,8 @@ const SCENARIOS = [
   { value: "medium", label: "Premio medio" },
   { value: "high", label: "Premio grande" },
   { value: "wild", label: "Wild" },
-  { value: "scatter", label: "CLUTCH TIME" },
-  { value: "bonus", label: "CLUTCH TIME+" },
+  { value: "scatter", label: "3 Scatter · CLUTCH TIME" },
+  { value: "bonus", label: "Bonus actual · CLUTCH TIME+" },
 ];
 
 function getReducedMotionPreference() {
@@ -91,9 +93,12 @@ export default function LeGazalAdminDemoPage() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(getReducedMotionPreference);
   const [bonusIntro, setBonusIntro] = useState(null);
   const [bonusSummary, setBonusSummary] = useState(null);
+  const [clutchAnimation, setClutchAnimation] = useState(null);
   const [coinBurstKey, setCoinBurstKey] = useState(0);
   const [forcedScenario, setForcedScenario] = useState("random");
   const [cashoutSummary, setCashoutSummary] = useState(null);
+
+  const isBusy = isSpinning || Boolean(clutchAnimation);
 
   const clearTimers = useCallback(() => {
     timeoutRefs.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
@@ -115,6 +120,10 @@ export default function LeGazalAdminDemoPage() {
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
+  const closeClutchAnimation = useCallback(() => {
+    setClutchAnimation(null);
+  }, []);
+
   const finishAnimation = useCallback((spinOutcome, nextResult, previousSession) => {
     clearTimers();
     setGrid(spinOutcome.grid);
@@ -127,13 +136,19 @@ export default function LeGazalAdminDemoPage() {
     if (Number(nextResult.payout || 0) > 0) setCoinBurstKey((previous) => previous + 1);
 
     if (Number(nextResult.free_spins_awarded || 0) > 0) {
-      const isBonus = nextResult.scenario === "bonus";
-      setBonusIntro({
-        title: isBonus ? "CLUTCH TIME+" : "CLUTCH TIME",
-        description: `${nextResult.free_spins_awarded} tiradas gratis con multiplicador x${nextResult.bonus_multiplier}.`,
-        freeSpins: Number(nextResult.free_spins_awarded),
-        multiplier: Number(nextResult.bonus_multiplier),
-      });
+      if (nextResult.scenario === "scatter") {
+        setClutchAnimation({
+          freeSpins: Number(nextResult.free_spins_awarded),
+          multiplier: Number(nextResult.bonus_multiplier),
+        });
+      } else {
+        setBonusIntro({
+          title: "CLUTCH TIME+",
+          description: `${nextResult.free_spins_awarded} tiradas gratis con multiplicador x${nextResult.bonus_multiplier}.`,
+          freeSpins: Number(nextResult.free_spins_awarded),
+          multiplier: Number(nextResult.bonus_multiplier),
+        });
+      }
     }
 
     if (
@@ -151,7 +166,7 @@ export default function LeGazalAdminDemoPage() {
   }, [clearTimers]);
 
   const spin = useCallback(() => {
-    if (session.status !== "active" || isSpinning) return;
+    if (session.status !== "active" || isBusy) return;
 
     const hasFreeSpin = Number(session.free_spins_remaining || 0) > 0;
     const spinBet = hasFreeSpin ? Number(session.free_spin_bet || bet) : Number(bet);
@@ -160,6 +175,7 @@ export default function LeGazalAdminDemoPage() {
     setResult(null);
     setBonusIntro(null);
     setBonusSummary(null);
+    setClutchAnimation(null);
     setIsSpinning(true);
     clearTimers();
 
@@ -173,7 +189,10 @@ export default function LeGazalAdminDemoPage() {
     if (forcedScenario !== "random") setForcedScenario("random");
 
     const betSpent = hasFreeSpin ? 0 : spinBet;
-    const freeSpinsAwarded = Number(visualOutcome.freeSpinsAwarded || 0);
+    const engineFreeSpins = Number(visualOutcome.freeSpinsAwarded || 0);
+    const freeSpinsAwarded = visualOutcome.scenarioId === "scatter"
+      ? DEMO_SCATTER_FREE_SPINS
+      : engineFreeSpins;
     const remainingAfterConsumed = Math.max(
       0,
       Number(session.free_spins_remaining || 0) - (hasFreeSpin ? 1 : 0)
@@ -242,10 +261,10 @@ export default function LeGazalAdminDemoPage() {
       finishDelay
     );
     timeoutRefs.current.push(finishTimeoutId);
-  }, [session, isSpinning, bet, clearTimers, forcedScenario, prefersReducedMotion, finishAnimation]);
+  }, [session, isBusy, bet, clearTimers, forcedScenario, prefersReducedMotion, finishAnimation]);
 
   const cashout = useCallback(() => {
-    if (session.status !== "active" || isSpinning) return;
+    if (session.status !== "active" || isBusy) return;
     clearTimers();
     setCashoutSummary({ transferred: Number(session.balance || 0) });
     setSession((previous) => ({
@@ -256,7 +275,7 @@ export default function LeGazalAdminDemoPage() {
       bonus_multiplier: 1,
       cashout_amount: Number(previous.balance || 0),
     }));
-  }, [session, isSpinning, clearTimers]);
+  }, [session, isBusy, clearTimers]);
 
   const resetDemo = useCallback(() => {
     clearTimers();
@@ -268,6 +287,7 @@ export default function LeGazalAdminDemoPage() {
     setResult(null);
     setBonusIntro(null);
     setBonusSummary(null);
+    setClutchAnimation(null);
     setCashoutSummary(null);
     setForcedScenario("random");
     setIsSpinning(false);
@@ -321,14 +341,14 @@ export default function LeGazalAdminDemoPage() {
         <div className="le-gazal-demo__toolbar-actions">
           <label>
             Próxima tirada
-            <select value={forcedScenario} onChange={(event) => setForcedScenario(event.target.value)} disabled={isSpinning}>
+            <select value={forcedScenario} onChange={(event) => setForcedScenario(event.target.value)} disabled={isBusy}>
               {SCENARIOS.map((scenario) => (
                 <option key={scenario.value} value={scenario.value}>{scenario.label}</option>
               ))}
             </select>
           </label>
-          <button type="button" onClick={resetDemo} disabled={isSpinning}>Reiniciar</button>
-          <button type="button" onClick={() => navigate("/admin/fantasy")}>Salir</button>
+          <button type="button" onClick={resetDemo} disabled={isBusy}>Reiniciar</button>
+          <button type="button" onClick={() => navigate("/admin/fantasy")} disabled={isBusy}>Salir</button>
         </div>
       </div>
 
@@ -336,7 +356,7 @@ export default function LeGazalAdminDemoPage() {
         <div className="le-gazal-cabinet">
           <header className="le-gazal-marquee">
             <img src={LE_GAZAL_ASSETS.titleLogo} alt="Le Gazal" className="le-gazal-marquee__title-logo" />
-            <p>Sandbox Admin · mismas reglas visuales · saldo totalmente ficticio</p>
+            <p>Sandbox Admin · nuevas animaciones en prueba · saldo totalmente ficticio</p>
           </header>
 
           <div className="le-gazal-cabinet__body">
@@ -368,7 +388,7 @@ export default function LeGazalAdminDemoPage() {
                 bet={bet}
                 setBet={setBet}
                 balance={Number(session.balance || 0)}
-                isSpinning={isSpinning}
+                isSpinning={isBusy}
                 actionLoading={false}
                 onOpenRules={() => setRulesOpen(true)}
                 onSpin={spin}
@@ -388,6 +408,13 @@ export default function LeGazalAdminDemoPage() {
       <LeGazalRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
       <LeGazalBonusModal modal={bonusIntro} onClose={() => setBonusIntro(null)} />
       <LeGazalBonusModal modal={bonusSummary} onClose={() => setBonusSummary(null)} />
+      <LeGazalClutchAnimation
+        open={Boolean(clutchAnimation)}
+        freeSpins={Number(clutchAnimation?.freeSpins || DEMO_SCATTER_FREE_SPINS)}
+        multiplier={Number(clutchAnimation?.multiplier || 1)}
+        reduceMotion={prefersReducedMotion}
+        onComplete={closeClutchAnimation}
+      />
     </section>
   );
 }
