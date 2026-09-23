@@ -7,6 +7,45 @@
 
 .live-reliability-content { min-height: 0; overflow: hidden; }
 
+/* Give the scorer tools their own row instead of covering the bench and actions. */
+.live-scorer-layout {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.live-tools-bar {
+  min-height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px max(10px, env(safe-area-inset-right)) 4px max(10px, env(safe-area-inset-left));
+  border-top: 1px solid rgba(212, 175, 55, .24);
+  background: #0b0b0b;
+}
+
+.live-tools-bar > aside {
+  position: relative;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  flex: 0 0 auto;
+}
+
+.live-tools-bar .live-history__toggle,
+.live-tools-bar .live-clock-admin__toggle,
+.live-tools-bar .live-staff-discipline__toggle {
+  min-height: 40px;
+}
+
+.live-tools-bar .live-review-entry button { min-height: 40px; }
+
 .live-reliability-bar {
   position: sticky;
   top: 0;
@@ -126,10 +165,19 @@
   .live-sync-state, .live-control-state { min-height: 28px; padding: 2px 6px; }
   .live-sync-state strong, .live-control-state strong { font-size: .66rem; }
   .live-sync-state span, .live-control-state span { font-size: .52rem; }
+  .live-tools-bar { min-height: 46px; padding-block: 2px; }
+  .live-tools-bar .live-history__toggle,
+  .live-tools-bar .live-clock-admin__toggle,
+  .live-tools-bar .live-staff-discipline__toggle { min-height: 38px; }
 }
 
 @media (max-width: 680px) and (orientation: portrait) {
   .live-reliability-bar {
     grid-template-columns: 1fr;
   }
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  .live-scorer-layout { grid-template-rows: minmax(0, 1fr); }
+  .live-tools-bar { display: none; }
 }

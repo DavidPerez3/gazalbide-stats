@@ -32,11 +32,15 @@ export default function LiveStatsWithStaffPage() {
 
   return (
     <LiveReliabilityGuard>
-      <LiveStatsPage />
-      <LiveActionHistoryPanel />
-      <LiveClockPeriodPanel />
-      <LiveStaffDisciplinePanel />
-      <LiveReviewEntry />
+      <div className="live-scorer-layout">
+        <LiveStatsPage />
+        <div className="live-tools-bar" aria-label="Herramientas del anotador">
+          <LiveActionHistoryPanel />
+          <LiveClockPeriodPanel />
+          <LiveStaffDisciplinePanel />
+          <LiveReviewEntry />
+        </div>
+      </div>
     </LiveReliabilityGuard>
   );
 }
