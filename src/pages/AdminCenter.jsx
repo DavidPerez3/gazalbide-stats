@@ -3,16 +3,6 @@ import "../admin.css";
 
 const modules = [
   {
-    id: "matches",
-    icon: "🏀",
-    title: "Partidos",
-    description: "Preparar, continuar o descartar un Live; revisar partidos publicados.",
-    status: "Operativo",
-    available: true,
-    path: "/admin/live/setup",
-    action: "Gestionar partidos",
-  },
-  {
     id: "players",
     icon: "👥",
     title: "Jugadores",
@@ -21,16 +11,6 @@ const modules = [
     available: true,
     path: "/admin/players",
     action: "Abrir jugadores",
-  },
-  {
-    id: "stats",
-    icon: "📊",
-    title: "Estadísticas",
-    description: "Revisar estadísticas Live antes de publicarlas y exportar datos históricos.",
-    status: "Operativo",
-    available: true,
-    path: "/admin/exportaciones",
-    action: "Abrir estadísticas",
   },
   {
     id: "fantasy",
@@ -55,18 +35,18 @@ const modules = [
   {
     id: "live",
     icon: "⚡",
-    title: "Live Stats",
-    description: "Preparar convocatoria, registrar el partido, revisar y publicar.",
+    title: "Partidos y Live Stats",
+    description: "Preparar, continuar, anotar, revisar y publicar partidos. También gestionar amistosos y Lives en curso.",
     status: "Operativo",
     available: true,
     path: "/admin/live/setup",
-    action: "Abrir Live Stats",
+    action: "Gestionar partidos",
   },
   {
     id: "exports",
     icon: "📥",
-    title: "Exportaciones",
-    description: "Descargar Excel de partidos, temporadas, histórico y quintetos/+/-.",
+    title: "Estadísticas y exportaciones",
+    description: "Consultar los datos disponibles para descarga y exportar Excel de partidos, temporadas, histórico y quintetos/+/-.",
     status: "Operativo",
     available: true,
     path: "/admin/exportaciones",
@@ -92,7 +72,7 @@ export default function AdminCenter() {
           <div className="admin-center__section-heading">
             <div>
               <h2 id="admin-modules-title">Módulos</h2>
-              <p>Partidos abre la gestión Live y Estadísticas reúne las exportaciones. Las correcciones de un Live publicado se hacen desde Partidos.</p>
+              <p>Cada módulo aparece una sola vez. Las correcciones de partidos publicados se hacen desde Partidos y Live Stats.</p>
             </div>
           </div>
 
