@@ -1,7 +1,9 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { CURRENT_SEASON_ID, SEASONS, getSeason } from "../lib/seasons.js";
+import { LEGACY_SEASON_ID, SEASONS, getSeason } from "../lib/seasons.js";
 
-const STORAGE_KEY = "gazalbide.activeSeason";
+// Start with the last season that has published results. The previous preference
+// defaulted everyone to an empty 2026-2027 dashboard; let them choose it again.
+const STORAGE_KEY = "gazalbide.activeSeason.v2";
 const SeasonContext = createContext(null);
 
 function getInitialSeason() {
@@ -11,7 +13,7 @@ function getInitialSeason() {
   } catch {
     // Ignore storage failures (private mode / blocked storage).
   }
-  return CURRENT_SEASON_ID;
+  return LEGACY_SEASON_ID;
 }
 
 export function SeasonProvider({ children }) {
