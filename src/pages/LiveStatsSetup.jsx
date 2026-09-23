@@ -4,13 +4,17 @@ import { MAX_ROSTER_SIZE, MAX_ON_COURT } from "../features/live-stats/rules.js";
 import {
   restoreLiveSessionFromRemote,
   saveLiveSetup,
+  clearLiveSession,
+  loadLiveSetup,
 } from "../features/live-stats/localSession.js";
 import {
   listRecoverableLiveSessions,
   loadRemoteLiveSession,
+  discardRemoteLiveSession,
 } from "../features/live-stats/supabaseSync.js";
 import PublishedLiveMatchesPanel from "../features/live-stats/PublishedLiveMatchesPanel.jsx";
 import { getPlayers } from "../lib/data.js";
+import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import "../live-stats.css";
 
@@ -24,6 +28,7 @@ export default function LiveStatsSetup() {
   const [opponent, setOpponent] = useState("");
   const [matchDate, setMatchDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [gazalSide, setGazalSide] = useState("home");
+  const [isFriendly, setIsFriendly] = useState(false);
   const [error, setError] = useState("");
   const [recoverableSessions, setRecoverableSessions] = useState([]);
   const [recoveringId, setRecoveringId] = useState(null);
@@ -39,8 +44,12 @@ export default function LiveStatsSetup() {
     let cancelled = false;
 
     listRecoverableLiveSessions(CURRENT_SEASON_ID)
-      .then((matches) => {
+      .then(async (matches) => {
         if (!cancelled) setRecoverableSessions(matches || []);
+        const localMatchId = loadLiveSetup()?.matchId;
+        if (!localMatchId || matches?.some((match) => match.id === localMatchId)) return;
+        const { data } = await supabase.from("matches").select("status").eq("id", localMatchId).maybeSingle();
+        if (!cancelled && data && data.status !== "live") clearLiveSession();
       })
       .catch((loadError) => {
         console.warn("No se pudieron listar Lives recuperables:", loadError);
@@ -103,6 +112,22 @@ export default function LiveStatsSetup() {
     }
   }
 
+  async function discardGame(match) {
+    if (recoveringId) return;
+    if (!window.confirm(`¿Eliminar definitivamente el Live de ${match.opponent} (${match.date})? Sus acciones sin publicar se borrarán. Una jornada Fantasy vinculada impide esta operación.`)) return;
+    setRecoveryError("");
+    setRecoveringId(match.id);
+    try {
+      await discardRemoteLiveSession(match.id);
+      if (loadLiveSetup()?.matchId === match.id) clearLiveSession();
+      setRecoverableSessions((previous) => previous.filter((row) => row.id !== match.id));
+    } catch (discardError) {
+      setRecoveryError(discardError?.message || "No se pudo descartar el partido.");
+    } finally {
+      setRecoveringId(null);
+    }
+  }
+
   function startGame() {
     setError("");
     if (selected.length < MAX_ON_COURT) return setError("Debes convocar al menos 5 jugadores.");
@@ -123,6 +148,7 @@ export default function LiveStatsSetup() {
       opponent: opponent.trim() || "Rival",
       matchDate,
       gazalSide,
+      isFriendly,
       roster,
       starterIds: starters,
       createdAt: new Date().toISOString(),
@@ -154,17 +180,14 @@ export default function LiveStatsSetup() {
           </p>
           <div className="live-setup__footer">
             {recoverableSessions.map((match) => (
-              <button
-                key={match.id}
-                type="button"
-                className="live-primary-action"
-                onClick={() => recoverGame(match.id)}
-                disabled={Boolean(recoveringId)}
-              >
-                {recoveringId === match.id
-                  ? "Recuperando…"
-                  : `Continuar ${match.opponent} · ${match.date}`}
-              </button>
+              <div key={match.id} className="live-setup__session-actions">
+                <button type="button" className="live-primary-action" onClick={() => recoverGame(match.id)} disabled={Boolean(recoveringId)}>
+                  {recoveringId === match.id ? "Procesando…" : `Continuar ${match.opponent} · ${match.date}`}
+                </button>
+                <button type="button" className="live-setup__discard" onClick={() => discardGame(match)} disabled={Boolean(recoveringId)}>
+                  Descartar Live
+                </button>
+              </div>
             ))}
           </div>
         </section>
@@ -179,6 +202,10 @@ export default function LiveStatsSetup() {
         <label>Fecha<input className="input" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} /></label>
         <label>Gazalbide<select className="input" value={gazalSide} onChange={(e) => setGazalSide(e.target.value)}><option value="home">Local</option><option value="away">Visitante</option></select></label>
       </section>
+      <label className="card card--p" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <input type="checkbox" checked={isFriendly} onChange={(event) => setIsFriendly(event.target.checked)} />
+        <span><strong>Partido amistoso</strong> · se puede publicar en estadísticas del club, pero no enlaza Fantasy, Porra ni genera cambios de precio.</span>
+      </label>
 
       {error && <div className="live-alert live-alert--error">{error}</div>}
 

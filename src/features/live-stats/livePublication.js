@@ -85,7 +85,7 @@ export async function listPublishedLiveMatches(seasonId) {
   const { data, error } = await supabase
     .from("matches")
     .select(
-      "id,season,date,opponent,gazal_side,status,publication_version,published_at,gazal_pts,opp_pts"
+      "id,season,date,opponent,gazal_side,is_friendly,status,publication_version,published_at,gazal_pts,opp_pts"
     )
     .eq("season", seasonId)
     .eq("status", "published")

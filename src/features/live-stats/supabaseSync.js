@@ -169,6 +169,7 @@ async function ensureRemoteMatch(setup) {
       date: setup.matchDate,
       opponent: setup.opponent || "Rival",
       gazal_side: setup.gazalSide || "home",
+      is_friendly: Boolean(setup.isFriendly),
       status: "live",
     };
 
@@ -335,7 +336,7 @@ export async function listRecoverableLiveSessions(seasonId) {
 
   const { data, error } = await supabase
     .from("matches")
-    .select("id,season,date,opponent,gazal_side,status,created_at,updated_at")
+    .select("id,season,date,opponent,gazal_side,is_friendly,status,created_at,updated_at")
     .eq("season", seasonId)
     .eq("status", "live")
     .order("date", { ascending: false })
@@ -343,6 +344,17 @@ export async function listRecoverableLiveSessions(seasonId) {
 
   if (error) throw error;
   return data || [];
+}
+
+export async function discardRemoteLiveSession(matchId) {
+  if (isOffline()) throw new Error("Necesitas conexión para descartar un Live sincronizado.");
+  // The RPC validates admin rights, status and Fantasy linkage, then deletes
+  // the match and its dependent Live rows in one transaction.
+  const { data, error } = await supabase.rpc("discard_unpublished_live_match", {
+    p_match_id: matchId,
+  });
+  if (error) throw error;
+  return data;
 }
 
 function normaliseRemoteEvent(event) {
@@ -360,7 +372,7 @@ export async function loadRemoteLiveSession(matchId) {
 
   const { data: match, error: matchError } = await supabase
     .from("matches")
-    .select("id,season,date,opponent,gazal_side,status,created_at,updated_at")
+    .select("id,season,date,opponent,gazal_side,is_friendly,status,created_at,updated_at")
     .eq("id", matchId)
     .eq("status", "live")
     .single();
@@ -440,6 +452,7 @@ export async function loadRemoteLiveSession(matchId) {
       opponent: match.opponent,
       matchDate: match.date,
       gazalSide: match.gazal_side || "home",
+      isFriendly: Boolean(match.is_friendly),
       roster,
       starterIds,
       createdAt: match.created_at,

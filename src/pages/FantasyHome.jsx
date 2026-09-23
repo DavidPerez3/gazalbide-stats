@@ -884,6 +884,9 @@ export default function FantasyHome() {
                 <h2 className="fantasy__section-title">
                   Próxima jornada Fantasy
                 </h2>
+                <button type="button" className="fantasy-builder__back" onClick={() => navigate("/fantasy/mercado")}>
+                  Ver mercado {CURRENT_SEASON_ID} (solo consulta) →
+                </button>
 
                 {loadingNextGw ? (
                   <p className="fantasy__text">Cargando próxima jornada...</p>

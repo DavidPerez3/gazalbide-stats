@@ -1,10 +1,10 @@
-const CACHE_NAME = "gazalbide-stats-v5";
+const CACHE_NAME = "gazalbide-stats-v6";
 const LE_GAZAL_CHARACTER_PATH = "/gazalbide-stats/assets/le-gazal/characters/";
 const APP_SHELL = [
   "/gazalbide-stats/",
   "/gazalbide-stats/manifest.webmanifest",
-  "/gazalbide-stats/logo.png",
-  "/gazalbide-stats/pwa-icon-v2.svg"
+  "/gazalbide-stats/icon-192.png",
+  "/gazalbide-stats/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -86,8 +86,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Gazalbide Stats";
   const options = {
     body: payload.body || "Tienes un nuevo aviso.",
-    icon: "/gazalbide-stats/logo.png",
-    badge: "/gazalbide-stats/logo.png",
+    icon: "/gazalbide-stats/icon-192.png",
+    badge: "/gazalbide-stats/icon-192.png",
     tag: payload.tag || "gazalbide-notification",
     renotify: false,
     data: {

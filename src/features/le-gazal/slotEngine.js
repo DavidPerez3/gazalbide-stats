@@ -261,6 +261,12 @@ function evaluateGrid(grid, bet, roundMultiplier) {
   if (clutchMode !== BONUS_MODES.NONE) {
     freeSpinsAwarded = BONUS_CONFIG[clutchMode].freeSpins;
     awardedMultiplier = BONUS_CONFIG[clutchMode].multiplier;
+    const symbol = clutchMode === BONUS_MODES.BONUS ? SPECIAL_SYMBOLS.BONUS : SPECIAL_SYMBOLS.SCATTER;
+    for (let row = 0; row < SLOT_ROWS; row += 1) {
+      for (let col = 0; col < SLOT_COLUMNS; col += 1) {
+        if (grid[row][col] === symbol) winningCellKeys.add(`${row}-${col}`);
+      }
+    }
   }
 
   const amountWon = roundValue(

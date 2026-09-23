@@ -285,7 +285,7 @@
 
   .le-gazal-console__status {
     min-height: 26px;
-    padding-right: 34px;
+    padding-right: 0;
     gap: 4px;
     flex-wrap: nowrap;
   }
@@ -386,10 +386,10 @@
   }
 
   .le-gazal-console__secondary {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    margin: 0;
+    position: static;
+    margin: 5px 0 0;
+    justify-content: flex-end;
+    max-width: 100%;
   }
 
   .le-gazal-console__tool {

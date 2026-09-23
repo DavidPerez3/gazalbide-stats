@@ -36,8 +36,8 @@ function resultMessage(result) {
   if (!result) {
     return "El resultado y el saldo los calcula Gazalbide en el servidor.";
   }
-  if (result.scenario === "scatter") {
-    return `CLUTCH TIME: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺.`;
+  if (["scatter", "scatter4", "scatter5"].includes(result.scenario)) {
+    return `${result.scenario === "scatter5" ? "LOCURA GAZAL" : result.scenario === "scatter4" ? "CLUTCH TIME+" : "CLUTCH TIME"}: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺.`;
   }
   if (result.scenario === "bonus") {
     return `CLUTCH TIME+: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺.`;
@@ -70,6 +70,7 @@ export function useLeGazalFantasy() {
     Array(SLOT_COLUMNS).fill(true)
   );
   const [result, setResult] = useState(null);
+  const [winningCellKeys, setWinningCellKeys] = useState([]);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(
     getReducedMotionPreference
@@ -277,6 +278,8 @@ export function useLeGazalFantasy() {
       setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
       stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(true);
       setResult(serverResult);
+      setWinningCellKeys(spinOutcome.winningCellKeys);
+      setSession(spinOutcome.nextSession);
       setIsSpinning(false);
 
       if (Number(serverResult.payout || 0) > 0) {
@@ -286,7 +289,7 @@ export function useLeGazalFantasy() {
       if (Number(serverResult.free_spins_awarded || 0) > 0) {
         const isBonus = serverResult.scenario === "bonus";
         setBonusIntro({
-          title: isBonus ? "CLUTCH TIME+" : "CLUTCH TIME",
+          title: serverResult.scenario === "scatter5" ? "LOCURA GAZAL" : isBonus || serverResult.scenario === "scatter4" ? "CLUTCH TIME+" : "CLUTCH TIME",
           description: `${serverResult.free_spins_awarded} tiradas gratis con multiplicador x${serverResult.bonus_multiplier}.`,
           freeSpins: Number(serverResult.free_spins_awarded),
           multiplier: Number(serverResult.bonus_multiplier),
@@ -324,6 +327,7 @@ export function useLeGazalFantasy() {
 
     setError(null);
     setResult(null);
+    setWinningCellKeys([]);
     setBonusIntro(null);
     setBonusSummary(null);
     setIsSpinning(true);
@@ -352,8 +356,8 @@ export function useLeGazalFantasy() {
         amountWon: Number(serverResult.payout || 0),
       };
 
-      setSession((previous) => ({
-        ...previous,
+      const nextSession = {
+        ...session,
         balance: Number(serverResult.balance || 0),
         free_spins_remaining: Number(serverResult.free_spins_remaining || 0),
         free_spin_bet:
@@ -361,12 +365,13 @@ export function useLeGazalFantasy() {
             ? Number(serverResult.bet)
             : null,
         bonus_multiplier: Number(serverResult.bonus_multiplier || 1),
-        total_spins: Number(previous?.total_spins || 0) + 1,
+        total_spins: Number(session.total_spins || 0) + 1,
         total_bet:
-          Number(previous?.total_bet || 0) + Number(serverResult.bet_spent || 0),
+          Number(session.total_bet || 0) + Number(serverResult.bet_spent || 0),
         total_payout:
-          Number(previous?.total_payout || 0) + Number(serverResult.payout || 0),
-      }));
+          Number(session.total_payout || 0) + Number(serverResult.payout || 0),
+      };
+      spinOutcome.nextSession = nextSession;
 
       stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(false);
       setStoppedColumns(Array(SLOT_COLUMNS).fill(false));
@@ -496,6 +501,7 @@ export function useLeGazalFantasy() {
     isSpinning,
     stoppedColumns,
     result,
+    winningCellKeys,
     resultMessage: resultMessage(result),
     rulesOpen,
     openRules: () => setRulesOpen(true),

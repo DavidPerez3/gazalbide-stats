@@ -9,6 +9,7 @@ import LeGazalBonusModal from "./components/LeGazalBonusModal";
 import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
 import "./leGazal.css";
 import "./leGazalMobile.css";
+import { formatBeers } from "./formatBeers";
 
 const setupCard = {
   maxWidth: 720,
@@ -141,9 +142,9 @@ export default function FantasyLeGazalPage() {
           <div className="le-gazal-cabinet__body">
             <aside className="le-gazal-totem">
               <div className="le-gazal-totem__label">Saldo</div>
-              <div className="le-gazal-totem__value">{Number(state.session.balance || 0)}</div>
+              <div className="le-gazal-totem__value">{formatBeers(state.session.balance)}</div>
               <div className="le-gazal-totem__label">Total Win</div>
-              <div className="le-gazal-totem__value">{Number(state.sessionStats.totalWon || 0)}</div>
+              <div className="le-gazal-totem__value">{formatBeers(state.sessionStats.totalWon)}</div>
               <div className="le-gazal-totem__foot">
                 <span>Fantasy</span>
                 <strong>
@@ -160,7 +161,7 @@ export default function FantasyLeGazalPage() {
                   grid={state.grid}
                   isSpinning={state.isSpinning}
                   stoppedColumns={state.stoppedColumns}
-                  winningCellKeys={[]}
+                  winningCellKeys={state.winningCellKeys}
                   coinBurstKey={state.coinBurstKey}
                   amountWon={Number(state.result?.payout || 0)}
                   reduceMotion={state.prefersReducedMotion}

@@ -454,8 +454,13 @@ export default function AdminPage() {
           <section className="admin__section">
             <h2 className="admin__section-title">Precios Fantasy {CURRENT_SEASON_ID}</h2>
             <p className="admin__text">
-              Precios provisionales del mercado actual. Puedes ajustarlos desde aquí antes de abrir la primera jornada.
+              Precios de apertura: presupuesto base {marketStatus?.baseBudget ?? 80} 🍺. Una alineación de cinco jugadores debe ser viable; los precios de jornadas futuras se proponen según rendimiento y se revisan antes de aplicarse. Le Gazal solo afecta al ahorro con un tope de 30 🍺, no al precio de cada jugador.
             </p>
+            {marketPlayers.length >= 5 ? (
+              <p className="admin__text">
+                Cinco más baratos: <strong>{[...marketPlayers].map((p) => Number(priceDrafts[p.player_id] || 0)).sort((a, b) => a - b).slice(0, 5).reduce((a, b) => a + b, 0)} 🍺</strong> · cinco más caros: <strong>{[...marketPlayers].map((p) => Number(priceDrafts[p.player_id] || 0)).sort((a, b) => b - a).slice(0, 5).reduce((a, b) => a + b, 0)} 🍺</strong>.
+              </p>
+            ) : null}
             {marketPlayers.length === 0 ? (
               <p className="admin__text">Todavía no hay precios cargados.</p>
             ) : (

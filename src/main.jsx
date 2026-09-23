@@ -27,6 +27,7 @@ import LiveStatsWithStaffPage from "./pages/LiveStatsWithStaffPage.jsx";
 import LiveStatsReviewPage from "./pages/LiveStatsReviewPage.jsx";
 import LiveReliabilityGuard from "./features/live-stats/LiveReliabilityGuard.jsx";
 import FantasyBuilder from "./pages/FantasyBuilder.jsx";
+import FantasyMarketPreview from "./pages/FantasyMarketPreview.jsx";
 import FantasyHistory from "./pages/FantasyHistory.jsx";
 import FantasyRanking from "./pages/FantasyRanking.jsx";
 import FantasyTeamHistory from "./pages/FantasyTeamHistory.jsx";
@@ -98,6 +99,10 @@ const router = createHashRouter([
             <FantasyBuilder />
           </PrivateRoute>
         ),
+      },
+      {
+        path: "fantasy/mercado",
+        element: <PrivateRoute><FantasyMarketPreview /></PrivateRoute>,
       },
       {
         path: "fantasy/historial",

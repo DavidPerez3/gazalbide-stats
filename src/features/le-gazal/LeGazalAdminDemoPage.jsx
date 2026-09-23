@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { LE_GAZAL_ASSETS, preloadLeGazalCharacters } from "./assetPaths";
 import { createDisplayGrid, spinSlot } from "./slotEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
+import { formatBeers } from "./formatBeers";
 import LeGazalGrid from "./components/LeGazalGrid";
 import LeGazalControlPanel from "./components/LeGazalControlPanel";
 import LeGazalRulesModal from "./components/LeGazalRulesModal";
@@ -103,6 +104,7 @@ export default function LeGazalAdminDemoPage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [stoppedColumns, setStoppedColumns] = useState(() => Array(SLOT_COLUMNS).fill(true));
   const [result, setResult] = useState(null);
+  const [winningCellKeys, setWinningCellKeys] = useState([]);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(getReducedMotionPreference);
   const [bonusIntro, setBonusIntro] = useState(null);
@@ -163,6 +165,8 @@ export default function LeGazalAdminDemoPage() {
     setStoppedColumns(allStopped);
     stoppedColumnsRef.current = allStopped;
     setResult(nextResult);
+    setWinningCellKeys(spinOutcome.winningCellKeys);
+    setSession(spinOutcome.nextSession);
     setIsSpinning(false);
 
     if (Number(nextResult.payout || 0) > 0) setCoinBurstKey((previous) => previous + 1);
@@ -215,6 +219,7 @@ export default function LeGazalAdminDemoPage() {
     if (!hasFreeSpin && spinBet > Number(session.balance || 0)) return;
 
     setResult(null);
+    setWinningCellKeys([]);
     setBonusIntro(null);
     setBonusSummary(null);
     setClutchAnimation(null);
@@ -249,7 +254,7 @@ export default function LeGazalAdminDemoPage() {
         ? Number(session.bonus_multiplier || 1)
         : 1;
     const payout = Number(visualOutcome.amountWon || 0);
-    const nextBalance = Math.max(0, Number(session.balance || 0) - betSpent + payout);
+    const nextBalance = Math.max(0, Math.round((Number(session.balance || 0) - betSpent + payout) * 100) / 100);
 
     const nextResult = {
       scenario: visualOutcome.scenarioId,
@@ -263,16 +268,17 @@ export default function LeGazalAdminDemoPage() {
       bonus_multiplier: bonusMultiplier,
     };
 
-    setSession((previous) => ({
-      ...previous,
+    const nextSession = {
+      ...session,
       balance: nextBalance,
       free_spins_remaining: freeSpinsRemaining,
-      free_spin_bet: freeSpinsRemaining > 0 ? Number(previous.free_spin_bet || spinBet) : null,
+      free_spin_bet: freeSpinsRemaining > 0 ? Number(session.free_spin_bet || spinBet) : null,
       bonus_multiplier: bonusMultiplier,
-      total_spins: Number(previous.total_spins || 0) + 1,
-      total_bet: Number(previous.total_bet || 0) + betSpent,
-      total_payout: Number(previous.total_payout || 0) + payout,
-    }));
+      total_spins: Number(session.total_spins || 0) + 1,
+      total_bet: Number(session.total_bet || 0) + betSpent,
+      total_payout: Math.round((Number(session.total_payout || 0) + payout) * 100) / 100,
+    };
+    visualOutcome.nextSession = nextSession;
 
     const allMoving = Array(SLOT_COLUMNS).fill(false);
     stoppedColumnsRef.current = allMoving;
@@ -325,6 +331,7 @@ export default function LeGazalAdminDemoPage() {
   const resetDemo = useCallback(() => {
     clearTimers();
     setSession(createDemoSession());
+    setWinningCellKeys([]);
     setBet(3);
     setGrid(createDisplayGrid());
     setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
@@ -409,9 +416,9 @@ export default function LeGazalAdminDemoPage() {
           <div className="le-gazal-cabinet__body">
             <aside className="le-gazal-totem">
               <div className="le-gazal-totem__label">Saldo prueba</div>
-              <div className="le-gazal-totem__value">{Number(session.balance || 0)}</div>
+              <div className="le-gazal-totem__value">{formatBeers(session.balance)}</div>
               <div className="le-gazal-totem__label">Total Win</div>
-              <div className="le-gazal-totem__value">{Number(sessionStats.totalWon || 0)}</div>
+              <div className="le-gazal-totem__value">{formatBeers(sessionStats.totalWon)}</div>
               <div className="le-gazal-totem__foot">
                 <span>Admin QA</span>
                 <strong>{bonusState.remaining > 0 ? `Clutch x${bonusState.multiplier}` : "Sandbox"}</strong>
@@ -424,7 +431,7 @@ export default function LeGazalAdminDemoPage() {
                   grid={grid}
                   isSpinning={isSpinning}
                   stoppedColumns={stoppedColumns}
-                  winningCellKeys={[]}
+                  winningCellKeys={winningCellKeys}
                   coinBurstKey={coinBurstKey}
                   amountWon={Number(result?.payout || 0)}
                   reduceMotion={prefersReducedMotion}

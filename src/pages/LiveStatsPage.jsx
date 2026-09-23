@@ -23,7 +23,6 @@ import {
   stopClock,
 } from "../features/live-stats/stateEngine.js";
 import {
-  clearLiveSession,
   loadLiveEvents,
   loadLiveRuntime,
   loadLiveSetup,
@@ -405,8 +404,7 @@ export default function LiveStatsPage() {
   }
 
   function restartSetup() {
-    if (!window.confirm("¿Descartar este Live local y preparar otro partido?")) return;
-    clearLiveSession();
+    if (!window.confirm("¿Salir a la gestión de partidos? El Live quedará guardado para continuar o descartar desde allí.")) return;
     navigate("/admin/live/setup");
   }
 
@@ -423,7 +421,7 @@ export default function LiveStatsPage() {
 
       <header className="live-scoreboard live-scoreboard--compact">
         <div className="live-team">
-          <span>GAZALBIDE</span>
+          <span>GAZALBIDE {setup.isFriendly ? "· AMISTOSO" : ""}</span>
           <strong>{gameState.score.gazalbide}</strong>
           <small>
             Faltas {foulPeriodLabel}: {currentFouls.gazalbide}
@@ -590,7 +588,7 @@ export default function LiveStatsPage() {
           </div>
           <div className="live-side-actions">
             <button type="button" className="live-undo" onClick={undoLast} disabled={!canUndo}>↶ DESHACER</button>
-            <button type="button" className="live-reset" onClick={restartSetup}>Nuevo partido</button>
+            <button type="button" className="live-reset" onClick={restartSetup}>Salir / gestionar</button>
           </div>
         </aside>
       </div>

@@ -1,4 +1,5 @@
 import { BET_OPTIONS } from "../slotTypes";
+import { formatBeers } from "../formatBeers";
 
 export default function LeGazalControlPanel({
   bet,
@@ -16,8 +17,8 @@ export default function LeGazalControlPanel({
 }) {
   const hasFreeSpin = bonusState.remaining > 0;
   const lockBet = isSpinning || actionLoading || hasFreeSpin;
-  const lastPrize = result ? `${result.payout ?? 0}` : "0";
-  const totalWon = sessionStats.totalWon || "0";
+  const lastPrize = formatBeers(result?.payout);
+  const totalWon = formatBeers(sessionStats.totalWon);
   const spinLabel = hasFreeSpin ? "Free Spin" : "Spin";
   const canSpin = hasFreeSpin || Number(balance) >= Number(bet);
 
@@ -26,7 +27,7 @@ export default function LeGazalControlPanel({
       <div className="le-gazal-console__status" aria-label="Estado de la partida">
         <span className="le-gazal-console__status-pill">
           <span className="le-gazal-console__label">Saldo</span>
-          <strong className="le-gazal-console__status-value">{balance} 🍺</strong>
+          <strong className="le-gazal-console__status-value">{formatBeers(balance)} 🍺</strong>
         </span>
         <span className="le-gazal-console__status-pill">
           {hasFreeSpin
@@ -87,24 +88,16 @@ export default function LeGazalControlPanel({
       </div>
 
       <div className="le-gazal-console__secondary">
-        <button
-          type="button"
-          className="le-gazal-console__tool"
-          onClick={onOpenRules}
-          aria-label="Abrir reglas"
-        >
-          i
-        </button>
         {onCashout ? (
           <button
             type="button"
             className="le-gazal-console__bet"
             onClick={onCashout}
             disabled={isSpinning || actionLoading}
-            aria-label={`Retirarse y ahorrar ${balance} cervezas`}
+            aria-label={`Retirarse y ahorrar ${formatBeers(balance)} cervezas`}
             style={{ minWidth: "auto", paddingInline: "12px" }}
           >
-            Guardar {balance} 🍺
+            Guardar {formatBeers(balance)} 🍺
           </button>
         ) : null}
       </div>

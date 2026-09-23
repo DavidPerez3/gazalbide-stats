@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CURRENT_SEASON_ID } from "../../lib/seasons.js";
 import { restoreLiveSessionFromRemote } from "./localSession.js";
 import { loadRemoteLiveSession } from "./supabaseSync.js";
+import { discardRemoteLiveSession } from "./supabaseSync.js";
 import {
   listPublishedLiveMatches,
   reopenPublishedLiveMatch,
@@ -49,6 +50,21 @@ export default function PublishedLiveMatchesPanel() {
     }
   }
 
+  async function discardFriendly(match) {
+    if (loadingId || !match.is_friendly) return;
+    if (!window.confirm(`¿Borrar el amistoso publicado contra ${match.opponent} (${match.date})? Se quitará de las estadísticas, rankings e historial del club. Esta operación es irreversible.`)) return;
+    setLoadingId(match.id);
+    setError("");
+    try {
+      await discardRemoteLiveSession(match.id);
+      setMatches((current) => current.filter((row) => row.id !== match.id));
+    } catch (err) {
+      setError(err.message || "No se pudo borrar el amistoso.");
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
   return (
     <section className="card card--p">
       <p className="live-kicker">Correcciones posteriores</p>
@@ -59,16 +75,12 @@ export default function PublishedLiveMatchesPanel() {
       {error ? <div className="live-alert live-alert--error">{error}</div> : null}
       <div className="live-setup__footer">
         {matches.map((match) => (
-          <button
-            key={match.id}
-            type="button"
-            onClick={() => reopen(match)}
-            disabled={Boolean(loadingId)}
-          >
-            {loadingId === match.id
-              ? "Reabriendo…"
-              : `Reabrir v${match.publication_version} · ${match.date} · ${match.opponent}`}
-          </button>
+          <div key={match.id} className="live-setup__session-actions">
+            <button type="button" onClick={() => reopen(match)} disabled={Boolean(loadingId)}>
+              {loadingId === match.id ? "Procesando…" : `Reabrir v${match.publication_version} · ${match.date} · ${match.opponent}${match.is_friendly ? " · Amistoso" : ""}`}
+            </button>
+            {match.is_friendly ? <button type="button" className="live-setup__discard" onClick={() => discardFriendly(match)} disabled={Boolean(loadingId)}>Borrar amistoso</button> : null}
+          </div>
         ))}
       </div>
     </section>

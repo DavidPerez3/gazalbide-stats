@@ -19,6 +19,8 @@
 .live-roster-card__starter{min-width:95px;border-left:1px solid #292929!important;color:var(--color-gold)!important;cursor:pointer}
 .live-roster-card__starter:disabled{opacity:.25;cursor:not-allowed}
 .live-setup__footer{position:sticky;bottom:8px;display:flex;justify-content:flex-end;margin-top:1rem}
+.live-setup__session-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.live-setup__discard{border:1px solid #a85050;border-radius:999px;background:#2a1515;color:#ffb4b4;padding:.8rem 1rem;font-weight:800;cursor:pointer}
 .live-primary-action{border:0;border-radius:999px;background:var(--color-gold);color:#111;padding:.8rem 1.2rem;font-weight:900;cursor:pointer}
 .live-alert{padding:.6rem .8rem;border-radius:10px;margin:.5rem 0;font-size:.84rem;font-weight:700}
 .live-alert--error{background:rgba(255,72,72,.14);border:1px solid rgba(255,72,72,.35);color:#ff8c8c}

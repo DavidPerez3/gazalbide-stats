@@ -162,13 +162,15 @@ export const BONUS_CONFIG = {
 };
 
 export const RANDOM_SCENARIO_WEIGHTS = [
-  { id: "lose", weight: 38 },
-  { id: "small", weight: 22 },
-  { id: "medium", weight: 16 },
-  { id: "high", weight: 8 },
-  { id: "scatter", weight: 8 },
-  { id: "bonus", weight: 5 },
-  { id: "wild", weight: 3 },
+  { id: "lose", weight: 6000 },
+  { id: "small", weight: 2800 },
+  { id: "medium", weight: 850 },
+  { id: "high", weight: 200 },
+  { id: "wild", weight: 100 },
+  { id: "scatter", weight: 35 },
+  { id: "scatter4", weight: 10 },
+  { id: "scatter5", weight: 1 },
+  { id: "bonus", weight: 4 },
 ];
 
 export const SAFE_ROW_PATTERNS = [

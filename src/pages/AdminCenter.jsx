@@ -6,8 +6,11 @@ const modules = [
     id: "matches",
     icon: "🏀",
     title: "Partidos",
-    description: "Gestión independiente de partidos fuera del flujo Live Stats.",
-    status: "Próximamente",
+    description: "Preparar, continuar o descartar un Live; revisar partidos publicados.",
+    status: "Operativo",
+    available: true,
+    path: "/admin/live/setup",
+    action: "Gestionar partidos",
   },
   {
     id: "players",
@@ -23,8 +26,11 @@ const modules = [
     id: "stats",
     icon: "📊",
     title: "Estadísticas",
-    description: "Herramientas administrativas específicas de estadísticas y correcciones fuera del Live.",
-    status: "Próximamente",
+    description: "Revisar estadísticas Live antes de publicarlas y exportar datos históricos.",
+    status: "Operativo",
+    available: true,
+    path: "/admin/exportaciones",
+    action: "Abrir estadísticas",
   },
   {
     id: "fantasy",
@@ -86,7 +92,7 @@ export default function AdminCenter() {
           <div className="admin-center__section-heading">
             <div>
               <h2 id="admin-modules-title">Módulos</h2>
-              <p>Los módulos operativos se abren como subpáginas. Partidos y Estadísticas quedan marcados como pendientes hasta que tengan una gestión propia.</p>
+              <p>Partidos abre la gestión Live y Estadísticas reúne las exportaciones. Las correcciones de un Live publicado se hacen desde Partidos.</p>
             </div>
           </div>
 
