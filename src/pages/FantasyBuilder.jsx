@@ -110,27 +110,23 @@ export default function FantasyBuilder() {
           .maybeSingle();
 
         if (gwError) throw gwError;
-        if (!gwData) {
-          setErrorMsg("No hay ninguna jornada activa ahora mismo.");
-          setLoading(false);
-          return;
-        }
-        setGameweek(gwData);
+        setGameweek(gwData || null);
 
-        // Lineup para este equipo y jornada (si existe)
-        const { data: lineupData, error: lineupError } = await supabase
+        // Without an open gameweek, show the last lineup for context only.
+        let lineupQuery = supabase
           .from("fantasy_lineups")
           .select("*")
-          .eq("fantasy_team_id", teamData.id)
-          .eq("gameweek_id", gwData.id)
-          .maybeSingle();
+          .eq("fantasy_team_id", teamData.id);
+        if (gwData) lineupQuery = lineupQuery.eq("gameweek_id", gwData.id);
+        else lineupQuery = lineupQuery.order("gameweek_id", { ascending: false }).limit(1);
+        const { data: lineupData, error: lineupError } = await lineupQuery.maybeSingle();
 
         if (lineupError && lineupError.code !== "PGRST116") throw lineupError;
         setLineup(lineupData || null);
 
         // Jugadores y entrenadores disponibles de esta temporada.
         const [marketPlayers, coachOptions, seasonTraits] = await Promise.all([
-          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID, gameweekId: gwData.id }),
+          loadFantasyMarket({ seasonId: CURRENT_SEASON_ID, gameweekId: gwData?.id ?? null }),
           loadFantasyCoaches(CURRENT_SEASON_ID),
           loadFantasyTraitConfig(CURRENT_SEASON_ID),
         ]);
@@ -139,22 +135,24 @@ export default function FantasyBuilder() {
         setTraitConfig(seasonTraits);
 
         // Estados de los jugadores para esta jornada
-        const { data: statuses, error: statusError } = await supabase
-          .from("player_statuses")
-          .select("player_number, status, note")
-          .eq("gameweek_id", gwData.id);
+        if (gwData) {
+          const { data: statuses, error: statusError } = await supabase
+            .from("player_statuses")
+            .select("player_number, status, note")
+            .eq("gameweek_id", gwData.id);
 
-        if (statusError) {
-          console.error("Error cargando estados de jugadores:", statusError);
-        } else {
-          const map = new Map();
-          for (const s of statuses || []) {
-            map.set(Number(s.player_number), {
-              status: s.status,
-              note: s.note,
-            });
+          if (statusError) {
+            console.error("Error cargando estados de jugadores:", statusError);
+          } else {
+            const map = new Map();
+            for (const s of statuses || []) {
+              map.set(Number(s.player_number), {
+                status: s.status,
+                note: s.note,
+              });
+            }
+            setPlayerStatuses(map);
           }
-          setPlayerStatuses(map);
         }
       } catch (err) {
         console.error("Error inicializando FantasyBuilder:", err);
@@ -223,7 +221,7 @@ export default function FantasyBuilder() {
   const remainingBeers = Math.max(totalBudget - usedBeers, 0);
 
   const currentSlotPlayer = useMemo(() => {
-    if (isCoachMode || !currentSlotNumber || !players.length) return null;
+    if (isCoachMode || currentSlotNumber == null || !players.length) return null;
     return (
       players.find(
         (p) => Number(p.number ?? p.dorsal) === Number(currentSlotNumber)
@@ -421,6 +419,7 @@ export default function FantasyBuilder() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  const readOnly = !gameweek;
 
   return (
     <div className="fantasy-builder">
@@ -442,15 +441,15 @@ export default function FantasyBuilder() {
                   {isCoachMode ? "Elegir entrenador" : "Mercado de jugadores"}
                 </h1>
                 <p className="fantasy-builder__subtitle">
-                  Jornada{" "}
-                  <strong>
-                    {gameweek?.name || `#${gameweek?.id ?? ""}`}
-                  </strong>{" "}
-                  · Deadline: <strong>{deadlineText}</strong>
+                  {readOnly ? (
+                    <strong>Mercado en consulta · No hay jornada abierta. Puedes ver precios y rasgos, pero no fichar ni cambiar la alineación.</strong>
+                  ) : <>
+                    Jornada <strong>{gameweek.name || `#${gameweek.id}`}</strong> · Deadline: <strong>{deadlineText}</strong>
+                  </>}
                   <br />
                   {isCoachMode ? (
                     <>
-                      Elige tu entrenador para la jornada.
+                      {readOnly ? "Consulta los entrenadores disponibles." : "Elige tu entrenador para la jornada."}
                       {currentCoachCode && (
                         <>
                           {" "}
@@ -489,7 +488,7 @@ export default function FantasyBuilder() {
                     Usadas: <strong>{usedBeers}</strong> 🍺 · Libres:{" "}
                     <strong>{remainingBeers}</strong> 🍺
                   </div>
-                  {!isCoachMode && (
+                  {!isCoachMode && !readOnly && (
                     <div className="fantasy-builder__budget-pill">
                       Máx. precio para este hueco:{" "}
                       <strong>{maxPriceForSlot}</strong> 🍺
@@ -499,7 +498,7 @@ export default function FantasyBuilder() {
               )}
             </div>
 
-            {!isCoachMode && slotIndex >= 0 && slotIndex <= 4 && (
+            {!readOnly && !isCoachMode && slotIndex >= 0 && slotIndex <= 4 && (
               <button
                 type="button"
                 className="fantasy-builder__btn-secondary"
@@ -619,9 +618,9 @@ export default function FantasyBuilder() {
                         type="button"
                         className="fantasy-builder__btn"
                         onClick={() => handleSelectCoach(code)}
-                        disabled={isSelected}
+                        disabled={readOnly || isSelected}
                       >
-                        {isSelected ? "Seleccionado" : "Elegir"}
+                        {readOnly ? "Solo consulta" : isSelected ? "Seleccionado" : "Elegir"}
                       </button>
                     </div>
                   </li>
@@ -791,9 +790,9 @@ export default function FantasyBuilder() {
                         type="button"
                         className="fantasy-builder__btn"
                         onClick={() => handleAddPlayer(p)}
-                        disabled={disableAdd || isInThisSlot}
+                        disabled={readOnly || disableAdd || isInThisSlot}
                       >
-                        {isInThisSlot
+                        {readOnly ? "Solo consulta" : isInThisSlot
                           ? "En este hueco"
                           : disableAdd
                           ? "En tu equipo"

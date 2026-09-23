@@ -5,7 +5,6 @@ import { supabase } from "../lib/supabaseClient.js";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import { fantasyNumberKey, getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
-import FantasyMarketPreview from "./FantasyMarketPreview.jsx";
 
 // Fallback de etiqueta para alineaciones antiguas si el staff no estuviera cargado.
 const COACH_LABELS = {
@@ -581,7 +580,6 @@ export default function FantasyHome() {
 
   // navegación al builder desde un hueco del campo
   const goToBuilderFromField = (slotIndex) => {
-    if (!canEditLineup) return;
     navigate(`/fantasy/crear-equipo?slot=${slotIndex}`);
   };
 
@@ -619,7 +617,7 @@ export default function FantasyHome() {
             className="fantasy__court-slot-sub"
             style={{ color: "#9CA3AF", marginTop: 2, textAlign: "center" }}
           >
-            Toca para fichar jugador
+            {canEditLineup ? "Toca para fichar jugador" : "Toca para ver mercado"}
           </span>
         </div>
       );
@@ -883,10 +881,6 @@ export default function FantasyHome() {
                 <h2 className="fantasy__section-title">
                   Próxima jornada Fantasy
                 </h2>
-                <button type="button" className="fantasy-builder__back" onClick={() => navigate("/fantasy/mercado")}>
-                  Ver mercado {CURRENT_SEASON_ID} (solo consulta) →
-                </button>
-
                 {loadingNextGw ? (
                   <p className="fantasy__text">Cargando próxima jornada...</p>
                 ) : nextGwError ? (
@@ -894,12 +888,9 @@ export default function FantasyHome() {
                     {nextGwError}
                   </p>
                 ) : !nextGameweek ? (
-                  <>
-                    <p className="fantasy__text">
-                      Todavía no hay ninguna jornada futura programada. Puedes consultar los precios y rasgos; los fichajes y cambios de alineación se abrirán con una jornada.
-                    </p>
-                    <FantasyMarketPreview embedded />
-                  </>
+                  <p className="fantasy__text">
+                    Todavía no hay ninguna jornada futura programada. Toca un hueco del campo para consultar el mercado y los precios.
+                  </p>
                 ) : (
                   <div className="fantasy__gw-box">
                     <div className="fantasy__gw-main">
@@ -983,10 +974,8 @@ export default function FantasyHome() {
                   {!loadingPlayers && (
                     <div
                       className="fantasy__coach-card"
-                      style={{ marginTop: "0.75rem", cursor: canEditLineup ? "pointer" : "default" }}
-                      onClick={() => {
-                        if (canEditLineup) navigate("/fantasy/crear-equipo?coach=1");
-                      }}
+                      style={{ marginTop: "0.75rem", cursor: "pointer" }}
+                      onClick={() => navigate("/fantasy/crear-equipo?coach=1")}
                     >
                       <h3 className="fantasy__section-subtitle">Entrenador</h3>
                       <div className="fantasy-builder__coach-traits">
@@ -1023,8 +1012,8 @@ export default function FantasyHome() {
                                 ? "Toca para cambiar de entrenador."
                                 : "Toca para elegir entrenador."
                               : selectedCoach
-                                ? "Podrás cambiarlo cuando abra el mercado."
-                                : "Podrás elegirlo cuando abra el mercado."}
+                                ? "Toca para consultar entrenadores; podrás cambiarlo cuando abra la jornada."
+                                : "Toca para consultar entrenadores; podrás elegirlo cuando abra la jornada."}
                           </span>
                           {!canEditLineup && !selectedCoach && fantasyCoaches.length > 0 && (
                             <span className="fantasy__text" style={{ marginTop: 3, fontSize: "0.72rem" }}>
@@ -1080,7 +1069,7 @@ export default function FantasyHome() {
                       <>
                         {filledSlots === 0 && (
                           <p className="fantasy__text" style={{ marginBottom: 8 }}>
-                            Aún no has elegido tu quinteto. Toca un hueco del campo para fichar jugadores.
+                            Aún no has elegido tu quinteto. Toca un hueco del campo para ver el mercado.
                           </p>
                         )}
 
@@ -1117,12 +1106,11 @@ export default function FantasyHome() {
                                     background: "transparent",
                                     border: "none",
                                     padding: 0,
-                                    cursor: canEditLineup ? "pointer" : "default",
+                                    cursor: "pointer",
                                     width: "28%",
                                     maxWidth: "130px",
                                   }}
                                   onClick={() => goToBuilderFromField(index)}
-                                  disabled={!canEditLineup}
                                 >
                                   {renderPlayerSlotCard(player)}
                                 </button>
