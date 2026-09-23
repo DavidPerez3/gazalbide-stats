@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient.js";
 import { computeLineupBreakdown } from "../lib/fantasyScoring.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import { fantasyNumberKey, getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig } from "../lib/fantasyMarket.js";
+import FantasyMarketPreview from "./FantasyMarketPreview.jsx";
 
 // Fallback de etiqueta para alineaciones antiguas si el staff no estuviera cargado.
 const COACH_LABELS = {
@@ -109,8 +110,6 @@ export default function FantasyHome() {
 
   // 2) Cargar próxima gameweek FUTURA (para abrir/cerrar mercado)
   useEffect(() => {
-    if (!team) return;
-
     async function fetchNextGameweek() {
       setLoadingNextGw(true);
       setNextGwError(null);
@@ -138,7 +137,7 @@ export default function FantasyHome() {
     }
 
     fetchNextGameweek();
-  }, [team]);
+  }, []);
 
   // 3) Cargar SIEMPRE el ÚLTIMO lineup que exista + jugadores fantasy
   useEffect(() => {
@@ -895,9 +894,12 @@ export default function FantasyHome() {
                     {nextGwError}
                   </p>
                 ) : !nextGameweek ? (
-                  <p className="fantasy__text">
-                    Todavía no hay ninguna jornada futura programada.
-                  </p>
+                  <>
+                    <p className="fantasy__text">
+                      Todavía no hay ninguna jornada futura programada. Puedes consultar los precios y rasgos; los fichajes y cambios de alineación se abrirán con una jornada.
+                    </p>
+                    <FantasyMarketPreview embedded />
+                  </>
                 ) : (
                   <div className="fantasy__gw-box">
                     <div className="fantasy__gw-main">
