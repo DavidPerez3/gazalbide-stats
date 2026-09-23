@@ -8,27 +8,29 @@ const byDateDesc = (a, b) => new Date(b.date) - new Date(a.date);
 // Configurable
 const MIN_FGA_FOR_TOP_FG = 20; // mínimo de intentos en la temporada para optar a Top FG%
 
-export default function DashboardHighlights() {
+export default function DashboardHighlights({ seasonId }) {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState([]);
   const [byMatchStats, setByMatchStats] = useState(new Map()); // matchId -> rows[]
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const ms = await getMatches();
+      setLoading(true);
+      const ms = await getMatches(seasonId);
       // ordenamos por fecha descendente por si no vienen ya así
       const sorted = [...ms].sort(byDateDesc);
+      const rows = await Promise.all(sorted.map((m) => getMatchStats(m.id)));
+      if (cancelled) return;
       setMatches(sorted);
-
-      const map = new Map();
-      for (const m of sorted) {
-        const stats = await getMatchStats(m.id);
-        map.set(m.id, stats || []);
-      }
-      setByMatchStats(map);
-      setLoading(false);
-    })();
-  }, []);
+      setByMatchStats(new Map(sorted.map((m, index) => [m.id, rows[index] || []])));
+    })().catch((error) => {
+      console.error("No se pudieron cargar los destacados:", error);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [seasonId]);
 
   // Último partido y su MVP
   const lastMatch = useMemo(() => matches[0] || null, [matches]);

@@ -15,15 +15,15 @@ const BASE = import.meta.env.BASE_URL;
 // Supabase is now the canonical stats source. VITE_STATS_SOURCE=json remains available
 // as an explicit emergency/legacy override while the static files are still kept.
 const STATS_SOURCE = String(import.meta.env.VITE_STATS_SOURCE || "supabase").toLowerCase();
-const SEASON_STORAGE_KEY = "gazalbide.activeSeason";
+const SEASON_STORAGE_KEY = "gazalbide.activeSeason.v2";
 
 function resolveSeasonId(seasonId) {
   if (seasonId) return seasonId;
   try {
     const stored = window.localStorage.getItem(SEASON_STORAGE_KEY);
-    return normaliseSeasonId(stored) || CURRENT_SEASON_ID;
+    return normaliseSeasonId(stored) || LEGACY_SEASON_ID;
   } catch {
-    return CURRENT_SEASON_ID;
+    return LEGACY_SEASON_ID;
   }
 }
 

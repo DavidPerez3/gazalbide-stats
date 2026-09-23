@@ -23,9 +23,9 @@ export default function Home() {
     (async () => {
       setLoading(true);
       const [seasonTechs, seasonPlayers, ms] = await Promise.all([
-        getTechs(),
-        getPlayers(),
-        getMatches(),
+        getTechs(activeSeason.id),
+        getPlayers(activeSeason.id),
+        getMatches(activeSeason.id),
       ]);
       setTechs(seasonTechs || {});
       setPlayers(seasonPlayers || []);
@@ -68,7 +68,7 @@ export default function Home() {
       setTeamTotals({ games, pointsFor, pointsAgainst, wins, losses, maxPF });
       setLoading(false);
     })();
-  }, []);
+  }, [activeSeason.id]);
 
   const filteredMatches = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -118,7 +118,7 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <DashboardHighlights />
+          <DashboardHighlights seasonId={activeSeason.id} />
           <div className="grid grid--3">
             <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Nº de veces que se le ha salido el hombro a Imanol</div><div style={{fontSize:22,fontWeight:800}}>4</div></div>
             <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Récord</div><div style={{fontSize:22,fontWeight:800}}>{teamTotals.wins || teamTotals.losses ? `${teamTotals.wins} - ${teamTotals.losses}` : "—"}</div><div className="text-dim" style={{fontSize:12}}>Victorias – Derrotas</div></div>
