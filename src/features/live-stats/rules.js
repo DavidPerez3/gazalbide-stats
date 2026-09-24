@@ -45,8 +45,10 @@ export const TEAM_FOUL_PENALTY_THRESHOLD = 4;
 export function getRuleProfileForDate(matchDate) {
   if (!matchDate) return RULE_PROFILE.FIBA_2026;
   const date = new Date(`${matchDate}T00:00:00`);
-  const fiba2026Start = new Date("2026-10-01T00:00:00");
-  return date >= fiba2026Start ? RULE_PROFILE.FIBA_2026 : RULE_PROFILE.FIBA_2024;
+  // The club uses the new classifications throughout the 2026-27 season,
+  // including its September friendlies. FIBA's official start is 1 October.
+  const season2026Start = new Date("2026-09-01T00:00:00");
+  return date >= season2026Start ? RULE_PROFILE.FIBA_2026 : RULE_PROFILE.FIBA_2024;
 }
 
 export function getFoulKindsForProfile(profile) {
