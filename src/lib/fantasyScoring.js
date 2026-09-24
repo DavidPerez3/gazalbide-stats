@@ -29,7 +29,7 @@ const LEGACY_PLAYER_TRAITS = {
   aingeru: ["V", "P"],
   julen: ["V", "P"],
   aguirre: ["V", "A"],
-  covela: ["C", "A"],
+  covela: ["S", "A"],
   inaki: ["V", "L"],
   jorge: ["A", "V"],
   oier: ["J", "A"],
@@ -37,7 +37,7 @@ const LEGACY_PLAYER_TRAITS = {
 
 const LEGACY_COACH_TRAITS = {
   david: ["S", "A"],
-  gorka: ["V", "C"],
+  gorka: ["V"],
   unai: ["J", "L"],
 };
 
@@ -47,7 +47,7 @@ const LEGACY_TRAITS = {
   S: { code: "S", label: "Sexólogo", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
   V: { code: "V", label: "Vieja guardia", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
   J: { code: "J", label: "Joven promesa", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
-  C: { code: "C", label: "Boost Covela", activation_type: "coach_match", multiplier: 2, required_count: 1 },
+  F: { code: "F", label: "Fimosis", activation_type: "coach_match", multiplier: 1.5, required_count: 1 },
   P: { code: "P", label: "Primos", activation_type: "lineup_count", multiplier: 1.5, required_count: 2 },
 };
 
