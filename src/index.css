@@ -2144,6 +2144,13 @@ html {
   margin-inline: auto;
 }
 
+.fantasy-builder__item .fantasy__player-status {
+  margin-inline: 0;
+  text-align: left;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .fantasy__player-status--available {
   background-color: #d1fae5;
   color: #065f46;
