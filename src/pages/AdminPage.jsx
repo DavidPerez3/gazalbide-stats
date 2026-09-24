@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments, setFantasySeasonReady } from "../lib/fantasyMarket.js";
+import FantasyGameweekStatuses from "../components/FantasyGameweekStatuses.jsx";
 
 // Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
 function slugifyOpponent(str) {
@@ -32,6 +33,7 @@ export default function AdminPage() {
   const [staffTraitDrafts, setStaffTraitDrafts] = useState({});
   const [savingTraits, setSavingTraits] = useState(false);
   const [togglingMarketReady, setTogglingMarketReady] = useState(false);
+  const [statusesGameweekId, setStatusesGameweekId] = useState(null);
 
   const [name, setName] = useState("");
   const [opponent, setOpponent] = useState("");
@@ -641,6 +643,14 @@ export default function AdminPage() {
                         )}
                       </div>
                     </div>
+                    <button type="button" className="admin__button" style={{ marginTop: 10 }}
+                      aria-expanded={statusesGameweekId === gw.id}
+                      onClick={() => setStatusesGameweekId((current) => current === gw.id ? null : gw.id)}>
+                      {statusesGameweekId === gw.id ? "Cerrar estados" : "Gestionar estados"}
+                    </button>
+                    {statusesGameweekId === gw.id && (
+                      <FantasyGameweekStatuses key={gw.id} gameweekId={gw.id} players={marketPlayers} />
+                    )}
                   </li>
                 ))}
               </ul>

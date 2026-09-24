@@ -649,8 +649,8 @@ export default function FantasyBuilder() {
                 const statusLabel = !s
                   ? "Disponible"
                   : (s === "dudoso" || s === "doubtful")
-                  ? "Dudoso"
-                  : statusRaw;   // texto tal cual lo metiste en DB
+                  ? (note ? `Dudoso · ${note}` : "Dudoso")
+                  : (note || (s === "injured" ? "No disponible" : statusRaw));
 
                 const isInTeam =
                   !Number.isNaN(num) && selectedNumbersSet.has(num);

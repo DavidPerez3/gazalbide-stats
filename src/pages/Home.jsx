@@ -4,6 +4,7 @@ import { getMatches, getMatchStats, getPlayers, getTechs } from "../lib/data";
 import { useSeason } from "../context/SeasonContext.jsx";
 import DashboardHighlights from "../components/DashboardHighlights";
 import PublicLiveBanner from "../components/PublicLiveBanner.jsx";
+import { supabase } from "../lib/supabaseClient.js";
 
 const num = (v) => Number(v || 0);
 
@@ -15,6 +16,8 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [order, setOrder] = useState("desc");
   const [techs, setTechs] = useState({});
+  const [plannedGameweeks, setPlannedGameweeks] = useState([]);
+  const [gameweeksError, setGameweeksError] = useState("");
   const [teamTotals, setTeamTotals] = useState({
     games: 0, pointsFor: 0, pointsAgainst: 0, wins: 0, losses: 0, maxPF: 0,
   });
@@ -70,6 +73,23 @@ export default function Home() {
     })();
   }, [activeSeason.id]);
 
+  useEffect(() => {
+    let active = true;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    supabase.from("gameweeks")
+      .select("id,name,opponent,date,deadline,season_id")
+      .eq("status", "scheduled")
+      .gte("date", today)
+      .order("date", { ascending: true })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) setGameweeksError("No se pudieron cargar las jornadas planificadas.");
+        else setPlannedGameweeks(data || []);
+      });
+    return () => { active = false; };
+  }, []);
+
   const filteredMatches = useMemo(() => {
     const term = q.trim().toLowerCase();
     const f = term
@@ -110,6 +130,27 @@ export default function Home() {
       </div>
 
       <PublicLiveBanner />
+
+      {(plannedGameweeks.length > 0 || gameweeksError) && (
+        <section style={{ marginBottom: 20 }} aria-label="Jornadas Fantasy planificadas">
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-gold)", marginBottom: 12 }}>Próximas jornadas Fantasy</h3>
+          {gameweeksError && <p className="text-dim" role="alert">{gameweeksError}</p>}
+          <div className="grid grid--2">
+            {plannedGameweeks.map((gw) => (
+              <article key={gw.id} className="card card--p">
+                <strong style={{ fontSize: 18 }}>{gw.name || `Jornada #${gw.id}`}</strong>
+                <div className="text-dim" style={{ marginTop: 6 }}>
+                  {new Date(`${gw.date}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
+                  {gw.opponent ? ` · vs ${gw.opponent}` : ""}
+                </div>
+                <div className="text-dim" style={{ marginTop: 6, fontSize: 13 }}>
+                  Fantasy {gw.season_id} · Cierre de alineaciones: {new Date(gw.deadline).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {!loading && matches.length === 0 ? (
         <div className="card season-empty">

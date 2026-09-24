@@ -530,10 +530,10 @@ export default function FantasyHome() {
             statusLabel = "Disponible";
           } else if (s === "dudoso" || s === "doubtful") {
             statusColor = "doubtful";
-            statusLabel = "Dudoso";
+            statusLabel = statusNote ? `Dudoso · ${statusNote}` : "Dudoso";
           } else {
             statusColor = "custom-red";
-            statusLabel = statusRaw; // texto libre tal cual
+            statusLabel = statusNote || (s === "injured" ? "No disponible" : statusRaw);
           }
         }
       }

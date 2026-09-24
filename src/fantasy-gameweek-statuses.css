@@ -1,0 +1,6 @@
+.gameweek-statuses { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(212,175,55,.24); border-radius: 12px; background: #141414; }
+.gameweek-statuses__list { display: grid; gap: .55rem; margin: 1rem 0; }
+.gameweek-statuses__row { display: grid; grid-template-columns: minmax(120px,1fr) minmax(145px,180px) minmax(170px,1.2fr); gap: .6rem; align-items: center; }
+.gameweek-statuses__row strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gameweek-statuses__row .admin__input { width: 100%; min-width: 0; box-sizing: border-box; }
+@media(max-width:700px) { .gameweek-statuses__row { grid-template-columns: 1fr; gap: .35rem; padding: .75rem 0; border-bottom: 1px solid #333; } }
