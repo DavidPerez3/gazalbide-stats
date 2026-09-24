@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../lib/seasons.js";
@@ -32,6 +33,7 @@ const pillStyle = {
 
 export default function FantasyEconomySummary() {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const [economy, setEconomy] = useState(null);
   const [gameweek, setGameweek] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -116,7 +118,7 @@ export default function FantasyEconomySummary() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, pathname]);
 
   const values = useMemo(() => {
     if (!economy) return null;
@@ -125,7 +127,8 @@ export default function FantasyEconomySummary() {
     const available = Number(economy.available_budget ?? base + carry);
     const lineupCost =
       economy.lineup_cost == null ? null : Number(economy.lineup_cost);
-    return { base, carry, available, lineupCost };
+    const remaining = Math.max(available - (lineupCost ?? 0), 0);
+    return { base, carry, available, lineupCost, remaining };
   }, [economy]);
 
   if (!user || loading || error || !gameweek || !values) return null;
@@ -149,7 +152,7 @@ export default function FantasyEconomySummary() {
               Economía Fantasy · {gameweek.name || "próxima jornada"}
             </div>
             <strong style={{ color: "#FAFAFA", fontSize: "1rem" }}>
-              {values.available} 🍺 disponibles
+              {values.remaining} 🍺 libres
             </strong>
           </div>
 
@@ -171,6 +174,9 @@ export default function FantasyEconomySummary() {
               title="Presupuesto base más saldo arrastrado"
             >
               Total <strong>{values.available} 🍺</strong>
+            </span>
+            <span style={pillStyle} title="Coste de los jugadores elegidos hasta ahora">
+              Fichajes <strong>−{values.lineupCost ?? 0} 🍺</strong>
             </span>
           </div>
         </div>
