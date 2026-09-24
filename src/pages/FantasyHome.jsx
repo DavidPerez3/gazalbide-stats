@@ -372,6 +372,7 @@ export default function FantasyHome() {
 
       // actualizar estado local -> recalcula isCaptain en playersWithPoints
       setCaptainNumber(newCaptain);
+      window.dispatchEvent(new Event("fantasy-lineup-changed"));
     } catch (err) {
       console.error("Error al cambiar capitán:", err);
       alert("No se pudo cambiar el capitán.");
@@ -1052,9 +1053,31 @@ export default function FantasyHome() {
                   {/* aviso de validez del equipo */}
                   {canEditLineup && !isValidLineup && (
                     <p className="fantasy__message fantasy__message--warning">
-                      Recuerda tener 5 jugadores, un capitán y un entrenador, y no te pases de
-                      cervezas.
+                      {filledSlots < 5
+                        ? `Te faltan ${5 - filledSlots} jugador${5 - filledSlots === 1 ? "" : "es"} para completar el quinteto.`
+                        : !hasCoach
+                        ? "Falta elegir entrenador. Toca la tarjeta de entrenador de arriba."
+                        : !hasCaptain
+                        ? "Falta elegir capitán. Escoge uno de tus cinco jugadores abajo."
+                        : usedBeers > totalBudget
+                        ? "El quinteto supera el presupuesto de cervezas."
+                        : "Revisa que los cinco jugadores sean distintos y estén disponibles en el mercado."}
                     </p>
+                  )}
+
+                  {canEditLineup && filledSlots === 5 && hasCoach && !hasCaptain && (
+                    <label className="fantasy__field" style={{ display: "block", marginBottom: 16 }}>
+                      <span className="fantasy__label">Elegir capitán</span>
+                      <select className="fantasy__input" value=""
+                        onChange={(event) => handleSetCaptain(event.target.value)}>
+                        <option value="" disabled>Selecciona un jugador</option>
+                        {playersBySlot.filter(Boolean).map((player) => (
+                          <option key={player.number} value={player.number}>
+                            #{displayNumber(player.number)} · {player.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   )}
 
                   {/* Alineación sobre el campo */}

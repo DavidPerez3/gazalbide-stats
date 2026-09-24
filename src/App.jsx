@@ -10,13 +10,14 @@ import "./mobile-polish.css";
 import "./active-live.css";
 
 export default function App() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const isLiveScorer = pathname === "/admin/live";
   const isLiveFlow = pathname.startsWith("/admin/live");
   const isPublicLive = pathname.startsWith("/live/");
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
   const isLeGazalDemo = pathname === "/fantasy/le-gazal-demo";
   const isFantasy = pathname.startsWith("/fantasy");
+  const isCoachSelection = pathname === "/fantasy/crear-equipo" && new URLSearchParams(search).get("coach") === "1";
   const isFantasyHome = pathname === "/fantasy";
   const isNotifications = pathname.startsWith("/notificaciones");
   const publishedMatchId = pathname.startsWith("/partido/")
@@ -58,7 +59,7 @@ export default function App() {
   return (
     <div className="h-100">
       <Navbar />
-      {isFantasy && <FantasyEconomySummary />}
+      {isFantasy && !isCoachSelection && <FantasyEconomySummary />}
       {isFantasyHome && <FantasyLeGazalOffer />}
       {!hidesSeasonTabs && <SeasonTabs />}
       <main className="main">

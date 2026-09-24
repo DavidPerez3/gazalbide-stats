@@ -36,13 +36,22 @@ export default function FantasyEconomySummary() {
   const { pathname } = useLocation();
   const [economy, setEconomy] = useState(null);
   const [gameweek, setGameweek] = useState(null);
+  const [lineup, setLineup] = useState(null);
+  const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const refresh = () => setRevision((current) => current + 1);
+    window.addEventListener("fantasy-lineup-changed", refresh);
+    return () => window.removeEventListener("fantasy-lineup-changed", refresh);
+  }, []);
 
   useEffect(() => {
     if (!user) {
       setEconomy(null);
       setGameweek(null);
+      setLineup(null);
       setError(null);
       return;
     }
@@ -66,6 +75,7 @@ export default function FantasyEconomySummary() {
           if (!cancelled) {
             setEconomy(null);
             setGameweek(null);
+            setLineup(null);
           }
           return;
         }
@@ -86,24 +96,31 @@ export default function FantasyEconomySummary() {
           if (!cancelled) {
             setEconomy(null);
             setGameweek(null);
+            setLineup(null);
           }
           return;
         }
 
-        const { data: economyRow, error: economyError } = await supabase
-          .from("fantasy_gameweek_economy")
-          .select(
-            "base_budget, carry_in, available_budget, lineup_cost, valid_lineup, savings_generated, carry_out, finalized_at"
-          )
-          .eq("fantasy_team_id", team.id)
-          .eq("gameweek_id", nextGameweek.id)
-          .maybeSingle();
+        const [{ data: economyRow, error: economyError }, { data: lineupRow, error: lineupError }] = await Promise.all([
+          supabase.from("fantasy_gameweek_economy")
+            .select("base_budget, carry_in, available_budget, lineup_cost, valid_lineup, savings_generated, carry_out, finalized_at")
+            .eq("fantasy_team_id", team.id)
+            .eq("gameweek_id", nextGameweek.id)
+            .maybeSingle(),
+          supabase.from("fantasy_lineups")
+            .select("players,captain_number,coach_code")
+            .eq("fantasy_team_id", team.id)
+            .eq("gameweek_id", nextGameweek.id)
+            .maybeSingle(),
+        ]);
 
         if (economyError) throw economyError;
+        if (lineupError) throw lineupError;
 
         if (!cancelled) {
           setGameweek(nextGameweek);
           setEconomy(economyRow || null);
+          setLineup(lineupRow || null);
         }
       } catch (err) {
         console.error("Error cargando resumen de economía Fantasy:", err);
@@ -118,7 +135,7 @@ export default function FantasyEconomySummary() {
     return () => {
       cancelled = true;
     };
-  }, [user, pathname]);
+  }, [user, pathname, revision]);
 
   const values = useMemo(() => {
     if (!economy) return null;
@@ -134,6 +151,16 @@ export default function FantasyEconomySummary() {
   if (!user || loading || error || !gameweek || !values) return null;
 
   const isValid = economy.valid_lineup === true;
+  const selectedPlayers = (lineup?.players || []).filter((number) =>
+    number != null && Number.isFinite(Number(number)) && Number(number) >= 0
+  );
+  const playerNumbers = selectedPlayers.map(Number);
+  const checks = [
+    { label: `Jugadores ${selectedPlayers.length}/5`, done: selectedPlayers.length === 5 && new Set(playerNumbers).size === 5 },
+    { label: "Entrenador", done: Boolean(lineup?.coach_code) },
+    { label: "Capitán", done: lineup?.captain_number != null && playerNumbers.includes(Number(lineup.captain_number)) },
+    { label: "Presupuesto", done: values.lineupCost == null || values.lineupCost <= values.available },
+  ];
 
   return (
     <div className="container" aria-label="Resumen de presupuesto Fantasy">
@@ -193,25 +220,28 @@ export default function FantasyEconomySummary() {
             gap: 8,
           }}
         >
-          <span
-            style={{
-              ...pillStyle,
-              border: isValid
-                ? "1px solid rgba(74, 222, 128, 0.45)"
-                : "1px solid rgba(248, 113, 113, 0.45)",
-              color: isValid ? "#86EFAC" : "#FCA5A5",
-            }}
-          >
-            {isValid ? "✓ Alineación válida" : "Alineación no válida"}
-          </span>
-
-          <span style={{ fontSize: "0.8rem", color: "#A1A1AA" }}>
-            {isValid
-              ? values.lineupCost == null
-                ? "Puntúa y genera ahorro al cerrar la jornada."
-                : `Coste: ${values.lineupCost} 🍺 · puntúa y puede generar ahorro.`
-              : "0 puntos · 0 ahorro hasta que la alineación sea válida."}
-          </span>
+          <div style={{ width: "100%" }}>
+            <strong style={{ color: isValid ? "#86EFAC" : "#FAFAFA", fontSize: "0.85rem" }}>
+              {isValid ? "✓ Alineación lista" : "Para que puntúe tu alineación:"}
+            </strong>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+              {checks.map(({ label, done }) => (
+                <span key={label} style={{ ...pillStyle,
+                  border: `1px solid ${done ? "rgba(74, 222, 128, 0.45)" : "rgba(248, 113, 113, 0.45)"}`,
+                  color: done ? "#86EFAC" : "#FCA5A5" }}>
+                  {done ? "✓" : "○"} {label}
+                </span>
+              ))}
+            </div>
+            {!isValid && checks.every(({ done }) => done) && (
+              <p style={{ fontSize: "0.8rem", color: "#FCA5A5", margin: "8px 0 0" }}>
+                Revisa que los jugadores y sus precios sigan vigentes en el mercado.
+              </p>
+            )}
+            <p style={{ fontSize: "0.8rem", color: "#A1A1AA", margin: "8px 0 0" }}>
+              {isValid ? "Puntúa y puede generar ahorro al cerrar la jornada." : "0 puntos · 0 ahorro hasta completar los requisitos."}
+            </p>
+          </div>
         </div>
       </section>
     </div>

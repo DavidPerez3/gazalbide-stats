@@ -479,7 +479,7 @@ export default function FantasyBuilder() {
               </div>
 
               {/* Cervezas */}
-              {team && (
+              {team && !isCoachMode && (
                 <div className="fantasy-builder__budget">
                   <div className="fantasy-builder__budget-pill">
                     Total: <strong>{totalBudget}</strong> 🍺
