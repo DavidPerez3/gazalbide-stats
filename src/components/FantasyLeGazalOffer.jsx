@@ -88,7 +88,7 @@ export default function FantasyLeGazalOffer() {
         {activeSession ? (
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
             <span>Le Gazal en curso · <strong>{Number(activeSession.balance || 0)} 🍺</strong></span>
-            <button type="button" onClick={() => navigate("/fantasy/le-gazal")}>Continuar</button>
+            <button className="fantasy__button fantasy__button--secondary" type="button" onClick={() => navigate("/fantasy/le-gazal")}>Continuar</button>
           </div>
         ) : canClose ? (
           <div>
@@ -99,7 +99,7 @@ export default function FantasyLeGazalOffer() {
                 ? " Activa el ahorro para elegir entre guardarlas o jugar Le Gazal. La alineación ya no se puede modificar."
                 : " Ciérrala para elegir entre ahorrar o jugar Le Gazal. Después no podrás cambiar jugadores, entrenador ni capitán."}
             </p>
-            <button type="button" disabled={busy} onClick={() => act("close_fantasy_lineup")}>
+            <button className="fantasy__button" type="button" disabled={busy} onClick={() => act("close_fantasy_lineup")}>
               {busy ? "Procesando…" : deadlinePassed ? "Activar ahorro" : "Cerrar alineación"}
             </button>
           </div>
@@ -112,10 +112,10 @@ export default function FantasyLeGazalOffer() {
                 ? ` El ahorro ordinario tiene un máximo de ${economy.carry_out} 🍺 para la próxima jornada.` : ""}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <button type="button" disabled={busy} onClick={() => act("choose_fantasy_savings")}>
+              <button className="fantasy__button fantasy__button--secondary" type="button" disabled={busy} onClick={() => act("choose_fantasy_savings")}>
                 {busy ? "Guardando…" : `Ahorrar ${economy.carry_out} 🍺`}
               </button>
-              <button type="button" disabled={busy} onClick={() => navigate("/fantasy/le-gazal")}>Jugar Le Gazal</button>
+              <button className="fantasy__button" type="button" disabled={busy} onClick={() => navigate("/fantasy/le-gazal")}>Jugar Le Gazal</button>
             </div>
           </div>
         ) : closed ? (
