@@ -103,7 +103,7 @@ export default function FantasyEconomySummary() {
 
         const [{ data: economyRow, error: economyError }, { data: lineupRow, error: lineupError }] = await Promise.all([
           supabase.from("fantasy_gameweek_economy")
-            .select("base_budget, carry_in, available_budget, lineup_cost, valid_lineup, savings_generated, carry_out, finalized_at")
+            .select("base_budget, carry_in, available_budget, lineup_cost, valid_lineup, savings_generated, carry_out, finalized_at, locked_at")
             .eq("fantasy_team_id", team.id)
             .eq("gameweek_id", nextGameweek.id)
             .maybeSingle(),
@@ -222,7 +222,7 @@ export default function FantasyEconomySummary() {
         >
           <div style={{ width: "100%" }}>
             <strong style={{ color: isValid ? "#86EFAC" : "#FAFAFA", fontSize: "0.85rem" }}>
-              {isValid ? "✓ Alineación lista" : "Para que puntúe tu alineación:"}
+              {isValid ? (economy.locked_at ? "✓ Alineación cerrada" : "✓ Alineación lista para cerrar") : "Para que puntúe tu alineación:"}
             </strong>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               {checks.map(({ label, done }) => (
@@ -239,7 +239,7 @@ export default function FantasyEconomySummary() {
               </p>
             )}
             <p style={{ fontSize: "0.8rem", color: "#A1A1AA", margin: "8px 0 0" }}>
-              {isValid ? "Puntúa y puede generar ahorro al cerrar la jornada." : "0 puntos · 0 ahorro hasta completar los requisitos."}
+              {isValid ? (economy.locked_at ? "Tu alineación está congelada y puntúa en esta jornada." : "Ciérrala cuando quieras para elegir entre ahorro y Le Gazal.") : "0 puntos · 0 ahorro hasta completar los requisitos."}
             </p>
           </div>
         </div>

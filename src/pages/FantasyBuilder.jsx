@@ -66,6 +66,7 @@ export default function FantasyBuilder() {
 
   const [team, setTeam] = useState(null);
   const [gameweek, setGameweek] = useState(null);
+  const [lineupLocked, setLineupLocked] = useState(false);
   const [lineup, setLineup] = useState(null);
   const [players, setPlayers] = useState([]);
   const [coaches, setCoaches] = useState([]);
@@ -111,6 +112,13 @@ export default function FantasyBuilder() {
 
         if (gwError) throw gwError;
         setGameweek(gwData || null);
+        if (gwData) {
+          const { data: economy, error: economyError } = await supabase
+            .from("fantasy_gameweek_economy").select("locked_at")
+            .eq("fantasy_team_id", teamData.id).eq("gameweek_id", gwData.id).maybeSingle();
+          if (economyError) throw economyError;
+          setLineupLocked(Boolean(economy?.locked_at));
+        }
 
         // Without an open gameweek, show the last lineup for context only.
         let lineupQuery = supabase
@@ -246,7 +254,7 @@ export default function FantasyBuilder() {
   // ========================
   async function handleAddPlayer(player) {
     try {
-      if (!team || !gameweek || isCoachMode) return;
+      if (!team || !gameweek || lineupLocked || isCoachMode) return;
 
       if (slotIndex < 0 || slotIndex > 4) {
         console.warn("slotIndex fuera de rango:", slotIndex);
@@ -312,7 +320,7 @@ export default function FantasyBuilder() {
   // ========================
   async function handleClearSlot() {
     try {
-      if (!team || !gameweek || isCoachMode) return;
+      if (!team || !gameweek || lineupLocked || isCoachMode) return;
 
       let currentPlayers = [...currentPlayersArray];
       if (slotIndex < 0 || slotIndex > 4) return;
@@ -350,7 +358,7 @@ export default function FantasyBuilder() {
   // ========================
   async function handleSelectCoach(code) {
     try {
-      if (!team || !gameweek || !isCoachMode) return;
+      if (!team || !gameweek || lineupLocked || !isCoachMode) return;
 
       const currentPlayers = [...currentPlayersArray];
 
@@ -419,7 +427,7 @@ export default function FantasyBuilder() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  const readOnly = !gameweek;
+  const readOnly = !gameweek || lineupLocked;
 
   return (
     <div className="fantasy-builder">
@@ -442,7 +450,7 @@ export default function FantasyBuilder() {
                 </h1>
                 <p className="fantasy-builder__subtitle">
                   {readOnly ? (
-                    <strong>Mercado en consulta · No hay jornada abierta. Puedes ver precios y rasgos, pero no fichar ni cambiar la alineación.</strong>
+                    <strong>{lineupLocked ? "Alineación cerrada · Puedes consultar precios y rasgos, pero no cambiar tu elección." : "Mercado en consulta · No hay jornada abierta. Puedes ver precios y rasgos, pero no fichar ni cambiar la alineación."}</strong>
                   ) : <>
                     Jornada <strong>{gameweek.name || `#${gameweek.id}`}</strong> · Deadline: <strong>{deadlineText}</strong>
                   </>}

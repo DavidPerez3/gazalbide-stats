@@ -51,6 +51,8 @@ export default function FantasyHome() {
   const [loadingLineup, setLoadingLineup] = useState(false);
   const [lineupError, setLineupError] = useState(null);
   const [lineupId, setLineupId] = useState(null);
+  const [lineupLocked, setLineupLocked] = useState(false);
+  const [lockLoaded, setLockLoaded] = useState(false);
 
   // Stats del partido de esa jornada (para puntos)
   const [statsByNumber, setStatsByNumber] = useState(null);
@@ -137,6 +139,23 @@ export default function FantasyHome() {
 
     fetchNextGameweek();
   }, []);
+
+  useEffect(() => {
+    if (!team || !nextGameweek) { setLockLoaded(true); return; }
+    let active = true;
+    setLockLoaded(false);
+    supabase.from("fantasy_gameweek_economy").select("locked_at")
+      .eq("fantasy_team_id", team.id).eq("gameweek_id", nextGameweek.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) { setLineupError("No se pudo comprobar si la alineación está cerrada."); }
+        else setLineupLocked(Boolean(data?.locked_at));
+        setLockLoaded(!error);
+      });
+    const onLocked = () => { setLineupLocked(true); setLockLoaded(true); };
+    window.addEventListener("fantasy-lineup-locked", onLocked);
+    return () => { active = false; window.removeEventListener("fantasy-lineup-locked", onLocked); };
+  }, [team, nextGameweek]);
 
   // 3) Cargar SIEMPRE el ÚLTIMO lineup que exista + jugadores fantasy
   useEffect(() => {
@@ -389,7 +408,7 @@ export default function FantasyHome() {
   if (nextGameweek?.deadline) {
     const nowIso = new Date().toISOString();
     canEditLineup =
-      nextGameweek.status === "scheduled" && nowIso < nextGameweek.deadline;
+      nextGameweek.status === "scheduled" && nowIso < nextGameweek.deadline && lockLoaded && !lineupLocked;
 
     nextDeadlineText = new Date(nextGameweek.deadline).toLocaleString("es-ES", {
       day: "2-digit",
@@ -1035,6 +1054,10 @@ export default function FantasyHome() {
                       </strong>
                       {lineupGameweek.date && ` · ${lineupGameweek.date}`}
                     </p>
+                  )}
+
+                  {lineupLocked && lineupGameweek?.id === nextGameweek?.id && (
+                    <p className="fantasy__message">Alineación cerrada para esta jornada. Ya no puedes cambiar el quinteto, capitán ni entrenador.</p>
                   )}
 
                   {captainNumber != null && (

@@ -194,7 +194,7 @@ export function useLeGazalFantasy() {
       const { data: economy, error: economyError } = await supabase
         .from("fantasy_gameweek_economy")
         .select(
-          "gameweek_id, carry_out, valid_lineup, finalized_at, savings_generated"
+          "gameweek_id, carry_out, valid_lineup, finalized_at, locked_at, savings_choice, savings_generated"
         )
         .eq("fantasy_team_id", team.id)
         .eq("gameweek_id", latestGameweek.id)
@@ -210,7 +210,8 @@ export function useLeGazalFantasy() {
         economy?.valid_lineup === true &&
         economy?.finalized_at &&
         Number(economy?.carry_out || 0) > 0 &&
-        deadlinePassed
+        !economy?.savings_choice &&
+        (economy?.locked_at || deadlinePassed)
       ) {
         setOffer({
           gameweekId: latestGameweek.id,
@@ -270,6 +271,25 @@ export function useLeGazalFantasy() {
     },
     [offer, actionLoading]
   );
+
+  const saveSavings = useCallback(async () => {
+    if (!offer || actionLoading) return false;
+    setActionLoading(true);
+    setError(null);
+    try {
+      const { error: rpcError } = await supabase.rpc("choose_fantasy_savings", {
+        p_gameweek_id: offer.gameweekId,
+      });
+      if (rpcError) throw rpcError;
+      setOffer(null);
+      return true;
+    } catch (err) {
+      setError(err.message || "No se pudo guardar el ahorro.");
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  }, [offer, actionLoading]);
 
   const finishAnimation = useCallback(
     (spinOutcome, serverResult, previousSession) => {
@@ -515,6 +535,7 @@ export function useLeGazalFantasy() {
     bonusState,
     sessionStats,
     startSession,
+    saveSavings,
     spin,
     cashout,
     reload: loadState,

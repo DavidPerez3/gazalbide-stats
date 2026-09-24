@@ -100,7 +100,8 @@ export default function FantasyLeGazalPage() {
               </label>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
-                <button type="button" style={buttonStyle} onClick={() => navigate("/fantasy")}>
+                <button type="button" style={buttonStyle} disabled={state.actionLoading}
+                  onClick={async () => { if (await state.saveSavings()) navigate("/fantasy"); }}>
                   Ahorrar {state.offer.available} 🍺
                 </button>
                 <button
@@ -117,7 +118,7 @@ export default function FantasyLeGazalPage() {
             <div>
               <h2>Le Gazal no está disponible</h2>
               <p>
-                Se habilita después de una jornada finalizada con alineación válida y cervezas sobrantes.
+                Se habilita al cerrar una alineación válida con cervezas sobrantes, o después del cierre automático de la jornada.
               </p>
             </div>
           )}
