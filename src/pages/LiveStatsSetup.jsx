@@ -29,6 +29,10 @@ export default function LiveStatsSetup() {
   const [matchDate, setMatchDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [gazalSide, setGazalSide] = useState("home");
   const [isFriendly, setIsFriendly] = useState(false);
+  const [gameweeks, setGameweeks] = useState([]);
+  const [selectedGameweekId, setSelectedGameweekId] = useState("");
+  const [gameweeksLoading, setGameweeksLoading] = useState(true);
+  const [gameweeksError, setGameweeksError] = useState(false);
   const [error, setError] = useState("");
   const [recoverableSessions, setRecoverableSessions] = useState([]);
   const [recoveringId, setRecoveringId] = useState(null);
@@ -38,6 +42,25 @@ export default function LiveStatsSetup() {
     getPlayers(CURRENT_SEASON_ID)
       .then((data) => setPlayers(data || []))
       .catch(() => setError("No se pudo cargar la plantilla de la temporada actual."));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from("gameweeks")
+      .select("id,name,opponent,date,match_id,status")
+      .eq("season_id", CURRENT_SEASON_ID)
+      .gte("date", new Date().toISOString().slice(0, 10))
+      .order("date", { ascending: true })
+      .then(({ data, error: loadError }) => {
+        if (cancelled) return;
+        if (loadError) {
+          setGameweeksError(true);
+          setError("No se pudieron consultar las jornadas Fantasy. Recarga la página antes de iniciar el Live.");
+        }
+        else setGameweeks((data || []).filter((gw) => !["played", "scored"].includes(gw.status)));
+        setGameweeksLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -128,11 +151,42 @@ export default function LiveStatsSetup() {
     }
   }
 
-  function startGame() {
+  function selectGameweek(id) {
+    setSelectedGameweekId(id);
+    const gameweek = gameweeks.find((gw) => String(gw.id) === id);
+    if (!gameweek) return;
+    setMatchDate(gameweek.date);
+    setOpponent(gameweek.opponent || "");
+    setIsFriendly(false);
     setError("");
+  }
+
+  async function startGame() {
+    setError("");
+    if (gameweeksLoading) return setError("Espera a que se comprueben las jornadas Fantasy.");
+    if (gameweeksError) return setError("No se pudieron comprobar las jornadas Fantasy. Recarga la página antes de iniciar el Live.");
     if (selected.length < MAX_ON_COURT) return setError("Debes convocar al menos 5 jugadores.");
     if (selected.length > MAX_ROSTER_SIZE) return setError(`No puedes convocar más de ${MAX_ROSTER_SIZE} jugadores.`);
     if (starters.length !== MAX_ON_COURT) return setError("Debes seleccionar exactamente 5 titulares.");
+
+    const gameweek = gameweeks.find((gw) => String(gw.id) === selectedGameweekId);
+    if (gameweek && (gameweek.date !== matchDate ||
+      (gameweek.opponent || "").trim().toLowerCase() !== opponent.trim().toLowerCase())) {
+      return setError("La fecha o el rival no coinciden con la jornada Fantasy seleccionada. Selecciónala de nuevo.");
+    }
+    if (!gameweek && !isFriendly && gameweeks.some((gw) => gw.date === matchDate &&
+      (gw.opponent || "").trim().toLowerCase() === opponent.trim().toLowerCase())) {
+      return setError("Hay una jornada Fantasy para este partido. Selecciónala para vincular el Live o marca Partido amistoso para registrarlo aparte.");
+    }
+
+    if (gameweek?.match_id) {
+      const { data: existing, error: matchError } = await supabase.from("matches")
+        .select("status").eq("id", gameweek.match_id).maybeSingle();
+      if (matchError) return setError("No se pudo comprobar el partido vinculado. Inténtalo de nuevo.");
+      if (existing) return setError(existing.status === "live"
+        ? "Ya existe un Live de esta jornada. Continúalo desde Partido Live guardado."
+        : "Esta jornada ya tiene un partido registrado. No se creará otro Live sobre él.");
+    }
 
     const roster = players
       .filter((player) => selectedSet.has(playerKey(player)))
@@ -144,6 +198,7 @@ export default function LiveStatsSetup() {
       }));
 
     saveLiveSetup({
+      matchId: gameweek?.match_id || undefined,
       seasonId: CURRENT_SEASON_ID,
       opponent: opponent.trim() || "Rival",
       matchDate,
@@ -198,14 +253,22 @@ export default function LiveStatsSetup() {
       <PublishedLiveMatchesPanel />
 
       <section className="live-setup__meta card card--p">
-        <label>Rival<input className="input" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="Nombre del rival" /></label>
-        <label>Fecha<input className="input" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} /></label>
+        <label>Jornada Fantasy
+          <select className="input" value={selectedGameweekId} onChange={(e) => selectGameweek(e.target.value)} disabled={isFriendly || gameweeksLoading}>
+            <option value="">Sin jornada seleccionada</option>
+            {gameweeks.map((gw) => <option key={gw.id} value={gw.id}>{gw.name || "Jornada"} · {gw.date} · vs {gw.opponent || "Rival"}</option>)}
+          </select>
+        </label>
+        <label>Rival<input className="input" value={opponent} onChange={(e) => { setOpponent(e.target.value); setSelectedGameweekId(""); }} placeholder="Nombre del rival" /></label>
+        <label>Fecha<input className="input" type="date" value={matchDate} onChange={(e) => { setMatchDate(e.target.value); setSelectedGameweekId(""); }} /></label>
         <label>Gazalbide<select className="input" value={gazalSide} onChange={(e) => setGazalSide(e.target.value)}><option value="home">Local</option><option value="away">Visitante</option></select></label>
       </section>
       <label className="card card--p" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <input type="checkbox" checked={isFriendly} onChange={(event) => setIsFriendly(event.target.checked)} />
+        <input type="checkbox" checked={isFriendly} onChange={(event) => { setIsFriendly(event.target.checked); if (event.target.checked) setSelectedGameweekId(""); }} />
         <span><strong>Partido amistoso</strong> · se puede publicar en estadísticas del club, pero no enlaza Fantasy, Porra ni genera cambios de precio.</span>
       </label>
+
+      {selectedGameweekId && <p className="text-dim">Este Live se vinculará a la jornada Fantasy seleccionada al iniciar el partido. Deja desmarcado «Partido amistoso».</p>}
 
       {error && <div className="live-alert live-alert--error">{error}</div>}
 
