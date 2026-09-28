@@ -137,6 +137,14 @@ const router = createHashRouter([
         ),
       },
       {
+        path: "fantasy/le-gazal-diversion",
+        element: (
+          <PrivateRoute>
+            <LeGazalAdminDemoPage publicMode />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "fantasy/le-gazal-demo",
         element: (
           <PrivateRoute adminOnly={true}>
