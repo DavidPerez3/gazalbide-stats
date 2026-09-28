@@ -92,7 +92,7 @@ function demoResultMessage(result) {
   return `Sin premio. Saldo de prueba: ${result.balance} 🍺.`;
 }
 
-export default function LeGazalAdminDemoPage() {
+export default function LeGazalAdminDemoPage({ publicMode = false }) {
   const navigate = useNavigate();
   const timeoutRefs = useRef([]);
   const intervalRef = useRef(null);
@@ -370,15 +370,15 @@ export default function LeGazalAdminDemoPage() {
     return (
       <section className="le-gazal-page le-gazal-demo">
         <div className="le-gazal-demo__end card card--p">
-          <span className="le-gazal-demo__badge">MODO PRUEBA ADMIN</span>
-          <h1>Prueba terminada</h1>
+          <span className="le-gazal-demo__badge">{publicMode ? "MODO DIVERSIÓN" : "MODO PRUEBA ADMIN"}</span>
+          <h1>{publicMode ? "Partida terminada" : "Prueba terminada"}</h1>
           <p>
-            Has guardado <strong>{Number(cashoutSummary?.transferred || 0)} 🍺 ficticias</strong>.
+            Has terminado con <strong>{Number(cashoutSummary?.transferred || 0)} 🍺 ficticias</strong>.
             No se ha modificado tu Fantasy, tu ahorro ni ninguna tabla de Supabase.
           </p>
           <div className="le-gazal-demo__actions">
-            <button type="button" onClick={resetDemo}>↻ Reiniciar prueba</button>
-            <button type="button" onClick={() => navigate("/admin/fantasy")}>← Volver a Admin Fantasy</button>
+            <button type="button" onClick={resetDemo}>↻ {publicMode ? "Jugar otra vez" : "Reiniciar prueba"}</button>
+            <button type="button" onClick={() => navigate(publicMode ? "/fantasy" : "/admin/fantasy")}>← {publicMode ? "Volver a Fantasy" : "Volver a Admin Fantasy"}</button>
           </div>
         </div>
       </section>
@@ -389,20 +389,22 @@ export default function LeGazalAdminDemoPage() {
     <section className="le-gazal-page le-gazal-demo">
       <div className="le-gazal-demo__toolbar">
         <div>
-          <span className="le-gazal-demo__badge">MODO PRUEBA ADMIN</span>
-          <strong>20 🍺 ficticias · nada se guarda en servidor</strong>
+          <span className="le-gazal-demo__badge">{publicMode ? "MODO DIVERSIÓN" : "MODO PRUEBA ADMIN"}</span>
+          <strong>20 🍺 ficticias · no cuentan para Fantasy</strong>
         </div>
         <div className="le-gazal-demo__toolbar-actions">
-          <label>
-            Próxima tirada
-            <select value={forcedScenario} onChange={(event) => setForcedScenario(event.target.value)} disabled={isBusy}>
-              {SCENARIOS.map((scenario) => (
-                <option key={scenario.value} value={scenario.value}>{scenario.label}</option>
-              ))}
-            </select>
-          </label>
+          {!publicMode ? (
+            <label>
+              Próxima tirada
+              <select value={forcedScenario} onChange={(event) => setForcedScenario(event.target.value)} disabled={isBusy}>
+                {SCENARIOS.map((scenario) => (
+                  <option key={scenario.value} value={scenario.value}>{scenario.label}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button type="button" onClick={resetDemo} disabled={isBusy}>Reiniciar</button>
-          <button type="button" onClick={() => navigate("/admin/fantasy")} disabled={isBusy}>Salir</button>
+          <button type="button" onClick={() => navigate(publicMode ? "/fantasy" : "/admin/fantasy")} disabled={isBusy}>Salir</button>
         </div>
       </div>
 
@@ -410,7 +412,7 @@ export default function LeGazalAdminDemoPage() {
         <div className="le-gazal-cabinet">
           <header className="le-gazal-marquee">
             <img src={LE_GAZAL_ASSETS.titleLogo} alt="Le Gazal" className="le-gazal-marquee__title-logo" />
-            <p>Sandbox Admin · 3, 4 y 5 Scatter animados · saldo totalmente ficticio</p>
+            <p>{publicMode ? "Modo diversión · juega siempre · saldo totalmente ficticio" : "Sandbox Admin · 3, 4 y 5 Scatter animados · saldo totalmente ficticio"}</p>
           </header>
 
           <div className="le-gazal-cabinet__body">
@@ -420,8 +422,8 @@ export default function LeGazalAdminDemoPage() {
               <div className="le-gazal-totem__label">Total Win</div>
               <div className="le-gazal-totem__value">{formatBeers(sessionStats.totalWon)}</div>
               <div className="le-gazal-totem__foot">
-                <span>Admin QA</span>
-                <strong>{bonusState.remaining > 0 ? `Clutch x${bonusState.multiplier}` : "Sandbox"}</strong>
+                <span>{publicMode ? "Diversión" : "Admin QA"}</span>
+                <strong>{bonusState.remaining > 0 ? `Clutch x${bonusState.multiplier}` : publicMode ? "Sin impacto Fantasy" : "Sandbox"}</strong>
               </div>
             </aside>
 
