@@ -1208,6 +1208,14 @@ export default function FantasyHome() {
                   <div className="fantasy__actions">
                     <button
                       type="button"
+                      className="fantasy__button"
+                      onClick={() => navigate("/fantasy/le-gazal-diversion")}
+                      style={{ margin: 16 }}
+                    >
+                      Jugar Le Gazal · diversión
+                    </button>
+                    <button
+                      type="button"
                       className="fantasy__button fantasy__button--ghost"
                       onClick={() => navigate("/fantasy/historial")}
                       style={{ margin: 16 }}
