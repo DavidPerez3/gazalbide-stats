@@ -15,7 +15,7 @@ export default function App() {
   const isLiveFlow = pathname.startsWith("/admin/live");
   const isPublicLive = pathname.startsWith("/live/");
   const isLeGazal = pathname.startsWith("/fantasy/le-gazal");
-  const isLeGazalDemo = pathname === "/fantasy/le-gazal-demo";
+  const isLeGazalDemo = pathname === "/fantasy/le-gazal-demo" || pathname === "/fantasy/le-gazal-diversion";
   const isFantasy = pathname.startsWith("/fantasy");
   const isCoachSelection = pathname === "/fantasy/crear-equipo" && new URLSearchParams(search).get("coach") === "1";
   const isFantasyHome = pathname === "/fantasy";
