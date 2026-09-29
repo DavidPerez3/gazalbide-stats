@@ -265,7 +265,7 @@ export default function LiveStatsSetup() {
       </section>
       <label className="card card--p" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <input type="checkbox" checked={isFriendly} onChange={(event) => { setIsFriendly(event.target.checked); if (event.target.checked) setSelectedGameweekId(""); }} />
-        <span><strong>Partido amistoso</strong> · se puede publicar en estadísticas del club, pero no enlaza Fantasy, Porra ni genera cambios de precio.</span>
+        <span><strong>Partido amistoso</strong> · se puede publicar en estadísticas del club, pero no enlaza Fantasy, GazalBet ni genera cambios de precio.</span>
       </label>
 
       {selectedGameweekId && <p className="text-dim">Este Live se vinculará a la jornada Fantasy seleccionada al iniciar el partido. Deja desmarcado «Partido amistoso».</p>}

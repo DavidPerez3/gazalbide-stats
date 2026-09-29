@@ -76,7 +76,7 @@ export default function Navbar() {
             Fantasy
           </NavLink>
           <NavLink to="/porra" className={link} onClick={handleLinkClick}>
-            Porra
+            GazalBet
           </NavLink>
 
           {!user && (

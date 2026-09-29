@@ -25,12 +25,12 @@ const modules = [
   {
     id: "porra",
     icon: "🎯",
-    title: "La Porra del Gazal",
-    description: "Crear jornadas, preguntas, deadlines, resultados y clasificación de la Porra.",
+    title: "GazalBet",
+    description: "Supervisar mercados, cuotas y resultados automáticos. Anulación excepcional con devolución.",
     status: "Operativo",
     available: true,
     path: "/admin/porra",
-    action: "Abrir Porra",
+    action: "Supervisar GazalBet",
   },
   {
     id: "live",
