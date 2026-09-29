@@ -76,7 +76,7 @@ export default function PorraPage() {
       <div className="gazalbet-markets">{data.markets.map((market) => {
         const existing = betsByMarket.get(market.id);
         return <article className="gazalbet-market" key={market.id}>
-          <div className="gazalbet-market__head"><div><h3>{market.title}</h3><p>{market.subtitle}</p></div><span title="Fiabilidad del cálculo">Modelo {market.confidence}%</span></div>
+          <div className="gazalbet-market__head"><div><h3>{market.title}</h3><p>{market.subtitle}</p></div><span title="Muestra histórica utilizada">{market.sample_size ? `${market.sample_size} partidos` : "Datos iniciales"}</span></div>
           <div className={`gazalbet-options gazalbet-options--${Math.min(market.selections.length, 3)}`}>{market.selections.map((selection) => {
             const chosen = existing?.selection_key === selection.key;
             const winner = market.status === "settled" && market.winning_key === selection.key;

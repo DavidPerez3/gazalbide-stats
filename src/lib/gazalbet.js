@@ -22,7 +22,7 @@ export async function fetchGazalBetData(userId) {
     if (error) throw error;
   }
   const [{ data: markets, error: marketsError }, { data: bets, error: betsError }, { data: wallet, error: walletError }] = await Promise.all([
-    current ? supabase.from("gazalbet_markets").select("*").eq("gameweek_id", current.id).order("generated_at") : Promise.resolve({ data: [], error: null }),
+    current ? supabase.from("gazalbet_markets").select("*").eq("gameweek_id", current.id).neq("status", "void").order("generated_at") : Promise.resolve({ data: [], error: null }),
     supabase.from("gazalbet_bets").select("*, gazalbet_markets(title)").eq("user_id", userId).order("placed_at", { ascending: false }),
     supabase.from("gazalbet_wallets").select("*").eq("user_id", userId).maybeSingle(),
   ]);
