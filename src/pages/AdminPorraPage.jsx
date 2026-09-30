@@ -32,7 +32,7 @@ export default function AdminPorraPage() {
     {error && <div className="gazalbet-alert gazalbet-alert--error">{error}</div>}
     <section className="gazalbet-panel">
       <h2>Mercados generados</h2>
-      <p className="gazalbet-muted">No necesitas crear nada. Cada jornada recibe un máximo de seis mercados al visitarse por primera vez.</p>
+      <p className="gazalbet-muted">No necesitas crear nada. Los mercados generales y las cuotas del creador se calculan automáticamente; aquí solo supervisas incidencias.</p>
       {loading ? <div className="gazalbet-loading">Cargando supervisión…</div> : <div className="gazalbet-admin-list">{markets.map((market) => {
         const volume = (market.gazalbet_bets || []).reduce((sum, bet) => sum + Number(bet.stake), 0);
         return <article className="gazalbet-admin-market" key={market.id}><div><small>{market.gameweeks?.name || `Jornada ${market.gameweek_id}`} · {formatDeadline(market.gameweeks?.deadline)}</small><h3>{market.title}</h3><span>{market.status.toUpperCase()} · {market.sample_size ? `Basado en ${market.sample_size} partidos` : "Datos iniciales"} · {(market.gazalbet_bets || []).length} apuestas · {volume} fichas</span></div>{["open", "closed"].includes(market.status) && <button type="button" onClick={() => handleVoid(market)}>Anular y devolver</button>}</article>;

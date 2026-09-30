@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 
-export const STAKES = [5, 10, 20];
+export const STAKES = [1, 5, 10, 20];
 
 export function formatCredits(value) {
   return new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(Number(value || 0));
@@ -21,15 +21,43 @@ export async function fetchGazalBetData(userId) {
     const { error } = await supabase.rpc("ensure_gazalbet_markets", { p_gameweek_id: current.id });
     if (error) throw error;
   }
-  const [{ data: markets, error: marketsError }, { data: bets, error: betsError }, { data: wallet, error: walletError }] = await Promise.all([
+  const [{ data: markets, error: marketsError }, { data: bets, error: betsError }, { data: tickets, error: ticketsError }, { data: wallet, error: walletError }] = await Promise.all([
     current ? supabase.from("gazalbet_markets").select("*").eq("gameweek_id", current.id).neq("status", "void").order("generated_at") : Promise.resolve({ data: [], error: null }),
     supabase.from("gazalbet_bets").select("*, gazalbet_markets(title)").eq("user_id", userId).order("placed_at", { ascending: false }),
+    supabase.from("gazalbet_tickets").select("*, gazalbet_ticket_legs(*)").eq("user_id", userId).order("placed_at", { ascending: false }),
     supabase.from("gazalbet_wallets").select("*").eq("user_id", userId).maybeSingle(),
   ]);
   if (marketsError) throw marketsError;
   if (betsError) throw betsError;
+  if (ticketsError) throw ticketsError;
   if (walletError) throw walletError;
-  return { gameweek: current, markets: markets || [], bets: bets || [], wallet };
+  return { gameweek: current, markets: markets || [], bets: bets || [], tickets: tickets || [], wallet };
+}
+
+export async function fetchGazalBetBuilder(gameweekId) {
+  const { data, error } = await supabase.rpc("get_gazalbet_builder", { p_gameweek_id: gameweekId });
+  if (error) throw error;
+  return data;
+}
+
+export async function quoteGazalBetPlayerLine({ gameweekId, playerId, statKey, direction, line }) {
+  const { data, error } = await supabase.rpc("gazalbet_quote_player_line", {
+    p_gameweek_id: gameweekId, p_player_id: playerId, p_stat_key: statKey, p_direction: direction, p_line: line,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function placeGazalBetTicket({ gameweekId, legs, stake }) {
+  const { data, error } = await supabase.rpc("place_gazalbet_ticket", { p_gameweek_id: gameweekId, p_legs: legs, p_stake: stake });
+  if (error) throw error;
+  return data;
+}
+
+export async function placeGazalBetSingles({ gameweekId, legs, stake }) {
+  const { data, error } = await supabase.rpc("place_gazalbet_singles", { p_gameweek_id: gameweekId, p_legs: legs, p_stake_each: stake });
+  if (error) throw error;
+  return data;
 }
 
 export async function placeGazalBet({ marketId, selectionKey, stake }) {
