@@ -21,17 +21,23 @@ export async function fetchGazalBetData(userId) {
     const { error } = await supabase.rpc("ensure_gazalbet_markets", { p_gameweek_id: current.id });
     if (error) throw error;
   }
-  const [{ data: markets, error: marketsError }, { data: bets, error: betsError }, { data: tickets, error: ticketsError }, { data: wallet, error: walletError }] = await Promise.all([
+  const [{ data: markets, error: marketsError }, { data: bets, error: betsError }, { data: tickets, error: ticketsError }, { data: wallet, error: walletError }, { data: notifications, error: notificationsError }] = await Promise.all([
     current ? supabase.from("gazalbet_markets").select("*").eq("gameweek_id", current.id).neq("status", "void").order("generated_at") : Promise.resolve({ data: [], error: null }),
     supabase.from("gazalbet_bets").select("*, gazalbet_markets(title)").eq("user_id", userId).order("placed_at", { ascending: false }),
     supabase.from("gazalbet_tickets").select("*, gazalbet_ticket_legs(*)").eq("user_id", userId).order("placed_at", { ascending: false }),
     supabase.from("gazalbet_wallets").select("*").eq("user_id", userId).maybeSingle(),
+    supabase.from("notification_outbox").select("id,title,body,payload,created_at,status").eq("user_id", userId).eq("notification_type", "gazalbet_void").order("created_at", { ascending: false }).limit(1),
   ]);
   if (marketsError) throw marketsError;
   if (betsError) throw betsError;
   if (ticketsError) throw ticketsError;
   if (walletError) throw walletError;
-  return { gameweek: current, markets: markets || [], bets: bets || [], tickets: tickets || [], wallet };
+  if (notificationsError) throw notificationsError;
+  const orderedTickets = (tickets || []).map((ticket) => ({
+    ...ticket,
+    gazalbet_ticket_legs: [...(ticket.gazalbet_ticket_legs || [])].sort((a, b) => a.position - b.position),
+  }));
+  return { gameweek: current, markets: markets || [], bets: bets || [], tickets: orderedTickets, wallet, notification: notifications?.[0] || null };
 }
 
 export async function fetchGazalBetBuilder(gameweekId) {
