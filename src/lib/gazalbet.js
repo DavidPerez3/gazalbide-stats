@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 
-export const STAKES = [1, 5, 10, 20];
+export const STAKES = [1, 5, 10, 20, 50];
 
 export function formatCredits(value) {
   return new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(Number(value || 0));
@@ -43,6 +43,18 @@ export async function fetchGazalBetBuilder(gameweekId) {
 export async function quoteGazalBetPlayerLine({ gameweekId, playerId, statKey, direction, line }) {
   const { data, error } = await supabase.rpc("gazalbet_quote_player_line", {
     p_gameweek_id: gameweekId, p_player_id: playerId, p_stat_key: statKey, p_direction: direction, p_line: line,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function quoteGazalBetGameLine({ gameweekId, statKey, selectionKey, direction, line }) {
+  const { data, error } = await supabase.rpc("gazalbet_quote_game_line", {
+    p_gameweek_id: gameweekId,
+    p_stat_key: statKey,
+    p_selection_key: selectionKey || null,
+    p_direction: direction || null,
+    p_line: line,
   });
   if (error) throw error;
   return data;
