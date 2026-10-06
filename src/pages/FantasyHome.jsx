@@ -1190,7 +1190,7 @@ export default function FantasyHome() {
                       Leyenda de atributos
                     </h3>
                     <p className="fantasy-builder__text fantasy-builder__legend">
-                      {Object.entries(TRAIT_LABELS).map(([letter, desc]) => (
+                      {Object.entries(traitConfig?.traits || {}).map(([letter, trait]) => (
                         <span
                           key={letter}
                           className="fantasy-builder__legend-item"
@@ -1198,7 +1198,7 @@ export default function FantasyHome() {
                           <span className="fantasy-builder__trait-chip">
                             {letter}
                           </span>{" "}
-                          {desc}
+                          {trait.label || letter}
                         </span>
                       ))}
                     </p>

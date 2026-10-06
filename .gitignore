@@ -1,6 +1,6 @@
 # Archivos de entorno
 .env
-.env.*.local
+.env.*
 !.env.example
 
 # Dependencias
