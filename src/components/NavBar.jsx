@@ -22,9 +22,7 @@ export default function Navbar() {
   };
 
   const isAdmin =
-    user &&
-    (profile?.is_admin === true ||
-      user.email === "perez.david@opendeusto.es");
+    user && profile?.is_admin === true;
 
   const toggleClassName =
     "navbar__toggle" + (isOpen ? " navbar__toggle--active" : "");

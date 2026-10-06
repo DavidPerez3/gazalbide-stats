@@ -12,8 +12,7 @@ export default function PrivateRoute({ children, adminOnly = false }) {
   }
 
   const isAdmin =
-    profile?.is_admin === true ||
-    user.email === "perez.david@opendeusto.es"; // <-- tu email admin
+    profile?.is_admin === true;
 
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;

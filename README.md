@@ -262,3 +262,28 @@ El núcleo funcional está muy avanzado. Antes de considerar cerrada la v1.0 tod
 ## Licencia
 
 MIT
+
+## Comprobaciones de desarrollo
+
+Requiere Node.js 22 (o superior compatible). Ejecuta `npm ci`, copia `.env.example`
+a `.env.local` y configura las dos variables públicas de Supabase. No uses una
+service role key en variables `VITE_*`. GitHub Pages sigue usando los secrets
+`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` configurados en el repositorio.
+
+- `npm run lint`: comprobaciones estáticas de JavaScript/JSX. Las variables sin uso
+  existentes se muestran como advertencias para su limpieza gradual.
+- `npm test`: pruebas de regresión con Vitest y React Testing Library.
+- `npm run test:watch`: pruebas durante el desarrollo.
+- `npm run check`: lint, tests y build.
+
+CI ejecuta estas comprobaciones en pull requests y main; el despliegue también
+exige lint y tests antes de generar el artefacto. Las pruebas del build en PR
+usan valores públicos ficticios y no conectan a la base de producción.
+
+El acceso admin en la interfaz y las rutas exige `profiles.is_admin === true`.
+Los permisos efectivos siguen siendo responsabilidad de RLS/RPC en el backend.
+Los tests iniciales cubren rutas protegidas y puntuación Fantasy; no sustituyen
+las futuras pruebas de integración de liquidación GazalBet.
+
+`node_modules`, `dist` y los entornos locales no se versionan. Esta limpieza
+retira esos archivos del estado actual, sin reescribir el historial de Git.
