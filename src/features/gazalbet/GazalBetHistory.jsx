@@ -1,0 +1,13 @@
+import { useState } from "react";
+import { formatCredits, formatDeadline } from "../../lib/gazalbet";
+import { BET_STATUS, matchesHistoryFilter } from "./liveTracking";
+const FILTERS = [["all", "Todas"], ["pending", "Abiertas"], ["settled", "Liquidadas"], ["void", "Anuladas"]];
+export default function GazalBetHistory({ tickets, bets, gameweeks }) {
+  const [filter, setFilter] = useState("all");
+  const entries = [...tickets.map((t) => ({ ...t, legacy: false })), ...bets.map((b) => ({ ...b, legacy: true }))].filter((t) => matchesHistoryFilter(t.status, filter)).sort((a, b) => new Date(b.placed_at) - new Date(a.placed_at));
+  return <section className="gazalbet-panel"><h2>Mis apuestas</h2><nav className="gazalbet-history-filters" aria-label="Filtrar apuestas">{FILTERS.map(([value, label]) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</nav><div className="gazalbet-history">{entries.map((ticket) => {
+    const gw = gameweeks.find((g) => String(g.id) === String(ticket.gameweek_id));
+    const odds = Number(ticket.total_odds ?? ticket.odds);
+    return <article key={`${ticket.legacy ? "bet" : "ticket"}:${ticket.id}`}><div><small>{ticket.legacy ? "APUESTA ANTERIOR" : ticket.ticket_type === "accumulator" ? `COMBINADA · ${ticket.gazalbet_ticket_legs.length} selecciones` : "INDIVIDUAL"}</small><p>{gw ? `${gw.name || `Jornada ${gw.id}`} · ${gw.opponent || "Rival"}` : `Jornada ${ticket.gameweek_id}`}</p><span>{formatDeadline(ticket.placed_at)}</span><div className="gazalbet-history-legs">{ticket.legacy ? <h3>{ticket.selection_label}</h3> : ticket.gazalbet_ticket_legs.map((leg) => <div key={leg.id}><h3>{leg.label}</h3><span className={`gazalbet-leg-state ${leg.status}`}>{BET_STATUS[leg.status]} · cuota {Number(leg.odds).toFixed(2)}{leg.result_value != null ? ` · resultado ${Number(leg.result_value)}` : ""}</span></div>)}</div><span>Cuota {odds.toFixed(2)} · apostado {formatCredits(ticket.stake)} 🪙</span>{!ticket.legacy && ticket.gazalbet_ticket_legs.some((l) => l.status === "void") && <p>Las selecciones anuladas no cuentan en la cuota efectiva.</p>}{ticket.status === "void" && <p>Fichas devueltas al saldo</p>}</div><div className={ticket.status}><b>{BET_STATUS[ticket.status]}</b><strong>{ticket.status === "pending" ? `Posible retorno ${formatCredits(ticket.stake * odds)}` : `Retorno ${formatCredits(ticket.payout)}`} 🪙</strong>{ticket.settled_at && <span>Liquidada {formatDeadline(ticket.settled_at)}</span>}</div></article>;
+  })}{!entries.length && <div className="gazalbet-empty">No hay apuestas en este apartado.</div>}</div></section>;
+}
