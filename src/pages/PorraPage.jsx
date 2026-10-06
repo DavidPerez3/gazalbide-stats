@@ -1,51 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { fetchGazalBetBuilder, fetchGazalBetData, fetchGazalBetRanking, formatCredits, formatDeadline, placeGazalBetSingles, placeGazalBetTicket, quoteGazalBetGameLine, quoteGazalBetPlayerLine, STAKES } from "../lib/gazalbet.js";
-import { loadLiveCenterSnapshot, subscribeLiveCenter } from "../lib/liveCenter.js";
+import GazalBetLive from "../features/gazalbet/GazalBetLive";
+import GazalBetHistory from "../features/gazalbet/GazalBetHistory";
+import { selectTrackingGameweek } from "../features/gazalbet/liveTracking";
+import { useGazalBetTracking } from "../features/gazalbet/useGazalBetTracking";
 import "../gazalbet.css";
 
 const TABS = [["markets", "Apuestas"], ["live", "En directo"], ["ranking", "Ranking"], ["history", "Mis apuestas"]];
-const STATUS = { pending: "Pendiente", won: "Ganada", lost: "Perdida", void: "Anulada" };
-const STAT_LABEL = { pts: "puntos", three_pm: "triples", reb: "rebotes", ast: "asistencias", pf: "faltas", pir: "valoración" };
 const keyOf = (leg) => leg.type === "market" ? `m:${leg.market_id}:${leg.selection_key}` : leg.type === "game_prop" ? `g:${leg.stat_key}:${leg.selection_key || "all"}:${leg.direction || "cover"}:${leg.line}` : `p:${leg.player_id}:${leg.stat_key}:${leg.direction}:${leg.line}`;
-
-function liveLeg(leg, snapshot) {
-  if (leg.status === "void") return { value: null, progress: 0, caption: "Selección anulada", tone: "void" };
-  if (!snapshot) return { value: 0, progress: 0, caption: "Esperando Live Stats", tone: "waiting" };
-  let value = 0;
-  let caption = "";
-  let progress = 0;
-  if (leg.leg_type === "player_prop") {
-    const player = snapshot.players?.find((item) => String(item.playerId) === String(leg.player_id));
-    value = Number(player?.stats?.[leg.stat_key] || 0);
-    progress = Math.min(100, Math.max(0, (value / Math.max(Number(leg.line), 1)) * 100));
-    caption = `${value} ${STAT_LABEL[leg.stat_key] || ""} · objetivo ${leg.direction === "under" ? "menos de" : "más de"} ${Number(leg.line)}`;
-  } else if (leg.leg_type === "game_prop" && leg.stat_key === "handicap") {
-    value = leg.selection_key === "gazalbide" ? snapshot.score.gazalbide - snapshot.score.opponent : snapshot.score.opponent - snapshot.score.gazalbide;
-    const adjusted = value + Number(leg.line);
-    progress = Math.min(100, Math.max(0, 50 + adjusted * 4));
-    caption = `Margen actual ${value > 0 ? "+" : ""}${value} · con hándicap ${adjusted > 0 ? "+" : ""}${adjusted.toFixed(1)}`;
-  } else if (leg.leg_type === "game_prop") {
-    value = Number(snapshot.score.gazalbide) + Number(snapshot.score.opponent);
-    progress = Math.min(100, Math.max(0, (value / Math.max(Number(leg.line), 1)) * 100));
-    caption = `${value} puntos · objetivo ${leg.direction === "under" ? "menos de" : "más de"} ${Number(leg.line)}`;
-  } else {
-    const gazal = Number(snapshot.score.gazalbide); const rival = Number(snapshot.score.opponent);
-    value = `${gazal}-${rival}`; progress = gazal + rival ? Math.min(100, Math.max(0, 50 + (gazal - rival) * 5)) : 50;
-    caption = `Marcador actual ${value}`;
-  }
-  const winning = leg.leg_type === "game_prop" && leg.stat_key === "handicap"
-    ? value + Number(leg.line) > 0
-    : leg.direction === "under" ? Number(value) < Number(leg.line) : leg.direction === "over" ? Number(value) > Number(leg.line) : null;
-  return { value, progress, caption, tone: winning === true ? "ahead" : winning === false ? "behind" : "neutral" };
-}
 
 export default function PorraPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState("markets");
-  const [data, setData] = useState({ gameweek: null, markets: [], bets: [], tickets: [], wallet: null, notification: null });
-  const [live, setLive] = useState(null);
-  const [liveLoading, setLiveLoading] = useState(false);
+  const [data, setData] = useState({ gameweeks: [], gameweek: null, markets: [], bets: [], tickets: [], wallet: null, notification: null });
+  const [trackingGameweekId, setTrackingGameweekId] = useState(null);
+  const [slipFeedback, setSlipFeedback] = useState(null);
   const [ranking, setRanking] = useState([]);
   const [builder, setBuilder] = useState(null);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -82,21 +52,18 @@ export default function PorraPage() {
   }, [user]);
   useEffect(() => { load(); }, [load]);
 
+  const onPortfolio = useCallback((portfolio) => setData((previous) => ({ ...previous, ...portfolio })), []);
+  const trackingGameweek = data.gameweeks.find((gw) => String(gw.id) === String(trackingGameweekId))
+    || selectTrackingGameweek(data.gameweeks, data.tickets, data.gameweek);
   useEffect(() => {
-    const matchId = data.gameweek?.match_id;
-    if (!matchId || tab !== "live") return undefined;
-    let active = true;
-    const refresh = async () => {
-      setLiveLoading(true);
-      try { const next = await loadLiveCenterSnapshot(matchId); if (active) setLive(next); }
-      catch { if (active) setLive(null); }
-      finally { if (active) setLiveLoading(false); }
-    };
-    refresh();
-    const unsubscribe = subscribeLiveCenter(matchId, refresh);
-    const timer = setInterval(refresh, 15000);
-    return () => { active = false; clearInterval(timer); unsubscribe(); };
-  }, [tab, data.gameweek?.match_id]);
+    if (trackingGameweekId == null && trackingGameweek) setTrackingGameweekId(String(trackingGameweek.id));
+  }, [trackingGameweekId, trackingGameweek]);
+  const tracking = useGazalBetTracking({ enabled: tab === "live" || tab === "history", matchId: tab === "live" ? trackingGameweek?.match_id : null, userId: user?.id, onPortfolio });
+  useEffect(() => {
+    if (!slipFeedback) return undefined;
+    const timer = setTimeout(() => setSlipFeedback(null), 1600);
+    return () => clearTimeout(timer);
+  }, [slipFeedback]);
 
   const selectedPlayer = builder?.players?.find((p) => String(p.id) === String(playerId));
   useEffect(() => {
@@ -153,7 +120,15 @@ export default function PorraPage() {
   const totalStake = ticketMode === "singles" ? stake * selections.length : stake;
 
   function add(leg) {
-    setSelections((current) => current.some((item) => keyOf(item) === keyOf(leg)) ? current : [...current, leg]);
+    if (selections.some((item) => keyOf(item) === keyOf(leg))) {
+      setSlipOpen(true); return;
+    }
+    if (ticketMode === "accumulator" && selections.length >= 6) {
+      setError("La combinada admite hasta 6 selecciones."); return;
+    }
+    setSelections((current) => [...current, leg]);
+    setSlipFeedback({ label: leg.label, id: Date.now() });
+    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) navigator.vibrate?.(15);
     setSlipOpen(true); setError("");
   }
   function addProp() {
@@ -200,25 +175,18 @@ export default function PorraPage() {
       <h2 className="gazalbet-section-title">Mercado rápido</h2>
       <div className="gazalbet-markets">{data.markets.filter((m) => m.kind === "winner").map((market) => <article className="gazalbet-market" key={market.id}><div className="gazalbet-market__head"><div><h3>{market.title}</h3><p>{market.subtitle}</p></div><span>{market.sample_size ? `${market.sample_size} partidos` : "Datos iniciales"}</span></div><div className={`gazalbet-options gazalbet-options--${market.selections.length}`}>{market.selections.map((selection) => <button key={selection.key} disabled={closed || market.status !== "open"} onClick={() => add({ type: "market", market_id: market.id, selection_key: selection.key, label: `${market.title} · ${selection.label}`, odds: Number(selection.odds) })}><span>{selection.label}</span><strong>{Number(selection.odds).toFixed(2)}</strong></button>)}</div></article>)}</div>
     </section>}
-    {tab === "live" && <section className="gazalbet-panel gazalbet-live">
-      <div className="gazalbet-live__head"><div><small>SEGUIMIENTO LIVE</small><h2>Así van tus boletos</h2></div>{live && <span>{live.score.gazalbide} — {live.score.opponent}<small>{live.phase === "live" ? "EN DIRECTO" : live.phase === "paused" ? "PAUSA" : "PREPARTIDO"}</small></span>}</div>
-      {liveLoading && !live && <div className="gazalbet-empty">Conectando con Live Stats…</div>}
-      {!liveLoading && !live && <div className="gazalbet-empty">El seguimiento aparecerá cuando se abra Live Stats para este partido.</div>}
-      <div className="gazalbet-live-tickets">{data.tickets.filter((ticket) => ticket.gameweek_id === data.gameweek?.id).map((ticket) => <article className="gazalbet-live-ticket" key={ticket.id}>
-        <header><div><small>{ticket.ticket_type === "accumulator" ? `COMBINADA · ${ticket.gazalbet_ticket_legs.length} SELECCIONES` : "APUESTA INDIVIDUAL"}</small><strong>{formatCredits(ticket.stake)} 🪙 · cuota {Number(ticket.total_odds).toFixed(2)}</strong></div><b className={ticket.status}>{STATUS[ticket.status]}</b></header>
-        <div className="gazalbet-live-legs">{ticket.gazalbet_ticket_legs.map((leg, index) => { const progress = liveLeg(leg, live); return <div className={`gazalbet-live-leg ${progress.tone}`} key={leg.id}><i>{index + 1}</i><div><strong>{leg.label}</strong><span>{progress.caption}</span><div className="gazalbet-progress"><em style={{ width: `${progress.progress}%` }} /><mark style={{ left: `${Math.min(98, Math.max(2, leg.leg_type === "game_prop" && leg.stat_key === "handicap" ? 50 : 100))}%` }} /></div></div><b>{leg.status === "void" ? "ANULADA" : Number(leg.odds).toFixed(2)}</b></div> })}</div>
-      </article>)}{!data.tickets.some((ticket) => ticket.gameweek_id === data.gameweek?.id) && <div className="gazalbet-empty">No tienes boletos para esta jornada.</div>}</div>
-    </section>}
+    {tab === "live" && <GazalBetLive gameweeks={data.gameweeks} gameweek={trackingGameweek} onGameweekChange={setTrackingGameweekId} tickets={data.tickets.filter((ticket) => String(ticket.gameweek_id) === String(trackingGameweek?.id))} snapshot={tracking.snapshot} loading={tracking.loading} error={tracking.error} updatedAt={tracking.updatedAt} />}
     {tab === "ranking" && <section className="gazalbet-panel"><h2>Ranking GazalBet</h2><div className="gazalbet-ranking">{ranking.map((item) => <div key={item.user_id} className={item.user_id === user.id ? "me" : ""}><b>{item.position}</b><span>{item.username}</span><strong>{formatCredits(item.balance)} 🪙</strong></div>)}</div></section>}
-    {tab === "history" && <section className="gazalbet-panel"><h2>Mis apuestas</h2><div className="gazalbet-history">{data.tickets.map((ticket) => <article key={ticket.id}><div><small>{ticket.ticket_type === "accumulator" ? `COMBINADA · ${ticket.gazalbet_ticket_legs.length} selecciones` : "INDIVIDUAL"}</small><div className="gazalbet-history-legs">{ticket.gazalbet_ticket_legs.map((leg) => <h3 key={leg.id}>{leg.label}{leg.status === "void" && <b>ANULADA</b>}</h3>)}</div><span>Cuota {Number(ticket.total_odds).toFixed(2)}</span>{ticket.status === "void" && <p>Fichas devueltas al saldo</p>}</div><div className={ticket.status}><b>{STATUS[ticket.status]}</b><strong>{ticket.status === "won" ? `+${formatCredits(ticket.payout)}` : ticket.status === "void" ? `+${formatCredits(ticket.payout)} 🪙` : `${formatCredits(ticket.stake)} 🪙`}</strong></div></article>)}{data.bets.map((bet) => <article key={bet.id}><div><small>Apuesta anterior</small><h3>{bet.selection_label}</h3></div><div className={bet.status}><b>{STATUS[bet.status]}</b><strong>{formatCredits(bet.stake)} 🪙</strong></div></article>)}{!data.tickets.length && !data.bets.length && <div className="gazalbet-empty">Aún no has hecho ninguna apuesta.</div>}</div></section>}
+    {tab === "history" && <>{tracking.error && <div className="gazalbet-alert gazalbet-alert--error" role="status">{tracking.error}</div>}<GazalBetHistory tickets={data.tickets} bets={data.bets} gameweeks={data.gameweeks} /></>}
 
+    {slipFeedback && <div key={slipFeedback.id} className="gazalbet-added" role="status">✓ Añadida al boleto: {slipFeedback.label}</div>}
     {builderOpen && <div className="gazalbet-modal-backdrop" onClick={() => setBuilderOpen(false)}><section className="gazalbet-builder" onClick={(e) => e.stopPropagation()}><button className="gazalbet-slip__close" onClick={() => setBuilderOpen(false)}>×</button><small>CREAR MI APUESTA</small><h2>Elige tu mercado</h2><div className="gazalbet-builder-types"><button className={builderType === "player" ? "active" : ""} onClick={() => setBuilderType("player")}>Jugador</button><button className={builderType === "handicap" ? "active" : ""} onClick={() => setBuilderType("handicap")}>Hándicap</button><button className={builderType === "total" ? "active" : ""} onClick={() => setBuilderType("total")}>Puntos totales</button></div>
       {builderType === "player" && <><label>Jugador</label><select value={playerId} onChange={(e) => setPlayerId(e.target.value)}><option value="">Elige un jugador</option>{builder?.players?.map((p) => <option value={p.id} key={p.id}>{p.number} · {p.name}</option>)}</select><label>Categoría</label><div className="gazalbet-category-grid">{builder?.categories?.map((c) => <button className={statKey === c.key ? "active" : ""} key={c.key} onClick={() => setStatKey(c.key)}>{c.label}</button>)}</div><label>Pronóstico</label><div className="gazalbet-direction"><button className={direction === "over" ? "active" : ""} onClick={() => setDirection("over")}>Más de</button><button className={direction === "under" ? "active" : ""} onClick={() => setDirection("under")}>Menos de</button></div><label>Línea</label><div className="gazalbet-line"><button onClick={() => setLine((v) => Math.max(-9.5, v - 1))}>−</button><strong>{line.toFixed(1)}</strong><button onClick={() => setLine((v) => Math.min(79.5, v + 1))}>+</button></div><input className="gazalbet-range" type="range" min={statKey === "pir" ? -9.5 : .5} max={statKey === "pts" || statKey === "pir" ? 40.5 : statKey === "reb" ? 20.5 : 8.5} step="1" value={line} onChange={(e) => setLine(Number(e.target.value))}/>{selectedPlayer && <p className="gazalbet-builder__context">Media: {selectedPlayer.averages?.[statKey]} · {selectedPlayer.games} partidos</p>}<div className="gazalbet-quote"><span>Cuota calculada</span><strong>{quoteLoading ? "…" : quote ? Number(quote.odds).toFixed(2) : "—"}</strong></div><button className="gazalbet-confirm" disabled={!quote || quoteLoading} onClick={addProp}>Añadir al cupón</button></>}
       {builderType === "handicap" && <><label>Equipo</label><div className="gazalbet-direction"><button className={gameTeam === "gazalbide" ? "active" : ""} onClick={() => setGameTeam("gazalbide")}>Gazalbide</button><button className={gameTeam === "opponent" ? "active" : ""} onClick={() => setGameTeam("opponent")}>{data.gameweek?.opponent || "Rival"}</button></div><label>Hándicap elegido</label><div className="gazalbet-line"><button onClick={() => setGameLine((v) => Math.max(-40.5, v - 1))}>−</button><strong>{gameLine > 0 ? "+" : ""}{gameLine.toFixed(1)}</strong><button onClick={() => setGameLine((v) => Math.min(40.5, v + 1))}>+</button></div><input className="gazalbet-range" type="range" min="-20.5" max="20.5" step="1" value={gameLine} onChange={(e) => setGameLine(Number(e.target.value))}/><p className="gazalbet-builder__context">El hándicap se suma al marcador del equipo elegido.</p><div className="gazalbet-quote"><span>Cuota calculada</span><strong>{gameQuoteLoading ? "…" : gameQuote ? Number(gameQuote.odds).toFixed(2) : "—"}</strong></div><button className="gazalbet-confirm" disabled={!gameQuote || gameQuoteLoading} onClick={addGameProp}>Añadir al cupón</button></>}
       {builderType === "total" && <><label>Pronóstico</label><div className="gazalbet-direction"><button className={gameDirection === "over" ? "active" : ""} onClick={() => setGameDirection("over")}>Más de</button><button className={gameDirection === "under" ? "active" : ""} onClick={() => setGameDirection("under")}>Menos de</button></div><label>Puntos entre ambos equipos</label><div className="gazalbet-line"><button onClick={() => setGameLine((v) => Math.max(60.5, v - 1))}>−</button><strong>{gameLine.toFixed(1)}</strong><button onClick={() => setGameLine((v) => Math.min(220.5, v + 1))}>+</button></div><input className="gazalbet-range" type="range" min="80.5" max="180.5" step="1" value={gameLine} onChange={(e) => setGameLine(Number(e.target.value))}/><p className="gazalbet-builder__context">Suma del marcador final de Gazalbide y {data.gameweek?.opponent || "el rival"}.</p><div className="gazalbet-quote"><span>Cuota calculada</span><strong>{gameQuoteLoading ? "…" : gameQuote ? Number(gameQuote.odds).toFixed(2) : "—"}</strong></div><button className="gazalbet-confirm" disabled={!gameQuote || gameQuoteLoading} onClick={addGameProp}>Añadir al cupón</button></>}
     </section></div>}
 
-    {selections.length > 0 && <button className="gazalbet-floating-slip" onClick={() => setSlipOpen(true)}><span>Cupón · {selections.length} {selections.length === 1 ? "selección" : "selecciones"}</span><strong>{selections.length > 1 ? `Cuota ${combinedOdds.toFixed(2)}` : "Ver boleto"}</strong></button>}
+    {selections.length > 0 && <button className={`gazalbet-floating-slip ${slipFeedback ? "gazalbet-slip-pulse" : ""}`} onClick={() => setSlipOpen(true)}><span>Cupón · {selections.length} {selections.length === 1 ? "selección" : "selecciones"}</span><strong>{selections.length > 1 ? `Cuota ${combinedOdds.toFixed(2)}` : "Ver boleto"}</strong></button>}
     {slipOpen && selections.length > 0 && <div className="gazalbet-slip-backdrop" onClick={() => !saving && setSlipOpen(false)}><aside className="gazalbet-slip" onClick={(e) => e.stopPropagation()}><button className="gazalbet-slip__close" onClick={() => setSlipOpen(false)}>×</button><small>TU CUPÓN</small><h2>{selections.length} selecciones</h2><div className="gazalbet-slip-list">{selections.map((leg) => <div key={keyOf(leg)}><span>{leg.label}</span><strong>{Number(leg.odds).toFixed(2)}</strong><button onClick={() => setSelections((all) => all.filter((item) => keyOf(item) !== keyOf(leg)))}>×</button></div>)}</div>{selections.length > 1 && <div className="gazalbet-ticket-modes"><button className={ticketMode === "singles" ? "active" : ""} onClick={() => setTicketMode("singles")}>Individuales</button><button className={ticketMode === "accumulator" ? "active" : ""} onClick={() => setTicketMode("accumulator")}>Combinada</button></div>}<label>{ticketMode === "singles" ? "Monedas por apuesta" : "Monedas apostadas"}</label><div className="gazalbet-stakes">{STAKES.map((value) => <button className={stake === value ? "active" : ""} onClick={() => setStake(value)} key={value}>{value}</button>)}</div><input className="gazalbet-stake-input" type="number" min="1" step="1" value={stake} onChange={(e) => setStake(Math.max(1, Math.floor(Number(e.target.value) || 1)))} aria-label="Cantidad personalizada"/><div className="gazalbet-return"><span>{ticketMode === "singles" ? `Total: ${totalStake}` : `Cuota: ${combinedOdds.toFixed(2)}`}<small>Saldo: {formatCredits(balance)} monedas</small></span><strong>{ticketMode === "singles" ? "Simples" : `${formatCredits(stake * combinedOdds)} 🪙`}</strong></div><button className="gazalbet-confirm" disabled={saving || totalStake > balance} onClick={confirm}>{saving ? "Confirmando…" : ticketMode === "singles" ? "Confirmar individuales" : "Confirmar combinada"}</button><p className="gazalbet-responsible">Solo monedas virtuales. Sin dinero real ni efecto sobre Fantasy.</p></aside></div>}
   </div>;
 }

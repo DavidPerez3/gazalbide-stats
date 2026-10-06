@@ -282,8 +282,27 @@ usan valores públicos ficticios y no conectan a la base de producción.
 
 El acceso admin en la interfaz y las rutas exige `profiles.is_admin === true`.
 Los permisos efectivos siguen siendo responsabilidad de RLS/RPC en el backend.
-Los tests iniciales cubren rutas protegidas y puntuación Fantasy; no sustituyen
-las futuras pruebas de integración de liquidación GazalBet.
+Los tests cubren rutas protegidas, puntuación Fantasy, Live Stats y GazalBet.
 
 `node_modules`, `dist` y los entornos locales no se versionan. Esta limpieza
 retira esos archivos del estado actual, sin reescribir el historial de Git.
+
+## GazalBet: seguimiento y regresiones
+
+El seguimiento Live permite elegir jornada independientemente del mercado abierto.
+Prioriza el partido con boletos pendientes que ya haya alcanzado su deadline y
+conserva la selección al liquidarse. Las barras indican distancia al objetivo,
+con umbral central; son provisionales hasta la liquidación del backend. Se
+respetan los resultados oficiales de cada selección y se incluyen ganador,
+hándicap, totales, props de jugador y mercados históricos compatibles.
+
+La vista conserva el último snapshot ante errores, agrupa ráfagas Realtime y
+refresca boletos, saldo, avisos y jornadas cada 15 segundos y al recuperar conexión.
+El historial filtra abiertas, liquidadas y anuladas, incluyendo apuestas legacy.
+
+`tests/sql/gazalbet.test.js` ejecuta las funciones vigentes de liquidación y
+anulación de las migraciones en PostgreSQL en memoria (PGlite), con las
+restricciones reales de los boletos y fixtures mínimos. Verifica resultados,
+cuotas, devoluciones y que llamadas repetidas no dupliquen el saldo. No conecta
+a producción ni sustituye un ensayo completo de RLS, triggers o concurrencia
+entre múltiples conexiones. La dependencia PGlite solo se usa en desarrollo.
