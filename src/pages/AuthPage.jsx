@@ -8,7 +8,11 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState(""); // solo en registro
   const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(() =>
+    new URLSearchParams(window.location.search).has("auth_callback_error")
+      ? "El intento de acceso ha caducado o no se ha podido completar. Vuelve a iniciar sesión."
+      : null
+  );
   const [infoMsg, setInfoMsg] = useState(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -20,6 +24,13 @@ export default function AuthPage() {
   useEffect(() => {
     if (user) navigate("/");
   }, [user, navigate]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("auth_callback_error")) return;
+    url.searchParams.delete("auth_callback_error");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   async function handleGoogleAuth() {
     setErrorMsg(null);

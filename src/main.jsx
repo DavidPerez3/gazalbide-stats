@@ -35,6 +35,8 @@ import FantasyTeamHistory from "./pages/FantasyTeamHistory.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { SeasonProvider } from "./context/SeasonContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
+import { supabase } from "./lib/supabaseClient.js";
+import { prepareAuthCallback } from "./lib/authCallback.js";
 import { installFantasyStatsFetchAdapter } from "./lib/fantasyGameweekStats.js";
 
 import "./index.css";
@@ -50,177 +52,192 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 
 installFantasyStatsFetchAdapter();
 
-const router = createHashRouter([
-  {
-    path: "/",
-    element: <App />,
-    children: [
-      { index: true, element: <Home /> },
-      { path: "partido/:id", element: <Match /> },
-      { path: "live/:matchId", element: <LiveCenterPage /> },
-      { path: "jugadores", element: <Players /> },
-      { path: "jugador/:name", element: <PlayerProfilePage /> },
-      { path: "ranking", element: <Ranking /> },
-      { path: "compare", element: <Compare /> },
-      { path: "le-gazal", element: <Navigate to="/fantasy/le-gazal" replace /> },
+async function startApp() {
+  await prepareAuthCallback(supabase.auth);
 
-      { path: "login", element: <AuthPage /> },
-      { path: "forgot-password", element: <ForgotPassword /> },
-      { path: "reset-password", element: <ResetPassword /> },
-      {
-        path: "porra",
-        element: (
-          <PrivateRoute>
-            <PorraPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "notificaciones",
-        element: (
-          <PrivateRoute>
-            <NotificationSettingsPage />
-          </PrivateRoute>
-        ),
-      },
+  const router = createHashRouter([
+    {
+      path: "/",
+      element: <App />,
+      children: [
+        { index: true, element: <Home /> },
+        { path: "partido/:id", element: <Match /> },
+        { path: "live/:matchId", element: <LiveCenterPage /> },
+        { path: "jugadores", element: <Players /> },
+        { path: "jugador/:name", element: <PlayerProfilePage /> },
+        { path: "ranking", element: <Ranking /> },
+        { path: "compare", element: <Compare /> },
+        { path: "le-gazal", element: <Navigate to="/fantasy/le-gazal" replace /> },
 
-      {
-        path: "fantasy",
-        element: (
-          <PrivateRoute>
-            <FantasyHome />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/crear-equipo",
-        element: (
-          <PrivateRoute>
-            <FantasyBuilder />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/mercado",
-        element: <PrivateRoute><FantasyMarketPreview /></PrivateRoute>,
-      },
-      {
-        path: "fantasy/historial",
-        element: (
-          <PrivateRoute>
-            <FantasyHistory />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/ranking",
-        element: (
-          <PrivateRoute>
-            <FantasyRanking />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/team/:teamId",
-        element: (
-          <PrivateRoute>
-            <FantasyTeamHistory />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/le-gazal",
-        element: (
-          <PrivateRoute>
-            <LeGazalPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/le-gazal-diversion",
-        element: (
-          <PrivateRoute>
-            <LeGazalAdminDemoPage publicMode />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "fantasy/le-gazal-demo",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <LeGazalAdminDemoPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <AdminCenter />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/fantasy",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <AdminFantasyPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/porra",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <AdminPorraPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/players",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <AdminPlayers />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/exportaciones",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <ExportCenterPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/live/setup",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <LiveStatsSetup />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/live",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <LiveStatsWithStaffPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin/live/review",
-        element: (
-          <PrivateRoute adminOnly={true}>
-            <LiveReliabilityGuard>
-              <LiveStatsReviewPage />
-            </LiveReliabilityGuard>
-          </PrivateRoute>
-        ),
-      },
-    ],
-  },
-]);
+        { path: "login", element: <AuthPage /> },
+        { path: "forgot-password", element: <ForgotPassword /> },
+        { path: "reset-password", element: <ResetPassword /> },
+        {
+          path: "porra",
+          element: (
+            <PrivateRoute>
+              <PorraPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "notificaciones",
+          element: (
+            <PrivateRoute>
+              <NotificationSettingsPage />
+            </PrivateRoute>
+          ),
+        },
+
+        {
+          path: "fantasy",
+          element: (
+            <PrivateRoute>
+              <FantasyHome />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/crear-equipo",
+          element: (
+            <PrivateRoute>
+              <FantasyBuilder />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/mercado",
+          element: <PrivateRoute><FantasyMarketPreview /></PrivateRoute>,
+        },
+        {
+          path: "fantasy/historial",
+          element: (
+            <PrivateRoute>
+              <FantasyHistory />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/ranking",
+          element: (
+            <PrivateRoute>
+              <FantasyRanking />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/team/:teamId",
+          element: (
+            <PrivateRoute>
+              <FantasyTeamHistory />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/le-gazal",
+          element: (
+            <PrivateRoute>
+              <LeGazalPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/le-gazal-diversion",
+          element: (
+            <PrivateRoute>
+              <LeGazalAdminDemoPage publicMode />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "fantasy/le-gazal-demo",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <LeGazalAdminDemoPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <AdminCenter />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/fantasy",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <AdminFantasyPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/porra",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <AdminPorraPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/players",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <AdminPlayers />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/exportaciones",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <ExportCenterPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/live/setup",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <LiveStatsSetup />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/live",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <LiveStatsWithStaffPage />
+            </PrivateRoute>
+          ),
+        },
+        {
+          path: "admin/live/review",
+          element: (
+            <PrivateRoute adminOnly={true}>
+              <LiveReliabilityGuard>
+                <LiveStatsReviewPage />
+              </LiveReliabilityGuard>
+            </PrivateRoute>
+          ),
+        },
+      ],
+    },
+  ]);
+
+  createRoot(document.getElementById("root")).render(
+    <React.StrictMode>
+      <AuthProvider>
+        <SeasonProvider>
+          <RouterProvider router={router} />
+        </SeasonProvider>
+      </AuthProvider>
+    </React.StrictMode>
+  );
+
+}
 
 function allowGalleryForAdminPlayerPhotos(event) {
   const input = event.target;
@@ -241,12 +258,9 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
   });
 }
 
-createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <AuthProvider>
-      <SeasonProvider>
-        <RouterProvider router={router} />
-      </SeasonProvider>
-    </AuthProvider>
-  </React.StrictMode>
-);
+
+startApp().catch(() => {
+  createRoot(document.getElementById("root")).render(
+    <p role="alert">No se ha podido iniciar la aplicación. Recarga la página para intentarlo de nuevo.</p>
+  );
+});
