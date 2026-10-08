@@ -1,3 +1,4 @@
+import { loadFantasyGameweekStats } from "../lib/fantasyGameweekStats.js";
 import { fantasyRankingPositions } from "../lib/fantasyHistoryStats.js";
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -92,7 +93,7 @@ export default function FantasyRanking() {
         if (gwIds.length > 0) {
           const { data: gwData, error: gwError } = await supabase
             .from("gameweeks")
-            .select("id, name, date, opponent, stats_file")
+            .select("id, name, date, opponent, stats_file, match_id")
             .in("id", gwIds);
 
           if (gwError) throw gwError;
@@ -142,14 +143,11 @@ export default function FantasyRanking() {
         // 5) Cargar stats (guardamos la fila entera por jugador)
         const statsByGw = new Map();
         for (const gw of gameweeks) {
-          if (!gw.stats_file) continue;
-          const cleaned = String(gw.stats_file).trim().replace(/\s+/g, "");
-          if (!cleaned) continue;
-          const url = `${BASE}data/player_stats/${cleaned}`;
+          if (!gw.stats_file && !gw.match_id) continue;
           try {
-            const res = await fetch(url);
-            if (!res.ok) continue;
-            const stats = await res.json();
+            const result = await loadFantasyGameweekStats(gw, BASE);
+            if (!result) continue;
+            const stats = result.rows;
             const map = new Map();
             for (const row of stats) {
               const n = Number(row.number);

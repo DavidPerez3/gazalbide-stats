@@ -1,3 +1,4 @@
+import { loadFantasyGameweekStats } from "./fantasyGameweekStats.js";
 import { supabase } from "./supabaseClient.js";
 import { computeLineupBreakdown } from "./fantasyScoring.js";
 import { loadFantasyTraitConfig } from "./fantasyMarket.js";
@@ -33,27 +34,13 @@ function getTraitConfig(seasonId) {
 }
 
 async function loadStatsMap(gameweek) {
-  if (!gameweek?.stats_file) return null;
-  const cleaned = String(gameweek.stats_file).trim().replace(/\s+/g, "");
-  if (!cleaned) return null;
-  const cacheKey = `${gameweek.id}:${cleaned}`;
+  if (!gameweek?.stats_file && !gameweek?.match_id) return null;
+  const cacheKey = `${gameweek.id}:${gameweek.match_id || ''}:${gameweek.stats_file || ''}`;
   if (!statsMapCache.has(cacheKey)) {
-    statsMapCache.set(
-      cacheKey,
-      (async () => {
-        const response = await fetch(`${BASE}data/player_stats/${cleaned}`);
-        if (!response.ok) return null;
-        const rows = await response.json();
-        return new Map(
-          (rows || [])
-            .map((row) => [Number(row.number), row])
-            .filter(([number, row]) => Number.isFinite(number) && row)
-        );
-      })().catch((error) => {
-        statsMapCache.delete(cacheKey);
-        throw error;
-      })
-    );
+    statsMapCache.set(cacheKey, loadFantasyGameweekStats(gameweek, BASE).then((result) => {
+      if (!result) statsMapCache.delete(cacheKey);
+      return result?.map || null;
+    }).catch((error) => { statsMapCache.delete(cacheKey); throw error; }));
   }
   return statsMapCache.get(cacheKey);
 }
@@ -154,7 +141,7 @@ export async function loadFantasyLive(snapshot, userId) {
   const statsByGameweek = new Map();
   for (const gameweek of gameweeks) {
     if (String(gameweek.id) === String(currentGameweek.id)) continue;
-    if (!gameweek.stats_file) continue;
+    if (!gameweek.stats_file && !gameweek.match_id) continue;
     try {
       const stats = await loadStatsMap(gameweek);
       if (stats) statsByGameweek.set(String(gameweek.id), stats);
