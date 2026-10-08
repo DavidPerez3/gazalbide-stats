@@ -14,7 +14,7 @@ export async function loadHistoricalPlayerRows({ seasonId = null } = {}) {
     .select(
       `${PLAYER_STAT_SELECT},` +
       "player:players!player_match_stats_player_id_fkey(id,name,number,photo_path)," +
-      "match:matches!player_match_stats_match_id_fkey!inner(id,season,date,opponent,result,status)"
+      "match:matches!player_match_stats_match_id_fkey!inner(id,season,date,opponent,result,status,gazal_pts,opp_pts)"
     )
     .eq("match.status", "published")
     .order("match_id", { ascending: true });
@@ -34,6 +34,8 @@ export async function loadHistoricalPlayerRows({ seasonId = null } = {}) {
     date: row.match?.date || null,
     opponent: row.match?.opponent || "Rival",
     result: row.match?.result || null,
+    gazalPts: row.match?.gazal_pts ?? null,
+    opponentPts: row.match?.opp_pts ?? null,
   }));
 }
 
