@@ -90,14 +90,15 @@ export function liveStatsFileForMatch(matchId) {
 export async function loadFantasyGameweekStats(gameweek, baseUrl = "/") {
   if (!gameweek) return null;
 
-  if (gameweek.match_id) {
-    const official = await loadFromSupabase(gameweek.match_id);
-    if (official) return official;
+  const virtual = String(gameweek.stats_file || '').startsWith(LIVE_STATS_FILE_PREFIX);
+  const matchId = gameweek.match_id || (virtual ? String(gameweek.stats_file).slice(LIVE_STATS_FILE_PREFIX.length) : null);
+  if (matchId) {
+    const { data: match, error } = await supabase.from("matches").select("status,publication_version").eq("id", matchId).maybeSingle();
+    if (error) throw error;
+    // Historical imports keep JSON; published Live games use materialized rows.
+    if (match?.status === "published" && Number(match.publication_version) > 0) return loadFromSupabase(matchId);
   }
-
-  if (gameweek.stats_file) {
-    return loadLegacyJson(gameweek.stats_file, baseUrl);
-  }
+  if (gameweek.stats_file && !virtual) return loadLegacyJson(gameweek.stats_file, baseUrl);
 
   return null;
 }

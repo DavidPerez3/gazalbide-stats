@@ -1,3 +1,4 @@
+import { loadFantasyGameweekStats } from "../lib/fantasyGameweekStats.js";
 import FantasyScoreBreakdown from "../components/FantasyScoreBreakdown.jsx";
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -263,7 +264,7 @@ export default function FantasyHome() {
 
   // 4) Cargar stats del partido usando gameweeks.stats_file
   useEffect(() => {
-    if (!lineupGameweek || !lineupGameweek.stats_file) {
+    if (!lineupGameweek || (!lineupGameweek.stats_file && !lineupGameweek.match_id)) {
       setStatsByNumber(null);
       setStatsError(null);
       return;
@@ -274,36 +275,14 @@ export default function FantasyHome() {
       setStatsError(null);
 
       try {
-        const statsPath = String(lineupGameweek.stats_file).trim();
-        const url = `${BASE}data/player_stats/${statsPath}`;
-
-        const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error(`Respuesta ${res.status} al cargar ${url}`);
-        }
-
-        const contentType = res.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) {
-          throw new Error(
-            `Respuesta no es JSON (content-type: ${contentType}) en ${url}`
-          );
-        }
-
-        const stats = await res.json();
-        const map = new Map();
-        for (const row of stats) {
-          const n = Number(row.number);
-          if (!Number.isNaN(n)) {
-            map.set(n, row);
-          }
-        }
-
+        const result = await loadFantasyGameweekStats(lineupGameweek, BASE);
+        const map = result?.map || null;
         setStatsByNumber(map);
       } catch (err) {
         console.error("Error cargando stats de la jornada:", err);
         setStatsByNumber(null);
         setStatsError(
-          "Las estadísticas de esta jornada estarán disponibles el domingo por la noche."
+          "No se pudieron cargar las estadísticas de esta jornada. Vuelve a intentarlo."
         );
       } finally {
         setLoadingStats(false);

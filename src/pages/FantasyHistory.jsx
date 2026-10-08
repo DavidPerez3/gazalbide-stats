@@ -1,3 +1,4 @@
+import { loadFantasyGameweekStats } from "../lib/fantasyGameweekStats.js";
 import FantasyScoreBreakdown from "../components/FantasyScoreBreakdown.jsx";
 import FantasyHistorySummary from "../components/FantasyHistorySummary.jsx";
 import React, { useEffect, useMemo, useState } from "react";
@@ -87,7 +88,7 @@ export default function FantasyHistory() {
 
         const { data: gameweeks, error: gwError } = await supabase
           .from("gameweeks")
-          .select("id, name, date, opponent, stats_file")
+          .select("id, name, date, opponent, stats_file, match_id")
           .in("id", gwIds);
 
         if (gwError) throw gwError;
@@ -105,20 +106,11 @@ export default function FantasyHistory() {
         const statsByGw = new Map();
 
         for (const gw of gameweeks || []) {
-          if (!gw.stats_file) continue;
-
-          const cleaned = String(gw.stats_file).trim().replace(/\s+/g, "");
-          if (!cleaned) continue;
-
-          const url = `${BASE}data/player_stats/${cleaned}`;
-
+          if (!gw.stats_file && !gw.match_id) continue;
           try {
-            const res = await fetch(url);
-            if (!res.ok) {
-              console.warn("No se pudo cargar stats para", url, res.status);
-              continue;
-            }
-            const json = await res.json();
+            const result = await loadFantasyGameweekStats(gw, BASE);
+            if (!result) continue;
+            const json = result.rows;
             const map = new Map();
             for (const row of json) {
               const num = Number(row.number);
@@ -133,7 +125,7 @@ export default function FantasyHistory() {
             }
             statsByGw.set(gw.id, map);
           } catch (e) {
-            console.error("Error cargando stats de", url, e);
+            console.error("Error cargando stats de jornada", gw.id, e);
           }
         }
 
