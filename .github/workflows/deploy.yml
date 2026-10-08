@@ -39,6 +39,8 @@ jobs:
       - name: Build (production base)
         env:
           NODE_ENV: production
+          VITE_APP_BASE: ${{ vars.VITE_APP_BASE }}
+          VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build

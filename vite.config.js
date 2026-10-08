@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
+import { siteConfig, siteMetadataPlugin } from './scripts/site-config.mjs';
 
-export default defineConfig({
-  plugins: [react()],
-  // En dev: "/" | En build (GH Pages): "/gazalbide-stats/"
-  base: process.env.NODE_ENV === "production" ? "/gazalbide-stats/" : "/",
+export default defineConfig(({ mode, command }) => {
+  const config = siteConfig(loadEnv(mode, process.cwd(), ''), command === 'serve');
+  return { plugins: [react(), siteMetadataPlugin(config)], base: config.base };
 });

@@ -1,78 +1,41 @@
-const CACHE_NAME = "gazalbide-stats-v6";
-const LE_GAZAL_CHARACTER_PATH = "/gazalbide-stats/assets/le-gazal/characters/";
-const APP_SHELL = [
-  "/gazalbide-stats/",
-  "/gazalbide-stats/manifest.webmanifest",
-  "/gazalbide-stats/icon-192.png",
-  "/gazalbide-stats/icon-512.png"
-];
-
+const APP_ROOT = self.registration.scope;
+const CACHE_PREFIX = "gazalbide-stats-";
+const CACHE_NAME = `${CACHE_PREFIX}v7-${new URL(APP_ROOT).pathname}`;
+const APP_SHELL = ["", "manifest.webmanifest", "icon-192.png", "icon-512.png"].map((file) => new URL(file, APP_ROOT).href);
+const MAX_ASSETS = 120;
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
-  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
-
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-      )
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
 });
-
+async function remember(cache, key, response) {
+  if (response.status !== 200 || response.type !== "basic") return;
+  await cache.put(key, response.clone());
+  const keys = await cache.keys();
+  const assets = keys.filter((request) => !APP_SHELL.includes(request.url));
+  await Promise.all(assets.slice(0, Math.max(0, assets.length - MAX_ASSETS)).map((request) => cache.delete(request)));
+}
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match("/gazalbide-stats/"))
-    );
-    return;
-  }
-
-  // Character artwork is replaced independently from the app shell. Prefer the
-  // network so a corrected image is visible immediately, while retaining the
-  // last valid response for offline use.
-  if (url.pathname.startsWith(LE_GAZAL_CHARACTER_PATH)) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (!response || response.status !== 200 || response.type !== "basic") {
-            return response;
-          }
-
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== "basic") {
-          return response;
-        }
-
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      });
-    })
-  );
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin || !url.href.startsWith(APP_ROOT)) return;
+  const navigation = request.mode === "navigate";
+  if (!navigation && (url.search || !/\.(js|css|png|jpe?g|webp|svg|woff2?|json|webmanifest)$/i.test(url.pathname))) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const key = navigation ? APP_ROOT : request;
+    const immutable = !navigation && /\/assets\/.*-[a-zA-Z0-9_-]{8,}\.(js|css)$/.test(url.pathname);
+    if (immutable) { const cached = await cache.match(key); if (cached) return cached; }
+    try {
+      const response = await fetch(request);
+      // Never persist authentication callback URLs or their responses.
+      if (!url.search) await remember(cache, key, response);
+      return response;
+    } catch {
+      return await cache.match(key) || new Response("Sin conexión", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
+  })());
 });
 
 self.addEventListener("push", (event) => {
@@ -86,8 +49,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Gazalbide Stats";
   const options = {
     body: payload.body || "Tienes un nuevo aviso.",
-    icon: "/gazalbide-stats/icon-192.png",
-    badge: "/gazalbide-stats/icon-192.png",
+    icon: new URL("icon-192.png", APP_ROOT).href,
+    badge: new URL("icon-192.png", APP_ROOT).href,
     tag: payload.tag || "gazalbide-notification",
     renotify: false,
     data: {
@@ -102,12 +65,12 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const route = event.notification.data?.route || "/";
-  const normalizedRoute = route.startsWith("/") ? route : `/${route}`;
+  const normalizedRoute = typeof route === "string" && /^\/(?!\/)/.test(route) && !route.includes("\\") ? route : "/";
   const targetUrl = `${self.registration.scope}#${normalizedRoute}`;
 
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const client of windows) {
+    for (const client of windows.filter((client) => client.url.startsWith(APP_ROOT))) {
       try {
         if ("navigate" in client) await client.navigate(targetUrl);
         if ("focus" in client) await client.focus();
