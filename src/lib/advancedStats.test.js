@@ -1,0 +1,8 @@
+import { it,expect } from 'vitest';
+import { teamGames,teamSummary,comparePlayers,leadHistory,matchesTimelineFilter } from './advancedStats.js';
+const rows=[{match_id:'a',date:'2026-01-01',playerId:1,gazalPts:70,opponentPts:60,pts:30,fgm:10,fga:20,pir:-5},{match_id:'a',date:'2026-01-01',playerId:2,gazalPts:70,opponentPts:60,pts:40,fgm:5,fga:5,pir:10},{match_id:'b',date:'2026-01-02',playerId:1,gazalPts:40,opponentPts:50,pts:40,fgm:2,fga:10,pir:20}];
+it('counts matches once and uses official team scores',()=>{const games=teamGames(rows);expect(games).toHaveLength(2);expect(games[0].pts).toBe(70);expect(teamSummary(games).wins).toBe(1);expect(teamSummary(games).scored).toBe(55);expect(teamSummary(games).fg).toBeCloseTo(17/35*100);});
+it('compares only shared matches, retaining negative PIR',()=>{const result=comparePlayers(rows,1,2);expect(result.games).toBe(1);expect(result.first.pir_avg).toBe(-5);expect(result.first.pts_avg).toBe(30);});
+it('handles an empty history without NaN',()=>{expect(teamSummary([]).fg).toBe(0);expect(comparePlayers([],1,2).games).toBe(0);});
+it('orders scoring actions and excludes voided baskets',()=>{const points=leadHistory([{server_sequence:3,event_type:'OPP_SCORE_3'},{server_sequence:1,event_type:'TWO_MADE'},{server_sequence:2,event_type:'THREE_MADE',is_void:true}]);expect(points.map((p)=>p.value)).toEqual([0,2,-1]);});
+it('filters actions by period and kind without void/system actions',()=>{expect(matchesTimelineFilter({period:2,event_type:'TWO_MADE'},'2','score')).toBe(true);expect(matchesTimelineFilter({period:1,event_type:'TWO_MADE'},'2','score')).toBe(false);expect(matchesTimelineFilter({period:2,event_type:'PF',is_void:true},'all','foul')).toBe(false);});

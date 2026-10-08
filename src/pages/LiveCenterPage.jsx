@@ -1,3 +1,4 @@
+import MatchTimeline from "../components/MatchTimeline.jsx";
 import MatchNavigation from "../components/MatchNavigation.jsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -384,6 +385,7 @@ export default function LiveCenterPage() {
         </div>
       </section>
 
+      <MatchTimeline key={snapshot.match.id} snapshot={snapshot} />
       {snapshot.bestLineup ? <BestLineupCard lineup={snapshot.bestLineup} players={snapshot.players} /> : null}
 
       <FantasyPanel fantasy={fantasy} user={user} view={fantasyView} setView={setFantasyView} />

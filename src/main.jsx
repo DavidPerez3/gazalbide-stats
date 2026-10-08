@@ -1,3 +1,4 @@
+import StatisticsPage from "./pages/StatisticsPage.jsx";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, RouterProvider } from "react-router-dom";
@@ -67,6 +68,7 @@ async function startApp() {
         { path: "jugador/:name", element: <PlayerProfilePage /> },
         { path: "ranking", element: <Ranking /> },
         { path: "compare", element: <Compare /> },
+        { path: "estadisticas", element: <StatisticsPage /> },
         { path: "le-gazal", element: <Navigate to="/fantasy/le-gazal" replace /> },
 
         { path: "login", element: <AuthPage /> },
