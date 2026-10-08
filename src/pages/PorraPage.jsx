@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { fetchGazalBetBuilder, fetchGazalBetData, fetchGazalBetRanking, formatCredits, formatDeadline, placeGazalBetSingles, placeGazalBetTicket, quoteGazalBetGameLine, quoteGazalBetPlayerLine, STAKES } from "../lib/gazalbet.js";
@@ -12,7 +13,8 @@ const keyOf = (leg) => leg.type === "market" ? `m:${leg.market_id}:${leg.selecti
 
 export default function PorraPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState("markets");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get("view") === "live" ? "live" : "markets");
   const [data, setData] = useState({ gameweeks: [], gameweek: null, markets: [], bets: [], tickets: [], wallet: null, notification: null });
   const [trackingGameweekId, setTrackingGameweekId] = useState(null);
   const [slipFeedback, setSlipFeedback] = useState(null);
@@ -56,8 +58,8 @@ export default function PorraPage() {
   const trackingGameweek = data.gameweeks.find((gw) => String(gw.id) === String(trackingGameweekId))
     || selectTrackingGameweek(data.gameweeks, [...data.tickets, ...data.bets], data.gameweek);
   useEffect(() => {
-    if (trackingGameweekId == null && trackingGameweek) setTrackingGameweekId(String(trackingGameweek.id));
-  }, [trackingGameweekId, trackingGameweek]);
+    if (trackingGameweekId == null && trackingGameweek) { const linked = data.gameweeks.find((gw) => gw.match_id === params.get("match")); setTrackingGameweekId(String(linked?.id || trackingGameweek.id)); }
+  }, [trackingGameweekId, trackingGameweek, data.gameweeks, params]);
   const tracking = useGazalBetTracking({ enabled: tab === "live" || tab === "history", matchId: tab === "live" ? trackingGameweek?.match_id : null, userId: user?.id, onPortfolio });
   useEffect(() => {
     if (!slipFeedback) return undefined;
