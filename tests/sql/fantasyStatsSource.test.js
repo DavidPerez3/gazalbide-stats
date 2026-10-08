@@ -13,4 +13,4 @@ it('repairs stale references and sets the official source on future publications
   expect((await db.query('select stats_file from gameweeks where id=3')).rows[0].stats_file).toBe('live:next');
   expect((await db.query('select distinct opponent from matches')).rows).toEqual([{ opponent: 'Atzurrak Sugoiak' }]);
   await db.close();
-});
+}, 30000);

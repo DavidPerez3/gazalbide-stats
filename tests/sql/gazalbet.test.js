@@ -39,6 +39,12 @@ beforeAll(async () => {
   await db.exec(tickets.slice(0, tickets.indexOf("create index")));
   const gameLines = readMigration("20261001065321_gazalbet_open_bankroll_and_game_lines.sql");
   await db.exec(gameLines.slice(0, gameLines.indexOf("create or replace function")));
+  await db.exec("alter table public.gazalbet_markets add column sample_size integer not null default 0");
+  const unlimited = readMigration("20261008101215_gazalbet_unlimited_accumulator_legs.sql");
+  await db.exec(unlimited.slice(0, unlimited.indexOf("create or replace function")));
+  await db.exec(`create function auth.uid() returns uuid language sql as $$ select '${USER}'::uuid $$;
+    create function public.gazalbet_prepare_wallet(bigint) returns void language sql as $$ select $$;`);
+  await db.exec(latestFunction("place_gazalbet_ticket"));
   await db.exec(latestFunction("gazalbet_player_metric"));
   await db.exec(latestFunction("settle_gazalbet_tickets"));
   await db.exec(latestFunction("gazalbet_void_unavailable_ticket_legs"));
@@ -147,4 +153,18 @@ describe("GazalBet unavailable players", () => {
     await voidUnavailable(); expect((await state(id)).status).toBe("pending");
     expect((await db.query("select status from public.gazalbet_ticket_legs")).rows[0].status).toBe("pending");
   });
+});
+
+it('accepts eight accumulator legs, retains the odds cap and charges once', async () => {
+  const legs=[];
+  for(let index=0;index<8;index++) {
+    const market=(await db.query(`insert into public.gazalbet_markets(gameweek_id,code,kind,title,selections,status) values(1,$1,'winner','Test','[{"key":"gazalbide","label":"Gazalbide","odds":2},{"key":"opponent","label":"Rival","odds":2}]','open') returning id`, [`eight-${index}`])).rows[0];
+    legs.push({type:'market',market_id:market.id,selection_key:'gazalbide'});
+  }
+  const result=(await db.query('select public.place_gazalbet_ticket(1,$1::jsonb,10) result',[JSON.stringify(legs)])).rows[0].result;
+  expect(Number(result.odds)).toBe(100);
+  expect(Number((await db.query('select balance from gazalbet_wallets')).rows[0].balance)).toBe(80);
+  expect(Number((await db.query('select count(*) n from gazalbet_ticket_legs')).rows[0].n)).toBe(8);
+  await expect(db.query('select public.place_gazalbet_ticket(1,$1::jsonb,10)',[JSON.stringify([...legs,legs[0]])])).rejects.toThrow(/Duplicate/);
+  expect(Number((await db.query('select balance from gazalbet_wallets')).rows[0].balance)).toBe(80);
 });
