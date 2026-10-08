@@ -1984,309 +1984,317 @@ html {
    BLOQUE ENTRENADOR BUILDER
    =========================== */
 .fantasy-builder__coach-selector {
-  b…12309 tokens truncated…const [params] = useSearchParams();
-  const [scheduledMatch, setScheduledMatch] = useState(null);
-  const [players, setPlayers] = useState([]);
-  const [selected, setSelected] = useState([]);
-  const [starters, setStarters] = useState([]);
-  const [opponent, setOpponent] = useState("");
-  const [matchDate, setMatchDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [gazalSide, setGazalSide] = useState("home");
-  const [isFriendly, setIsFriendly] = useState(false);
-  const [gameweeks, setGameweeks] = useState([]);
-  const [selectedGameweekId, setSelectedGameweekId] = useState(params.get("gameweek") || "");
-  const [gameweeksLoading, setGameweeksLoading] = useState(true);
-  const [gameweeksError, setGameweeksError] = useState(false);
-  const [error, setError] = useState("");
-  const [recoverableSessions, setRecoverableSessions] = useState([]);
-  const [recoveringId, setRecoveringId] = useState(null);
-  const [recoveryError, setRecoveryError] = useState("");
-
-  useEffect(() => {
-    const id = params.get("match");
-    if (!id) return;
-    let active = true;
-    supabase.from("matches").select("id,date,opponent,status,is_scheduled,is_friendly").eq("id", id).maybeSingle().then(({ data, error: failure }) => {
-      if (!active) return;
-      if (failure) setError("No se pudo cargar el partido programado.");
-      else if (data?.is_scheduled && data.status === "draft") { setScheduledMatch(data); setMatchDate(data.date); setOpponent(data.opponent); setIsFriendly(Boolean(data.is_friendly)); }
-    });
-    return () => { active = false; };
-  }, [params]);
-  useEffect(() => {
-    const gw = gameweeks.find((g) => selectedGameweekId ? String(g.id) === selectedGameweekId : g.match_id === params.get("match"));
-    if (gw && !selectedGameweekId) setSelectedGameweekId(String(gw.id));
-    if (gw) { setMatchDate(gw.date); setOpponent(gw.opponent || ""); }
-  }, [gameweeks, selectedGameweekId, params]);
-
-  useEffect(() => {
-    getPlayers(CURRENT_SEASON_ID)
-      .then((data) => setPlayers(data || []))
-      .catch(() => setError("No se pudo cargar la plantilla de la temporada actual."));
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    supabase.from("gameweeks")
-      .select("id,name,opponent,date,match_id,status")
-      .eq("season_id", CURRENT_SEASON_ID)
-      .gte("date", new Date().toISOString().slice(0, 10))
-      .order("date", { ascending: true })
-      .then(({ data, error: loadError }) => {
-        if (cancelled) return;
-        if (loadError) {
-          setGameweeksError(true);
-          setError("No se pudieron consultar las jornadas Fantasy. Recarga la página antes de iniciar el Live.");
-        }
-        else setGameweeks((data || []).filter((gw) => !["played", "scored"].includes(gw.status)));
-        setGameweeksLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    listRecoverableLiveSessions(CURRENT_SEASON_ID)
-      .then(async (matches) => {
-        if (!cancelled) setRecoverableSessions(matches || []);
-        const localMatchId = loadLiveSetup()?.matchId;
-        if (!localMatchId || matches?.some((match) => match.id === localMatchId)) return;
-        const { data } = await supabase.from("matches").select("status,is_scheduled").eq("id", localMatchId).maybeSingle();
-        if (!cancelled && data && data.status !== "live" && !(data.status === "draft" && data.is_scheduled)) clearLiveSession();
-      })
-      .catch((loadError) => {
-        console.warn("No se pudieron listar Lives recuperables:", loadError);
-        if (!cancelled) {
-          setRecoveryError("No se pudieron consultar los partidos Live guardados en Supabase.");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const starterSet = useMemo(() => new Set(starters), [starters]);
-
-  function toggleRoster(id) {
-    setError("");
-    if (selectedSet.has(id)) {
-      setSelected((prev) => prev.filter((value) => value !== id));
-      setStarters((prev) => prev.filter((value) => value !== id));
-      return;
-    }
-    if (selected.length >= MAX_ROSTER_SIZE) {
-      setError(`Solo se pueden convocar ${MAX_ROSTER_SIZE} jugadores.`);
-      return;
-    }
-    setSelected((prev) => [...prev, id]);
-  }
-
-  function toggleStarter(id) {
-    setError("");
-    if (!selectedSet.has(id)) return;
-    if (starterSet.has(id)) {
-      setStarters((prev) => prev.filter((value) => value !== id));
-      return;
-    }
-    if (starters.length >= MAX_ON_COURT) {
-      setError(`El quinteto inicial debe tener exactamente ${MAX_ON_COURT} jugadores.`);
-      return;
-    }
-    setStarters((prev) => [...prev, id]);
-  }
-
-  async function recoverGame(matchId) {
-    if (recoveringId) return;
-    setRecoveryError("");
-    setRecoveringId(matchId);
-
-    try {
-      const snapshot = await loadRemoteLiveSession(matchId);
-      restoreLiveSessionFromRemote(snapshot);
-      navigate("/admin/live");
-    } catch (recoverError) {
-      console.error("No se pudo recuperar el Live:", recoverError);
-      setRecoveryError(
-        recoverError?.message || "No se pudo recuperar el partido Live desde Supabase."
-      );
-      setRecoveringId(null);
-    }
-  }
-
-  async function discardGame(match) {
-    if (recoveringId) return;
-    if (!window.confirm(`¿Eliminar definitivamente el Live de ${match.opponent} (${match.date})? Sus acciones sin publicar se borrarán. Una jornada Fantasy vinculada impide esta operación.`)) return;
-    setRecoveryError("");
-    setRecoveringId(match.id);
-    try {
-      await discardRemoteLiveSession(match.id);
-      if (loadLiveSetup()?.matchId === match.id) clearLiveSession();
-      setRecoverableSessions((previous) => previous.filter((row) => row.id !== match.id));
-    } catch (discardError) {
-      setRecoveryError(discardError?.message || "No se pudo descartar el partido.");
-    } finally {
-      setRecoveringId(null);
-    }
-  }
-
-  function selectGameweek(id) {
-    setSelectedGameweekId(id);
-    const gameweek = gameweeks.find((gw) => String(gw.id) === id);
-    if (!gameweek) return;
-    setMatchDate(gameweek.date);
-    setOpponent(gameweek.opponent || "");
-    setIsFriendly(false);
-    setError("");
-  }
-
-  async function startGame() {
-    setError("");
-    if (gameweeksLoading) return setError("Espera a que se comprueben las jornadas Fantasy.");
-    if (gameweeksError) return setError("No se pudieron comprobar las jornadas Fantasy. Recarga la página antes de iniciar el Live.");
-    if (selected.length < MAX_ON_COURT) return setError("Debes convocar al menos 5 jugadores.");
-    if (selected.length > MAX_ROSTER_SIZE) return setError(`No puedes convocar más de ${MAX_ROSTER_SIZE} jugadores.`);
-    if (starters.length !== MAX_ON_COURT) return setError("Debes seleccionar exactamente 5 titulares.");
-
-    const gameweek = gameweeks.find((gw) => String(gw.id) === selectedGameweekId);
-    if (gameweek && (gameweek.date !== matchDate ||
-      (gameweek.opponent || "").trim().toLowerCase() !== opponent.trim().toLowerCase())) {
-      return setError("La fecha o el rival no coinciden con la jornada Fantasy seleccionada. Selecciónala de nuevo.");
-    }
-    if (!gameweek && !isFriendly && gameweeks.some((gw) => gw.date === matchDate &&
-      (gw.opponent || "").trim().toLowerCase() === opponent.trim().toLowerCase())) {
-      return setError("Hay una jornada Fantasy para este partido. Selecciónala para vincular el Live o marca Partido amistoso para registrarlo aparte.");
-    }
-
-    if (gameweek?.match_id) {
-      const { data: existing, error: matchError } = await supabase.from("matches")
-        .select("status,is_scheduled").eq("id", gameweek.match_id).maybeSingle();
-      if (matchError) return setError("No se pudo comprobar el partido vinculado. Inténtalo de nuevo.");
-      if (existing && !(existing.status === "draft" && existing.is_scheduled)) return setError(existing.status === "live"
-        ? "Ya existe un Live de esta jornada. Continúalo desde Partido Live guardado."
-        : "Esta jornada ya tiene un partido registrado. No se creará otro Live sobre él.");
-    }
-
-    if (scheduledMatch && (scheduledMatch.date !== matchDate || scheduledMatch.opponent !== opponent.trim())) return setError("La fecha y el rival deben coincidir con el partido programado.");
-
-    const roster = players
-      .filter((player) => selectedSet.has(playerKey(player)))
-      .map((player) => ({
-        id: playerKey(player),
-        databaseId: player.id ?? null,
-        number: String(player.number),
-        name: player.name,
-      }));
-
-    saveLiveSetup({
-      matchId: gameweek?.match_id || scheduledMatch?.id || undefined,
-      seasonId: CURRENT_SEASON_ID,
-      opponent: opponent.trim() || "Rival",
-      matchDate,
-      gazalSide,
-      isFriendly,
-      roster,
-      starterIds: starters,
-      createdAt: new Date().toISOString(),
-    });
-
-    navigate("/admin/live");
-  }
-
-  return (
-    <div className="live-setup">
-      <header className="live-setup__header">
-        <div>
-          <p className="live-kicker">Live Stats · {CURRENT_SEASON_ID}</p>
-          <h1>Convocatoria y quinteto inicial</h1>
-          <p className="text-dim">Máximo 12 convocados · exactamente 5 titulares · solo plantilla actual.</p>
-        </div>
-        <div className="live-setup__counters">
-          <strong>{selected.length}/12</strong><span>convocados</span>
-          <strong>{starters.length}/5</strong><span>titulares</span>
-        </div>
-      </header>
-
-      {recoverableSessions.length > 0 ? (
-        <section className="card card--p">
-          <p className="live-kicker">Recuperación Supabase</p>
-          <h2>Partido Live guardado</h2>
-          <p className="text-dim">
-            Puedes continuar un Live aunque se haya perdido la sesión local o estés usando otro dispositivo.
-          </p>
-          <div className="live-setup__footer">
-            {recoverableSessions.map((match) => (
-              <div key={match.id} className="live-setup__session-actions">
-                <button type="button" className="live-primary-action" onClick={() => recoverGame(match.id)} disabled={Boolean(recoveringId)}>
-                  {recoveringId === match.id ? "Procesando…" : `Continuar ${match.opponent} · ${match.date}`}
-                </button>
-                <button type="button" className="live-setup__discard" onClick={() => discardGame(match)} disabled={Boolean(recoveringId)}>
-                  Descartar Live
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {recoveryError ? <div className="live-alert live-alert--error">{recoveryError}</div> : null}
-
-      <PublishedLiveMatchesPanel />
-
-      <section className="live-setup__meta card card--p">
-        <label>Jornada Fantasy
-          <select className="input" value={selectedGameweekId} onChange={(e) => selectGameweek(e.target.value)} disabled={isFriendly || gameweeksLoading}>
-            <option value="">Sin jornada seleccionada</option>
-            {gameweeks.map((gw) => <option key={gw.id} value={gw.id}>{gw.name || "Jornada"} · {gw.date} · vs {gw.opponent || "Rival"}</option>)}
-          </select>
-        </label>
-        <label>Rival<input className="input" value={opponent} onChange={(e) => { setOpponent(e.target.value); setSelectedGameweekId(""); }} placeholder="Nombre del rival" /></label>
-        <label>Fecha<input className="input" type="date" value={matchDate} onChange={(e) => { setMatchDate(e.target.value); setSelectedGameweekId(""); }} /></label>
-        <label>Gazalbide<select className="input" value={gazalSide} onChange={(e) => setGazalSide(e.target.value)}><option value="home">Local</option><option value="away">Visitante</option></select></label>
-      </section>
-      <label className="card card--p" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <input type="checkbox" checked={isFriendly} disabled={Boolean(scheduledMatch)} onChange={(event) => { setIsFriendly(event.target.checked); if (event.target.checked) setSelectedGameweekId(""); }} />
-        <span><strong>Partido amistoso</strong> · se puede publicar en estadísticas del club, pero no enlaza Fantasy, GazalBet ni genera cambios de precio.</span>
-      </label>
-
-      {selectedGameweekId && <p className="text-dim">Este Live se vinculará a la jornada Fantasy seleccionada al iniciar el partido. Deja desmarcado «Partido amistoso».</p>}
-
-      {error && <div className="live-alert live-alert--error">{error}</div>}
-
-      {players.length === 0 ? (
-        <div className="card season-empty">
-          <strong>Plantilla {CURRENT_SEASON_ID} pendiente</strong>
-          <span>Antes de preparar un Live habrá que dar de alta la plantilla actual desde Admin. No se usarán jugadores de 2025-2026 como fallback.</span>
-        </div>
-      ) : (
-        <>
-          <section className="live-roster-picker">
-            {players.map((player) => {
-              const id = playerKey(player);
-              const number = String(player.number);
-              const isSelected = selectedSet.has(id);
-              const isStarter = starterSet.has(id);
-              return (
-                <article key={id} className={`live-roster-card${isSelected ? " live-roster-card--selected" : ""}${isStarter ? " live-roster-card--starter" : ""}`}>
-                  <button type="button" className="live-roster-card__main" onClick={() => toggleRoster(id)}>
-                    <span className="live-roster-card__number">#{number}</span>
-                    <span className="live-roster-card__name">{player.name}</span>
-                    <span className="live-roster-card__state">{isSelected ? "Convocado" : "Fuera"}</span>
-                  </button>
-                  <button type="button" className="live-roster-card__starter" disabled={!isSelected} onClick={() => toggleStarter(id)}>
-                    {isStarter ? "★ Titular" : "☆ Titular"}
-                  </button>
-                </article>
-              );
-            })}
-          </section>
-          <div className="live-setup__footer">
-            <button type="button" className="live-primary-action" onClick={startGame}>Entrar a Live Stats →</button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
+
+.fantasy-builder__coach-selector .fantasy-builder__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Estilo del selector (modo oscuro compatible) */
+.fantasy-builder__coach-selector select {
+  background-color: rgba(30, 30, 30, 0.9);
+  color: #fefefe;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  max-width: 260px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none; /* quitar estilo nativo */
+}
+
+.fantasy-builder__coach-selector select:hover,
+.fantasy-builder__coach-selector select:focus {
+  border-color: #facc15; /* dorado */
+  outline: none;
+  background-color: rgba(45, 45, 45, 0.95);
+}
+
+/* Hack visual para modo oscuro del menú (algunos navegadores lo respetan) */
+.fantasy-builder__coach-selector option {
+  background-color: #1e1e1e;
+  color: #fefefe;
+}
+
+/* En Safari y Edge el borde amarillo persistente */
+.fantasy-builder__coach-selector select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #facc15;
+}
+
+.fantasy-builder__coach-traits {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.5rem;
+}
+
+.fantasy-builder__coach-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #facc15; /* dorado */
+  letter-spacing: 0.5px;
+}
+
+.fantasy-builder__traits {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.fantasy-builder__trait-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+/* Opcional: hover en chips */
+.fantasy-builder__trait-chip:hover {
+  background: #facc15;
+  color: #000;
+  border-color: #facc15;
+  transition: 0.15s;
+}
+
+/* Ajuste del texto de explicación */
+.fantasy-builder__text {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* ===========================
+   ENTRENADOR CON AVATAR
+   =========================== */
+.fantasy-builder__coach-traits {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.75rem;
+}
+
+.fantasy-builder__coach-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #facc15;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fantasy-builder__coach-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fantasy-builder__coach-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.fantasy-builder__coach-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #facc15;
+  letter-spacing: 0.5px;
+}
+
+.fantasy__player-status {
+  text-align: center;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  width: fit-content;
+  margin-inline: auto;
+}
+
+.fantasy-builder__item .fantasy__player-status {
+  margin-inline: 0;
+  text-align: left;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.fantasy__player-status--available {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.fantasy__player-status--doubtful {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.fantasy__player-status--injured {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Contenedor scrollable para la tabla del ranking */
+.fantasy__ranking {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* La tabla puede ser más ancha que la pantalla, pero no rompe el layout */
+.fantasy__ranking-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 650px; /* ajusta si quieres menos/más columnas visibles */
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 768px) {
+  .fantasy__ranking-table th,
+  .fantasy__ranking-table td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    white-space: nowrap; /* evita que parta palabras raramente */
+  }
+
+  .fantasy__card {
+    padding-inline: 12px;
+  }
+}
+
+.auth__password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Deja un hueco interno a la derecha para el ojo */
+.auth__password-wrapper .auth__input {
+  padding-right: 2.5rem;
+}
+
+/* Botón del ojo dentro del campo */
+.auth__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #555;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+/* Hover / focus */
+.auth__password-toggle:hover {
+  color: #f5c451; /* mismo tono que los botones */
+}
+.auth__password-toggle:active {
+  transform: translateY(-50%) scale(0.9);
+}
+.auth__password-toggle:focus-visible {
+  outline: 2px solid #f5c451;
+  outline-offset: 2px;
+}
+
+/* Tamaño del SVG */
+.auth__password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Ajusta el input para mantener la misma altura que el resto */
+.auth__input {
+  box-sizing: border-box;
+}
+
+/* ==== Hover dorado en tarjetas de jugador y entrenador ==== */
+
+.fantasy__court-slot-card,
+.fantasy__coach-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Solo efecto cuando el mercado está abierto (usa cursor pointer en el contenedor) */
+button:enabled .fantasy__court-slot-card:hover,
+button:enabled .fantasy__coach-card:hover {
+  transform: scale(1.03);
+  border-color: #facc15;
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.5);
+}
+
+/* Estilo general (escritorio / tablet) */
+.fantasy__court {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  height: 280px;              /* ya lo tenías parecido */
+  background-size: 100% 100%;
+}
+
+/* El botón/slot sobre el campo */
+.fantasy__court-slot {
+  width: 28%;
+  max-width: 130px;
+}
+
+/* MÓVIL: da un poco más de altura al campo y encoge un pelín las tarjetas */
+@media (max-width: 600px) {
+  .fantasy__court {
+    height: 330px;           /* más alto → más hueco entre filas */
+  }
+
+  .fantasy__court-slot {
+    width: 30%;
+  }
+
+  .fantasy__court-slot-card {
+    transform: scale(0.9);   /* tarjetas un 10% más pequeñas */
+    transform-origin: center;
+  }
+}
+.match-navigation{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.match-navigation a{padding:10px 14px;border:1px solid #d4af3750;border-radius:10px;min-height:44px;color:#f1c40f;background:#141414}
