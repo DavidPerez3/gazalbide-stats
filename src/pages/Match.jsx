@@ -1,3 +1,5 @@
+import "../home-dashboard.css";
+import ShotAccuracy from "../components/ShotAccuracy.jsx";
 import MatchNavigation from "../components/MatchNavigation.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -5,7 +7,7 @@ import { getMatches, getMatchStats } from "../lib/data";
 
 // Helpers % y minutos
 const pctNum = (m, a) => (Number(a) > 0 ? (Number(m) / Number(a)) * 100 : 0);
-const pctTxt = (m, a) => pctNum(m, a).toFixed(1) + "%";
+
 
 const mmssToSecs = (v) => {
   if (v == null) return 0;
@@ -70,10 +72,10 @@ export default function Match() {
     { key: "pts", title: "PTS", getSort: (r) => Number(r.pts) || 0, render: (r) => r.pts ?? 0 },
     { key: "reb", title: "REB", getSort: (r) => Number(r.reb) || 0, render: (r) => r.reb ?? 0 },
     { key: "ast", title: "AST", getSort: (r) => Number(r.ast) || 0, render: (r) => r.ast ?? 0 },
-    { key: "fg_pct", title: "FG%", getSort: (r) => pctNum(r.fgm, r.fga), render: (r) => pctTxt(r.fgm, r.fga) },
-    { key: "two_pct", title: "2P%", getSort: (r) => pctNum(r.two_pm, r.two_pa), render: (r) => pctTxt(r.two_pm, r.two_pa) },
-    { key: "three_pct", title: "3P%", getSort: (r) => pctNum(r.three_pm, r.three_pa), render: (r) => pctTxt(r.three_pm, r.three_pa) },
-    { key: "ft_pct", title: "FT%", getSort: (r) => pctNum(r.ftm, r.fta), render: (r) => pctTxt(r.ftm, r.fta) },
+    { key: "fg_pct", title: "FG", getSort: (r) => pctNum(r.fgm, r.fga), render: (r) => <ShotAccuracy made={r.fgm} attempted={r.fga} /> },
+    { key: "two_pct", title: "2P", getSort: (r) => pctNum(r.two_pm, r.two_pa), render: (r) => <ShotAccuracy made={r.two_pm} attempted={r.two_pa} /> },
+    { key: "three_pct", title: "3P", getSort: (r) => pctNum(r.three_pm, r.three_pa), render: (r) => <ShotAccuracy made={r.three_pm} attempted={r.three_pa} /> },
+    { key: "ft_pct", title: "FT", getSort: (r) => pctNum(r.ftm, r.fta), render: (r) => <ShotAccuracy made={r.ftm} attempted={r.fta} /> },
     { key: "stl", title: "ROB", getSort: (r) => Number(r.stl) || 0, render: (r) => r.stl ?? 0 },
     { key: "blk", title: "BLK", getSort: (r) => Number(r.blk) || 0, render: (r) => r.blk ?? 0 },
     { key: "tov", title: "TOV", getSort: (r) => Number(r.tov) || 0, render: (r) => r.tov ?? 0 },

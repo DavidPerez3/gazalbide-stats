@@ -1,0 +1,31 @@
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, expect, it, vi } from 'vitest';
+const { matches } = vi.hoisted(() => ({ matches: [] }));
+vi.mock('../context/SeasonContext.jsx', () => ({ useSeason: () => ({ activeSeason: { id: 'test', label: '2026–2027', current: true } }) }));
+vi.mock('../lib/data', () => ({ getMatches: async () => matches, getPlayers: async () => [], getTechs: async () => ({}), getMatchStats: async () => [] }));
+vi.mock('../lib/supabaseClient.js', () => ({ supabase: { from: () => { const q = { select: () => q, eq: () => q, gte: () => q, order: () => q, then: (fn) => Promise.resolve({ data: [] }).then(fn) }; return q; } } }));
+vi.mock('../components/PublicLiveBanner.jsx', () => ({ default: () => null }));
+vi.mock('../components/DashboardHighlights', () => ({ default: () => <div>Destacados</div> }));
+import Home from './Home.jsx';
+afterEach(() => cleanup());
+it('keeps the shoulder counter and quick links visible in an empty season', async () => {
+  matches.length = 0;
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  await screen.findByText(/Todavía no hay partidos publicados/);
+  expect(screen.getByRole('heading', { name: 'Hombro de Imanol' })).toBeTruthy();
+  expect(screen.getByText('4')).toBeTruthy();
+  expect(screen.queryByText(/Bienvenido/)).toBeNull();
+  expect(screen.getByRole('link', { name: 'Fantasy' }).getAttribute('href')).toBe('/fantasy');
+});
+it('starts with three recent games, then expands and filters the full list', async () => {
+  matches.splice(0, matches.length, ...[1,2,3,4].map(i => ({ id: `match-${i}`, date: `2026-10-0${i}`, opponent: `Rival ${i}`, gazal_pts: 50+i, opp_pts: 40, result: 'W' })));
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  await screen.findByText('Rival 4');
+  expect(screen.queryByText('Rival 1')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /Ver todos/ }));
+  expect(screen.getByText('Rival 1')).toBeTruthy();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Buscar por rival' }), { target: { value: 'Rival 2' } });
+  expect(screen.getByText('Rival 2')).toBeTruthy();
+  expect(screen.queryByText('Rival 4')).toBeNull();
+});

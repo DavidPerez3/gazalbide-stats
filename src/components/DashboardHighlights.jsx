@@ -60,6 +60,7 @@ export default function DashboardHighlights({ seasonId }) {
       reb: best.reb ?? 0,
       ast: best.ast ?? 0,
       fg: `${best.fgm ?? 0}/${best.fga ?? 0}`,
+      fgPct: pct(Number(best.fgm ?? 0), Number(best.fga ?? 0)),
     };
   }, [lastMatch, byMatchStats]);
 
@@ -113,87 +114,29 @@ export default function DashboardHighlights({ seasonId }) {
     };
   }, [seasonAgg]);
 
-  if (loading) {
-    return (
-      <div className="card" style={{ padding: 16 }}>
-        <div className="text-dim">Cargando destacados…</div>
+  if (loading) return <p className="text-dim" role="status">Cargando destacados…</p>;
+  return <div className="home-highlights">
+    {lastMatch && lastGameMVP && <article className="home-panel home-mvp">
+      <div className="home-jersey" aria-hidden="true">{lastGameMVP.number}</div>
+      <div className="home-mvp-identity">
+        <span className="home-eyebrow">MVP · Último partido</span>
+        <h3>#{lastGameMVP.number} {lastGameMVP.name}</h3>
+        <p>{new Date(`${lastMatch.date}T12:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} · {lastMatch.opponent}</p>
       </div>
-    );
-  }
-
-  return (
-    <div
-      className="mb-4"
-      style={{
-        display: "grid",
-        gap: 16,
-        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-      }}
-    >
-      {/* Jugador del último partido */}
-      <div className="card card--p">
-        <div className="text-dim" style={{ fontSize: 12, marginBottom: 6 }}>
-          Jugador del último partido
-        </div>
-        {lastMatch && lastGameMVP ? (
-          <>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>
-              #{lastGameMVP.number} — {lastGameMVP.name}
-            </div>
-            <div className="text-dim" style={{ fontSize: 12, marginTop: 6 }}>
-              {lastMatch.date} • {lastMatch.opponent}
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <b>{(lastGameMVP.pir ?? lastGameMVP.eff) ?? 0}</b> VAL
-              <span className="text-dim"> · {lastGameMVP.pts} PTS · {lastGameMVP.reb} REB · {lastGameMVP.ast} AST · {lastGameMVP.fg} FG</span>
-            </div>
-          </>
-        ) : (
-          <div className="text-dim">Sin datos</div>
-        )}
+      <div className="home-mvp-stats">
+        {[[lastGameMVP.pir ?? lastGameMVP.eff ?? 0, 'VAL'], [lastGameMVP.pts, 'PTS'], [lastGameMVP.reb, 'REB'], [lastGameMVP.ast, 'AST']].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
+        <div className="home-mvp-shots"><strong>{lastGameMVP.fg}</strong><span>TC · {lastGameMVP.fgPct.replace('.', ',')} %</span></div>
       </div>
-
-      {/* Top FG% temporada */}
-      <div className="card card--p">
-        <div className="text-dim" style={{ fontSize: 12, marginBottom: 6 }}>
-          Top FG% temporada
-        </div>
-        {topFG ? (
-          <>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>
-              #{topFG.number} — {topFG.name}
-            </div>
-            <div style={{ marginTop: 6, fontSize: 20, fontWeight: 700 }}>
-              {topFG.pct}%
-            </div>
-            <div className="text-dim" style={{ fontSize: 12 }}>
-              {topFG.made}/{topFG.att}
-            </div>
-          </>
-        ) : (
-          <div className="text-dim">Aún no hay suficientes intentos</div>
-        )}
-      </div>
-
-      {/* Top asistente temporada */}
-      <div className="card card--p">
-        <div className="text-dim" style={{ fontSize: 12, marginBottom: 6 }}>
-          Top asistente temporada
-        </div>
-        {topAssist ? (
-          <>
-            <div style={{ display: "grid", gap: 6 }}>
-              <div>
-                <div className="text-dim" style={{ fontSize: 12 }}>Por TOTAL</div>
-                <div><b>#{topAssist.total.number} — {topAssist.total.name}</b></div>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>{topAssist.total.val} Asistencias</div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-dim">Sin datos</div>
-        )}
-      </div>
+    </article>}
+    <div className="home-leaders">
+      <article className="home-panel home-leader">
+        <span className="home-eyebrow">Mejor % de tiro</span>
+        {topFG ? <><h3>#{topFG.number} {topFG.name}</h3><strong className="home-leader-value">{topFG.pct.replace('.', ',')} %</strong><p>{topFG.made}/{topFG.att} TC</p></> : <p>Mínimo {MIN_FGA_FOR_TOP_FG} intentos</p>}
+      </article>
+      <article className="home-panel home-leader">
+        <span className="home-eyebrow">Más asistencias</span>
+        {topAssist ? <><h3>#{topAssist.total.number} {topAssist.total.name}</h3><strong className="home-leader-value">{topAssist.total.val}</strong><p>asistencias</p></> : <p>Sin datos</p>}
+      </article>
     </div>
-  );
+  </div>;
 }
