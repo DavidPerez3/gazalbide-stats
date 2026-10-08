@@ -52,3 +52,15 @@
 @keyframes gazalbet-slip-pulse{50%{transform:translateX(-50%) scale(1.025)}}
 @media(prefers-reduced-motion:reduce){.gazalbet-added,.gazalbet-slip-pulse{animation:none}.gazalbet-progress em{transition:none}}
 @media(max-width:480px){.gazalbet-live-ticket>header{align-items:flex-start;padding:12px}.gazalbet-live-ticket>header>b{flex-shrink:0}.gazalbet-live-leg{padding:12px}.gazalbet-history-filters{gap:6px}.gazalbet-history-filters button{flex:1;padding:9px 8px}}
+
+/* Allow narrow cards and long opponent names to shrink within grid/flex tracks. */
+.gazalbet-live>*,.gazalbet-live-ticket>header>div,.gazalbet-history article>div{min-width:0}
+.gazalbet-live-selector{min-width:0}
+.gazalbet-live-selector select{max-width:100%}
+.gazalbet-live__head>span{flex-shrink:0}
+.gazalbet-history article,.gazalbet-live-ticket>header{overflow-wrap:anywhere}
+.gazalbet-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.gazalbet-tabs button{min-height:44px}
+.gazalbet-slip{max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:760px){.gazalbet-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.gazalbet-slip{max-height:calc(100dvh - env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}}
+@media(max-width:360px){.gazalbet-hero{grid-template-columns:72px minmax(0,1fr);gap:10px}.gazalbet-hero img{width:72px;height:72px}.gazalbet-hero h1{font-size:2rem}.gazalbet-live__head{flex-wrap:wrap}.gazalbet-live__head>span{text-align:left}}

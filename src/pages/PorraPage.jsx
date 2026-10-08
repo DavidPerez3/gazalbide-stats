@@ -54,7 +54,7 @@ export default function PorraPage() {
 
   const onPortfolio = useCallback((portfolio) => setData((previous) => ({ ...previous, ...portfolio })), []);
   const trackingGameweek = data.gameweeks.find((gw) => String(gw.id) === String(trackingGameweekId))
-    || selectTrackingGameweek(data.gameweeks, data.tickets, data.gameweek);
+    || selectTrackingGameweek(data.gameweeks, [...data.tickets, ...data.bets], data.gameweek);
   useEffect(() => {
     if (trackingGameweekId == null && trackingGameweek) setTrackingGameweekId(String(trackingGameweek.id));
   }, [trackingGameweekId, trackingGameweek]);
@@ -175,7 +175,7 @@ export default function PorraPage() {
       <h2 className="gazalbet-section-title">Mercado rápido</h2>
       <div className="gazalbet-markets">{data.markets.filter((m) => m.kind === "winner").map((market) => <article className="gazalbet-market" key={market.id}><div className="gazalbet-market__head"><div><h3>{market.title}</h3><p>{market.subtitle}</p></div><span>{market.sample_size ? `${market.sample_size} partidos` : "Datos iniciales"}</span></div><div className={`gazalbet-options gazalbet-options--${market.selections.length}`}>{market.selections.map((selection) => <button key={selection.key} disabled={closed || market.status !== "open"} onClick={() => add({ type: "market", market_id: market.id, selection_key: selection.key, label: `${market.title} · ${selection.label}`, odds: Number(selection.odds) })}><span>{selection.label}</span><strong>{Number(selection.odds).toFixed(2)}</strong></button>)}</div></article>)}</div>
     </section>}
-    {tab === "live" && <GazalBetLive gameweeks={data.gameweeks} gameweek={trackingGameweek} onGameweekChange={setTrackingGameweekId} tickets={data.tickets.filter((ticket) => String(ticket.gameweek_id) === String(trackingGameweek?.id))} snapshot={tracking.snapshot} loading={tracking.loading} error={tracking.error} updatedAt={tracking.updatedAt} />}
+    {tab === "live" && <GazalBetLive gameweeks={data.gameweeks} gameweek={trackingGameweek} onGameweekChange={setTrackingGameweekId} tickets={data.tickets.filter((ticket) => String(ticket.gameweek_id) === String(trackingGameweek?.id))} bets={data.bets.filter((bet) => String(bet.gameweek_id) === String(trackingGameweek?.id))} snapshot={tracking.snapshot} loading={tracking.loading} error={tracking.error} updatedAt={tracking.updatedAt} />}
     {tab === "ranking" && <section className="gazalbet-panel"><h2>Ranking GazalBet</h2><div className="gazalbet-ranking">{ranking.map((item) => <div key={item.user_id} className={item.user_id === user.id ? "me" : ""}><b>{item.position}</b><span>{item.username}</span><strong>{formatCredits(item.balance)} 🪙</strong></div>)}</div></section>}
     {tab === "history" && <>{tracking.error && <div className="gazalbet-alert gazalbet-alert--error" role="status">{tracking.error}</div>}<GazalBetHistory tickets={data.tickets} bets={data.bets} gameweeks={data.gameweeks} /></>}
 

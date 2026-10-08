@@ -1,5 +1,24 @@
 export const BET_STATUS = { pending: "Pendiente", won: "Ganada", lost: "Perdida", void: "Anulada" };
 export const LIVE_PHASE = { pregame: "PREPARTIDO", live: "EN DIRECTO", paused: "PAUSA", review: "PENDIENTE DE REVISIÓN", official: "RESULTADO OFICIAL" };
+
+// Adapt the previous single-bet format without changing persisted bets.
+export function getTrackingTickets(tickets, bets = []) {
+  return [...tickets.map((ticket) => ({ ...ticket, trackingKey: `ticket:${ticket.id}` })), ...bets.map((bet) => ({
+    ...bet,
+    trackingKey: `bet:${bet.id}`,
+    legacy: true,
+    ticket_type: "single",
+    total_odds: bet.odds,
+    gazalbet_ticket_legs: [{ ...bet, id: `bet-leg:${bet.id}`, leg_type: "market", label: bet.selection_label }],
+  }))].sort((a, b) => new Date(b.placed_at) - new Date(a.placed_at));
+}
+
+export function ticketReturn(ticket) {
+  if (ticket.status !== "pending") return Number(ticket.payout || 0);
+  const odds = Number(ticket.total_odds ?? ticket.odds);
+  // New tickets have the same 100x cap as settlement; legacy singles do not.
+  return Math.round(Number(ticket.stake) * (ticket.legacy || ticket.total_odds == null ? odds : Math.min(100, odds)) * 100) / 100;
+}
 const STAT_LABEL = { pts: "puntos", three_pm: "triples", reb: "rebotes", ast: "asistencias", pf: "faltas", pir: "valoración" };
 const clamp = (n) => Math.min(100, Math.max(0, n));
 const numeric = (n) => n != null && n !== "" && Number.isFinite(Number(n));

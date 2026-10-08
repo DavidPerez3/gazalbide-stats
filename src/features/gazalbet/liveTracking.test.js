@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { trackLeg, selectTrackingGameweek, matchesHistoryFilter } from "./liveTracking";
+import { trackLeg, selectTrackingGameweek, matchesHistoryFilter, getTrackingTickets, ticketReturn } from "./liveTracking";
 const snapshot = { phase: "live", score: { gazalbide: 60, opponent: 55 }, players: [{ playerId: 1, stats: { pts: 10, pir: -3 } }, { playerId: 2, stats: { pts: 8 } }] };
 const playerLeg = { leg_type: "player_prop", player_id: "1", stat_key: "pts", line: 10.5, direction: "over", status: "pending" };
 describe("GazalBet live tracking", () => {
@@ -59,6 +59,20 @@ describe("GazalBet live tracking", () => {
   });
 });
 describe("tracking gameweek and history", () => {
+  it("includes legacy pending bets when choosing the tracked round", () => {
+    const bets = [{ id: "old", gameweek_id: 1, status: "pending", selection_label: "Gazalbide", selection_key: "gazalbide", gazalbet_markets: { kind: "winner" } }];
+    const entries = getTrackingTickets([], bets);
+    const weeks = [{ id: 1, match_id: "m1", deadline: "2026-10-01" }, { id: 2, match_id: "m2", deadline: "2026-10-10" }];
+    expect(selectTrackingGameweek(weeks, entries, weeks[1], Date.parse("2026-10-06")).id).toBe(1);
+    expect(trackLeg(entries[0].gazalbet_ticket_legs[0], snapshot).tone).toBe("ahead");
+  });
+  it("shows official payouts after settlement and caps only new pending tickets", () => {
+    expect(ticketReturn({ status: "pending", stake: 5, total_odds: 150 })).toBe(500);
+    expect(ticketReturn({ status: "pending", stake: 5, odds: 150 })).toBe(750);
+    expect(ticketReturn({ status: "pending", stake: 3, total_odds: 1.235 })).toBe(3.71);
+    expect(ticketReturn({ status: "won", stake: 5, total_odds: 100, payout: 10.5 })).toBe(10.5);
+    expect(ticketReturn({ status: "void", stake: 5, payout: 5 })).toBe(5);
+  });
   it("keeps the current pending match visible when the next betting round opens", () => {
     const weeks = [{ id: 1, match_id: "match1", deadline: "2026-10-01" }, { id: 2, match_id: "match2", deadline: "2026-10-10" }];
     expect(selectTrackingGameweek(weeks, [{ gameweek_id: "1", status: "pending" }], weeks[1], Date.parse("2026-10-06")).id).toBe(1);
