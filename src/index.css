@@ -2302,4 +2302,13 @@ button:enabled .fantasy__coach-card:hover {
 .app-install { text-align: center; padding-inline: 12px; }
 .app-install:empty { display: none; }
 .app-install p { margin: 8px auto; max-width: 700px; }
-.app-install .btn { margin: 8px; }
+ .nav__install {
+  color: var(--color-gold);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.nav__install-help { margin: 0; max-width: 260px; font-size: 13px; line-height: 1.5; color: #ddd; }
+@media (min-width: 1280px) { .nav { flex-wrap: wrap; justify-content: flex-end; } .navbar__inner { height: auto; min-height: 56px; } }
