@@ -6,6 +6,8 @@ import DashboardHighlights from "../components/DashboardHighlights";
 import PublicLiveBanner from "../components/PublicLiveBanner.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 
+import "../home-dashboard.css";
+
 const num = (v) => Number(v || 0);
 
 export default function Home() {
@@ -13,6 +15,7 @@ export default function Home() {
   const [matches, setMatches] = useState([]);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const [q, setQ] = useState("");
   const [order, setOrder] = useState("desc");
   const [techs, setTechs] = useState({});
@@ -121,83 +124,49 @@ export default function Home() {
   }, [techs, players]);
 
   return (
-    <section className="space-y-4">
-      <div className="card card--p" style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
-          Bienvenido a <span style={{ color: "var(--color-gold)" }}>Gazalbide Stats</span>
-        </h2>
-        <p className="text-dim">Temporada {activeSeason.label} · resultados, estadísticas y rankings.</p>
-      </div>
-
+    <section className="home-dashboard">
       <PublicLiveBanner />
-
-      {(plannedGameweeks.length > 0 || gameweeksError) && (
-        <section style={{ marginBottom: 20 }} aria-label="Jornadas Fantasy planificadas">
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-gold)", marginBottom: 12 }}>Próximas jornadas Fantasy</h3>
-          {gameweeksError && <p className="text-dim" role="alert">{gameweeksError}</p>}
-          <div className="grid grid--2">
-            {plannedGameweeks.map((gw) => (
-              <article key={gw.id} className="card card--p">
-                <strong style={{ fontSize: 18 }}>{gw.name || `Jornada #${gw.id}`}</strong>
-                <div className="text-dim" style={{ marginTop: 6 }}>
-                  {new Date(`${gw.date}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
-                  {gw.opponent ? ` · vs ${gw.opponent}` : ""}
-                </div>
-                <div className="text-dim" style={{ marginTop: 6, fontSize: 13 }}>
-                  Fantasy {gw.season_id} · Cierre de alineaciones: {new Date(gw.deadline).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!loading && matches.length === 0 ? (
-        <div className="card season-empty">
-          <strong>Temporada {activeSeason.label}</strong>
-          <span>{activeSeason.current ? "Todavía no hay partidos publicados. Los datos de 2025-2026 siguen disponibles en Histórico." : "No hay datos para esta temporada."}</span>
+      <div className="home-section-heading"><h2>Temporada en cifras</h2><span>{loading ? 'Cargando…' : `${teamTotals.games} partidos`}</span></div>
+      <div className="home-panel home-team-stats" aria-label="Resumen de temporada">
+        <div className="home-team-main">
+          <div><strong>{loading ? '—' : `${teamTotals.wins}–${teamTotals.losses}`}</strong><span>Victorias · Derrotas</span></div>
+          <div><strong>{loading ? '—' : diffAvg.replace('.', ',')}</strong><span>Diferencial</span></div>
         </div>
-      ) : (
-        <>
-          <DashboardHighlights seasonId={activeSeason.id} />
-          <div className="grid grid--3">
-            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Nº de veces que se le ha salido el hombro a Imanol</div><div style={{fontSize:22,fontWeight:800}}>4</div></div>
-            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Récord</div><div style={{fontSize:22,fontWeight:800}}>{teamTotals.wins || teamTotals.losses ? `${teamTotals.wins} - ${teamTotals.losses}` : "—"}</div><div className="text-dim" style={{fontSize:12}}>Victorias – Derrotas</div></div>
-            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Técnicas (equipo)</div><div style={{fontSize:22,fontWeight:800}}>{techTotals.total}</div><div className="text-dim" style={{fontSize:12}}>Máximo jugador: {techTotals.topPlayerId ? `#${techTotals.topPlayerId} — ${techTotals.topPlayer} (${techTotals.topValue})` : "—"}</div></div>
-            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Media PF</div><div style={{fontSize:22,fontWeight:800}}>{avgPF}</div><div className="text-dim" style={{fontSize:12}}>Puntos a favor por partido</div></div>
-            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Media PA</div><div style={{fontSize:22,fontWeight:800}}>{avgPA}</div><div className="text-dim" style={{fontSize:12}}>Puntos en contra por partido</div></div>
-            <div className="card card--p"><div className="text-dim" style={{fontSize:12,marginBottom:6}}>Diferencial medio</div><div style={{fontSize:22,fontWeight:800}}>{diffAvg}</div><div className="text-dim" style={{fontSize:12}}>PF/partido − PA/partido</div></div>
-          </div>
-        </>
-      )}
-
-      <h3 className="mt-6" style={{ fontSize: 18, fontWeight: 700, color: "var(--color-gold)" }}>Partidos · {activeSeason.label}</h3>
-      {!loading && matches.length > 0 && (
-        <div className="flex gap-2 mb-3" style={{ marginBottom: 16 }}>
-          <input className="input flex-1" placeholder="Buscar por oponente…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <select className="input" value={order} onChange={(e) => setOrder(e.target.value)} title="Orden por fecha">
-            <option value="desc">Fecha ↓ (recientes primero)</option>
-            <option value="asc">Fecha ↑ (antiguos primero)</option>
-          </select>
+        <div className="home-team-secondary">
+          <div><strong>{loading ? '—' : avgPF.replace('.', ',')}</strong><span>PF / partido</span></div>
+          <div><strong>{loading ? '—' : avgPA.replace('.', ',')}</strong><span>PA / partido</span></div>
+          <div title={techTotals.topPlayerId ? `Máximo: #${techTotals.topPlayerId} ${techTotals.topPlayer} (${techTotals.topValue})` : 'Sin técnicas'}><strong>{loading ? '—' : techTotals.total}</strong><span>Técnicas</span></div>
         </div>
-      )}
-
-      {loading ? <div className="text-dim">Cargando…</div> : filteredMatches.length === 0 ? (
-        <div className="card card--p text-center opacity-70">Sin partidos en {activeSeason.label}</div>
-      ) : (
-        <div className="grid grid--2">
-          {filteredMatches.map((m) => (
-            <Link key={m.id} to={`/partido/${m.id}`} className="card card--p" title={`Ver estadísticas del ${m.date} vs ${m.opponent}`}>
-              <div className="flex justify-between items-center">
-                <div><div style={{fontSize:18,fontWeight:700}}>{m.date || "Fecha"}</div><div className="text-dim">vs {m.opponent || "—"}</div></div>
-                <div style={{textAlign:"right"}}>
-                  {typeof m.gazal_pts !== "undefined" ? <><div style={{fontWeight:700}}>{m.gazal_pts}{typeof m.opp_pts !== "undefined" ? ` - ${m.opp_pts}` : ""}</div><div className="text-dim" style={{fontSize:12}}>{m.result ? (m.result === "W" ? "Victoria" : m.result === "L" ? "Derrota" : "Empate") : ""}</div></> : <span className="badge">Ver</span>}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      </div>
+      {!loading && matches.length > 0 && <DashboardHighlights seasonId={activeSeason.id} />}
+      <div className="home-panel home-shoulder">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 8h17c9 0 13 6 13 12M10 40l8-14c-4-4-5-10-1-14m8 13c-7 0-9 5-8 10l-3 7m11-17c8-1 12 4 13 12l2 5H29l-4-9m14-22 4-3m-3 12h5" /></svg>
+        <div><h3>Hombro de Imanol</h3><p>Veces que se le ha salido</p></div><strong>4</strong>
+      </div>
+      {(plannedGameweeks.some(gw => gw.season_id === activeSeason.id) || gameweeksError) && <section className="home-upcoming" aria-label="Próximas jornadas Fantasy">
+        <h3>Próximas jornadas Fantasy</h3>
+        {gameweeksError && <p role="alert">{gameweeksError}</p>}
+        {plannedGameweeks.filter(gw => gw.season_id === activeSeason.id).slice(0, 2).map(gw => <Link className="home-panel home-upcoming-row" key={gw.id} to="/fantasy"><div><strong>{gw.opponent || gw.name}</strong><span>{gw.name} · {gw.date}</span></div><span>Fantasy →</span></Link>)}
+      </section>}
+      {!loading && matches.length === 0 && <p className="home-panel home-empty">{activeSeason.current ? 'Todavía no hay partidos publicados. Puedes consultar temporadas anteriores.' : 'No hay partidos en esta temporada.'}</p>}
+      <div className="home-section-heading"><h2>{showAll ? 'Todos los partidos' : 'Últimos partidos'}</h2><span>{activeSeason.label}</span></div>
+      {showAll && <div className="home-filters">
+        <input className="input" aria-label="Buscar por rival" placeholder="Buscar por rival…" value={q} onChange={event => setQ(event.target.value)} />
+        <select className="input" aria-label="Orden por fecha" value={order} onChange={event => setOrder(event.target.value)}><option value="desc">Más recientes</option><option value="asc">Más antiguos</option></select>
+      </div>}
+      {loading ? <p role="status">Cargando partidos…</p> : <div className="home-panel home-match-list">
+        {(showAll ? filteredMatches : [...matches].sort((a,b) => String(b.date).localeCompare(String(a.date))).slice(0, 3)).map(m => {
+          const date = new Date(`${m.date}T12:00:00`);
+          return <Link className="home-match-row" key={m.id} to={`/partido/${m.id}`}>
+            <time className="home-match-date" dateTime={m.date}><strong>{date.getDate().toString().padStart(2, '0')}</strong><span>{date.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')}</span></time>
+            <div className="home-match-opponent"><strong>{m.opponent || 'Rival'}</strong><span>{m.gazal_pts != null ? `${m.gazal_pts} – ${m.opp_pts ?? '—'}` : 'Ver estadísticas'}</span></div>
+            {m.result && <span className={`home-result home-result--${m.result.toLowerCase()}`}>{m.result === 'W' ? 'Victoria' : m.result === 'L' ? 'Derrota' : 'Empate'}</span>}<span aria-hidden="true">›</span>
+          </Link>;
+        })}
+        {showAll && !filteredMatches.length && <p className="home-empty">No hay partidos para este filtro.</p>}
+      </div>}
+      {!loading && matches.length > 3 && <button className="home-see-all" type="button" aria-expanded={showAll} onClick={() => setShowAll(value => !value)}>{showAll ? 'Ver últimos partidos' : 'Ver todos los partidos'} →</button>}
+      <nav className="home-shortcuts" aria-label="Accesos rápidos"><Link to="/fantasy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Zm0 2H4v3a4 4 0 0 0 4 4m9-7h3v3a4 4 0 0 1-4 4m-4 1v6m-4 0h8" /></svg>Fantasy</Link><Link to="/porra"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9m2 0V7h4v13m2 0V3h4v17M3 20h18" /></svg>GazalBet</Link><Link to="/estadisticas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9h9M21 12a9 9 0 1 1-9-9m3 0a9 9 0 0 1 6 6h-6V3Z" /></svg>Estadísticas</Link></nav>
     </section>
   );
 }
