@@ -1,3 +1,5 @@
+import PlayerJersey from "./PlayerJersey.jsx";
+import "../bottom-navigation.css";
 import { useEffect, useMemo, useState } from "react";
 import { getMatches, getMatchStats } from "../lib/data";
 
@@ -117,10 +119,10 @@ export default function DashboardHighlights({ seasonId }) {
   if (loading) return <p className="text-dim" role="status">Cargando destacados…</p>;
   return <div className="home-highlights">
     {lastMatch && lastGameMVP && <article className="home-panel home-mvp">
-      <div className="home-jersey" aria-hidden="true">{lastGameMVP.number}</div>
+      <PlayerJersey number={lastGameMVP.number} />
       <div className="home-mvp-identity">
         <span className="home-eyebrow">MVP · Último partido</span>
-        <h3>#{lastGameMVP.number} {lastGameMVP.name}</h3>
+        <h3>{lastGameMVP.name}</h3>
         <p>{new Date(`${lastMatch.date}T12:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} · {lastMatch.opponent}</p>
       </div>
       <div className="home-mvp-stats">
@@ -131,11 +133,11 @@ export default function DashboardHighlights({ seasonId }) {
     <div className="home-leaders">
       <article className="home-panel home-leader">
         <span className="home-eyebrow">Mejor % de tiro</span>
-        {topFG ? <><h3>#{topFG.number} {topFG.name}</h3><strong className="home-leader-value">{topFG.pct.replace('.', ',')} %</strong><p>{topFG.made}/{topFG.att} TC</p></> : <p>Mínimo {MIN_FGA_FOR_TOP_FG} intentos</p>}
+        {topFG ? <><div className="home-leader-identity"><PlayerJersey number={topFG.number} /><h3>{topFG.name}</h3></div><strong className="home-leader-value">{topFG.pct.replace('.', ',')} %</strong><p>{topFG.made}/{topFG.att} TC</p></> : <p>Mínimo {MIN_FGA_FOR_TOP_FG} intentos</p>}
       </article>
       <article className="home-panel home-leader">
         <span className="home-eyebrow">Más asistencias</span>
-        {topAssist ? <><h3>#{topAssist.total.number} {topAssist.total.name}</h3><strong className="home-leader-value">{topAssist.total.val}</strong><p>asistencias</p></> : <p>Sin datos</p>}
+        {topAssist ? <><div className="home-leader-identity"><PlayerJersey number={topAssist.total.number} /><h3>{topAssist.total.name}</h3></div><strong className="home-leader-value">{topAssist.total.val}</strong><p>asistencias</p></> : <p>Sin datos</p>}
       </article>
     </div>
   </div>;

@@ -9,14 +9,13 @@ vi.mock('../components/PublicLiveBanner.jsx', () => ({ default: () => null }));
 vi.mock('../components/DashboardHighlights', () => ({ default: () => <div>Destacados</div> }));
 import Home from './Home.jsx';
 afterEach(() => cleanup());
-it('keeps the shoulder counter and quick links visible in an empty season', async () => {
+it('keeps the shoulder counter visible in an empty season', async () => {
   matches.length = 0;
   render(<MemoryRouter><Home /></MemoryRouter>);
   await screen.findByText(/Todavía no hay partidos publicados/);
   expect(screen.getByRole('heading', { name: 'Hombro de Imanol' })).toBeTruthy();
   expect(screen.getByText('4')).toBeTruthy();
   expect(screen.queryByText(/Bienvenido/)).toBeNull();
-  expect(screen.getByRole('link', { name: 'Fantasy' }).getAttribute('href')).toBe('/fantasy');
 });
 it('starts with three recent games, then expands and filters the full list', async () => {
   matches.splice(0, matches.length, ...[1,2,3,4].map(i => ({ id: `match-${i}`, date: `2026-10-0${i}`, opponent: `Rival ${i}`, gazal_pts: 50+i, opp_pts: 40, result: 'W' })));

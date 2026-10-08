@@ -166,7 +166,7 @@ export default function Home() {
         {showAll && !filteredMatches.length && <p className="home-empty">No hay partidos para este filtro.</p>}
       </div>}
       {!loading && matches.length > 3 && <button className="home-see-all" type="button" aria-expanded={showAll} onClick={() => setShowAll(value => !value)}>{showAll ? 'Ver últimos partidos' : 'Ver todos los partidos'} →</button>}
-      <nav className="home-shortcuts" aria-label="Accesos rápidos"><Link to="/fantasy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Zm0 2H4v3a4 4 0 0 0 4 4m9-7h3v3a4 4 0 0 1-4 4m-4 1v6m-4 0h8" /></svg>Fantasy</Link><Link to="/porra"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9m2 0V7h4v13m2 0V3h4v17M3 20h18" /></svg>GazalBet</Link><Link to="/estadisticas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9h9M21 12a9 9 0 1 1-9-9m3 0a9 9 0 0 1 6 6h-6V3Z" /></svg>Estadísticas</Link></nav>
+
     </section>
   );
 }

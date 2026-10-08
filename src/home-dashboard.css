@@ -15,7 +15,6 @@
 .home-team-stats span { display: block; margin-top: 4px; color: #b0b0b0; font-size: 12px; }
 .home-highlights { display: grid; gap: 12px; }
 .home-mvp { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 10px; padding: 14px; align-items: center; }
-.home-jersey { border: 1px solid var(--color-gold); color: var(--color-gold); border-radius: 50%; width: 48px; height: 48px; display: grid; place-items: center; font-size: 22px; font-weight: 800; }
 .home-eyebrow { display: block; color: var(--color-gold); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 650; }
 .home-mvp h3 { font-size: 19px; margin-top: 2px; }
 .home-mvp p, .home-leader p, .home-shoulder p { color: #aaa; font-size: 12px; line-height: 1.4; }
@@ -48,11 +47,6 @@
 .home-filters { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,130px); gap: 8px; }
 .home-filters .input { min-width: 0; width: 100%; font-size: 12px; }
 .home-see-all { justify-self: end; min-height: 44px; background: none; border: 0; color: var(--color-gold); cursor: pointer; font: inherit; font-size: 13px; }
-.home-shortcuts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border-block: 1px solid #393224; margin-top: 2px; padding: 10px 0; }
-.home-shortcuts a { display: grid; justify-items: center; gap: 5px; color: #bbb; text-decoration: none; font-size: 12px; min-height: 44px; }
-.home-shortcuts a + a { border-left: 1px solid #393939; }
-.home-shortcuts svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.home-shortcuts a:hover, .home-match-row:hover .home-match-opponent strong { color: var(--color-gold); }
 .home-dashboard :focus-visible { outline: 2px solid var(--color-gold); outline-offset: 3px; }
 .home-empty { padding: 16px; color: #aaa; }
 .home-upcoming { display: grid; gap: 8px; }

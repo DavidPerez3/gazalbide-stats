@@ -1,3 +1,4 @@
+import BottomNavigation from "./components/BottomNavigation.jsx";
 import { OfflineStatus } from "./components/AppInstall.jsx";
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/NavBar";
@@ -12,6 +13,7 @@ import "./active-live.css";
 
 export default function App() {
   const { pathname, search } = useLocation();
+  const hasBottomNav = !pathname.startsWith("/admin") && !pathname.startsWith("/fantasy/le-gazal");
   const isLiveScorer = pathname === "/admin/live";
   const isLiveFlow = pathname.startsWith("/admin/live");
   const isPublicLive = pathname.startsWith("/live/");
@@ -59,7 +61,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-100">
+    <div className={`h-100${hasBottomNav ? " app-with-bottom-nav" : ""}`}>
       <Navbar />
       <OfflineStatus />
       {isFantasy && !isCoachSelection && <FantasyEconomySummary />}
@@ -76,6 +78,7 @@ export default function App() {
         <div className="container">© {new Date().getFullYear()} Gazalbide CB</div>
       </footer>
       {!isLiveFlow ? <ActiveLiveShortcut /> : null}
+      {hasBottomNav && <BottomNavigation />}
     </div>
   );
 }
