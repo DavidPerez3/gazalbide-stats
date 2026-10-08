@@ -1,3 +1,5 @@
+import FantasyScoreBreakdown from "../components/FantasyScoreBreakdown.jsx";
+import FantasyHistorySummary from "../components/FantasyHistorySummary.jsx";
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient.js";
@@ -182,6 +184,7 @@ export default function FantasyTeamHistory() {
                 : p.name;
 
             return {
+              ...p,
               number: rawNum,                  // dorsal EXACTO tal como viene de DB
               name: mappedName,
               pir: hasStats ? p.pirBase : 0,
@@ -199,6 +202,8 @@ export default function FantasyTeamHistory() {
             opponent: gw.opponent || null,
             players: playersDetailed,
             totalPoints: breakdown.totalPoints,
+            scoreAvailable: statsMap.size > 0,
+            breakdown: { ...breakdown, players: playersDetailed },
             baseTotal: breakdown.baseTotal,
             bonusTotal: breakdown.bonusTotal,
             coachCode,
@@ -303,6 +308,7 @@ export default function FantasyTeamHistory() {
                 )}
               </div>
 
+              <FantasyHistorySummary entries={filteredEntries} />
               {filteredEntries.length === 0 ? (
                 <p className="fantasy__text">
                   Este equipo no tiene quinteto registrado para esta jornada.
@@ -319,8 +325,8 @@ export default function FantasyTeamHistory() {
                         </h3>
                         <p className="fantasy__text">
                           Puntos totales:{" "}
-                          <strong>{e.totalPoints.toFixed(1)}</strong>{" "}
-                          <span style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+                          <strong>{e.scoreAvailable ? e.totalPoints.toFixed(1) : "Pendiente"}</strong>{" "}
+                          <span hidden={!e.scoreAvailable} style={{ fontSize: "0.9rem", opacity: 0.8 }}>
                             (base {e.baseTotal.toFixed(1)}, bonus{" "}
                             {e.bonusTotal >= 0
                               ? `+${e.bonusTotal.toFixed(1)}`
@@ -340,49 +346,7 @@ export default function FantasyTeamHistory() {
                           </p>
                         )}
                       </div>
-                      <table className="fantasy__ranking-table">
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Jugador</th>
-                            <th>PIR base</th>
-                            <th>Multiplicadores</th>
-                            <th>Puntos finales</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {e.players.map((p) => (
-                            <tr key={p.number}>
-                              <td>{p.number}</td>
-                              <td>
-                                {p.name}
-                                {p.isCaptain && (
-                                  <span
-                                    style={{
-                                      marginLeft: 6,
-                                      padding: "2px 6px",
-                                      borderRadius: 999,
-                                      background: "gold",
-                                      color: "#000",
-                                      fontSize: 11,
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    CAP
-                                  </span>
-                                )}
-                              </td>
-                              <td>{p.pir}</td>
-                              <td>
-                                {p.synergies && p.synergies.length > 0
-                                  ? p.synergies.join(" · ")
-                                  : "–"}
-                              </td>
-                              <td>{p.finalScore.toFixed(1)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <FantasyScoreBreakdown breakdown={e.breakdown} available={e.scoreAvailable} />
                     </div>
                   ))}
                 </div>

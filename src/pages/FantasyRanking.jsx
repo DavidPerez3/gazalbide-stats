@@ -1,3 +1,4 @@
+import { fantasyRankingPositions } from "../lib/fantasyHistoryStats.js";
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
@@ -300,10 +301,11 @@ export default function FantasyRanking() {
   }, [rows]);
 
   // 🟡 detectar el equipo del usuario logueado
+  const positions = fantasyRankingPositions(sortedRows);
   const myUserId = user?.id || null;
   const myTeam = sortedRows.find((r) => r.userId === myUserId) || null;
   const myPosition = myTeam
-    ? sortedRows.findIndex((r) => r.userId === myUserId) + 1
+    ? positions[sortedRows.findIndex((r) => r.userId === myUserId)]
     : null;
 
   const handleOpenTeamHistory = (row) => {
@@ -410,7 +412,7 @@ export default function FantasyRanking() {
                         <th>Equipo</th>
                         <th>Manager</th>
                         <th>Jornadas</th>
-                        <th>Puntos totales</th>
+                        <th>Puntos totales</th><th>Media / jornada</th><th>A líder</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -433,7 +435,7 @@ export default function FantasyRanking() {
                                 : undefined
                             }
                           >
-                            <td>{idx + 1}</td>
+                            <td>{positions[idx]}</td>
                             <td>{r.teamName}</td>
                             <td>
                               <button
@@ -445,7 +447,7 @@ export default function FantasyRanking() {
                               </button>
                             </td>
                             <td>{r.jornadas}</td>
-                            <td>{r.totalPoints.toFixed(2)}</td>
+                            <td>{r.totalPoints.toFixed(2)}</td><td>{avg}</td><td>{(sortedRows[0].totalPoints - r.totalPoints).toFixed(1)}</td>
                           </tr>
                         );
                       })}

@@ -16,3 +16,8 @@ describe("Fantasy scoring regression", () => {
     expect(computeLineupBreakdown({ playersNums: [], statsMap }).players).toEqual([]);
   });
 });
+it('explains bonuses without changing totals, including negative captains', () => {
+  const result = computeLineupBreakdown({ playersNums:[1], statsMap:new Map([[1,{pir:-10}]]), captainNumber:1, coachCode:'coach', traitConfig:{playerTraitsByNumber:{'1':['A']},coachTraitsByCode:{coach:['A']},traits:{A:{multiplier:1.5}}} });
+  expect(result.totalPoints).toBe(-30); expect(result.captainBonus).toBe(-10); expect(result.synergyBonus).toBe(-10); expect(result.victoryBonus).toBe(0);
+  expect(result.baseTotal+result.captainBonus+result.synergyBonus+result.victoryBonus).toBe(result.totalPoints);
+});
