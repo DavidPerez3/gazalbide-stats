@@ -2297,3 +2297,4 @@ button:enabled .fantasy__coach-card:hover {
     transform-origin: center;
   }
 }
+.match-navigation{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.match-navigation a{padding:10px 14px;border:1px solid #d4af3750;border-radius:10px;min-height:44px;color:#f1c40f;background:#141414}

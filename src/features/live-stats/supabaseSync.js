@@ -145,7 +145,7 @@ async function maybePrepareFantasyLive(setup) {
 async function getExistingRemoteMatch(matchId) {
   const { data, error } = await supabase
     .from("matches")
-    .select("id,status")
+    .select("id,status,is_scheduled")
     .eq("id", matchId)
     .maybeSingle();
   if (error) throw error;
@@ -158,7 +158,11 @@ async function ensureRemoteMatch(setup) {
   // Una sesión local antigua no debe poder resucitar un partido que ya fue
   // finalizado/publicado/descartado desde servidor u otro dispositivo.
   const existing = await getExistingRemoteMatch(setup.matchId);
-  if (existing && existing.status !== "live") {
+  if (existing?.status === "draft" && existing.is_scheduled) {
+    const { data, error } = await supabase.from("matches").update({ status: "live", gazal_side: setup.gazalSide || "home", is_friendly: Boolean(setup.isFriendly) }).eq("id", setup.matchId).eq("status", "draft").eq("is_scheduled", true).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) { const current = await getExistingRemoteMatch(setup.matchId); if (current?.status !== "live") return { closed: true, status: current?.status }; }
+  } else if (existing && existing.status !== "live") {
     return { closed: true, status: existing.status };
   }
 

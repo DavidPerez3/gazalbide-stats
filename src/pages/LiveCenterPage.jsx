@@ -1,3 +1,4 @@
+import MatchNavigation from "../components/MatchNavigation.jsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -305,6 +306,7 @@ export default function LiveCenterPage() {
 
   return (
     <section className="live-center">
+      <MatchNavigation matchId={snapshot.match.id} />
       <header className="live-center__hero card card--p">
         <div className="live-center__hero-top">
           <div>

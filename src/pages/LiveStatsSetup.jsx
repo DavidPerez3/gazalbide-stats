@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MAX_ROSTER_SIZE, MAX_ON_COURT } from "../features/live-stats/rules.js";
 import {
   restoreLiveSessionFromRemote,
@@ -22,6 +22,8 @@ const playerKey = (player) => String(player.id ?? `num:${player.number}:${player
 
 export default function LiveStatsSetup() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const [scheduledMatch, setScheduledMatch] = useState(null);
   const [players, setPlayers] = useState([]);
   const [selected, setSelected] = useState([]);
   const [starters, setStarters] = useState([]);
@@ -30,13 +32,30 @@ export default function LiveStatsSetup() {
   const [gazalSide, setGazalSide] = useState("home");
   const [isFriendly, setIsFriendly] = useState(false);
   const [gameweeks, setGameweeks] = useState([]);
-  const [selectedGameweekId, setSelectedGameweekId] = useState("");
+  const [selectedGameweekId, setSelectedGameweekId] = useState(params.get("gameweek") || "");
   const [gameweeksLoading, setGameweeksLoading] = useState(true);
   const [gameweeksError, setGameweeksError] = useState(false);
   const [error, setError] = useState("");
   const [recoverableSessions, setRecoverableSessions] = useState([]);
   const [recoveringId, setRecoveringId] = useState(null);
   const [recoveryError, setRecoveryError] = useState("");
+
+  useEffect(() => {
+    const id = params.get("match");
+    if (!id) return;
+    let active = true;
+    supabase.from("matches").select("id,date,opponent,status,is_scheduled,is_friendly").eq("id", id).maybeSingle().then(({ data, error: failure }) => {
+      if (!active) return;
+      if (failure) setError("No se pudo cargar el partido programado.");
+      else if (data?.is_scheduled && data.status === "draft") { setScheduledMatch(data); setMatchDate(data.date); setOpponent(data.opponent); setIsFriendly(Boolean(data.is_friendly)); }
+    });
+    return () => { active = false; };
+  }, [params]);
+  useEffect(() => {
+    const gw = gameweeks.find((g) => selectedGameweekId ? String(g.id) === selectedGameweekId : g.match_id === params.get("match"));
+    if (gw && !selectedGameweekId) setSelectedGameweekId(String(gw.id));
+    if (gw) { setMatchDate(gw.date); setOpponent(gw.opponent || ""); }
+  }, [gameweeks, selectedGameweekId, params]);
 
   useEffect(() => {
     getPlayers(CURRENT_SEASON_ID)
@@ -71,8 +90,8 @@ export default function LiveStatsSetup() {
         if (!cancelled) setRecoverableSessions(matches || []);
         const localMatchId = loadLiveSetup()?.matchId;
         if (!localMatchId || matches?.some((match) => match.id === localMatchId)) return;
-        const { data } = await supabase.from("matches").select("status").eq("id", localMatchId).maybeSingle();
-        if (!cancelled && data && data.status !== "live") clearLiveSession();
+        const { data } = await supabase.from("matches").select("status,is_scheduled").eq("id", localMatchId).maybeSingle();
+        if (!cancelled && data && data.status !== "live" && !(data.status === "draft" && data.is_scheduled)) clearLiveSession();
       })
       .catch((loadError) => {
         console.warn("No se pudieron listar Lives recuperables:", loadError);
@@ -181,12 +200,14 @@ export default function LiveStatsSetup() {
 
     if (gameweek?.match_id) {
       const { data: existing, error: matchError } = await supabase.from("matches")
-        .select("status").eq("id", gameweek.match_id).maybeSingle();
+        .select("status,is_scheduled").eq("id", gameweek.match_id).maybeSingle();
       if (matchError) return setError("No se pudo comprobar el partido vinculado. Inténtalo de nuevo.");
-      if (existing) return setError(existing.status === "live"
+      if (existing && !(existing.status === "draft" && existing.is_scheduled)) return setError(existing.status === "live"
         ? "Ya existe un Live de esta jornada. Continúalo desde Partido Live guardado."
         : "Esta jornada ya tiene un partido registrado. No se creará otro Live sobre él.");
     }
+
+    if (scheduledMatch && (scheduledMatch.date !== matchDate || scheduledMatch.opponent !== opponent.trim())) return setError("La fecha y el rival deben coincidir con el partido programado.");
 
     const roster = players
       .filter((player) => selectedSet.has(playerKey(player)))
@@ -198,7 +219,7 @@ export default function LiveStatsSetup() {
       }));
 
     saveLiveSetup({
-      matchId: gameweek?.match_id || undefined,
+      matchId: gameweek?.match_id || scheduledMatch?.id || undefined,
       seasonId: CURRENT_SEASON_ID,
       opponent: opponent.trim() || "Rival",
       matchDate,
@@ -264,7 +285,7 @@ export default function LiveStatsSetup() {
         <label>Gazalbide<select className="input" value={gazalSide} onChange={(e) => setGazalSide(e.target.value)}><option value="home">Local</option><option value="away">Visitante</option></select></label>
       </section>
       <label className="card card--p" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <input type="checkbox" checked={isFriendly} onChange={(event) => { setIsFriendly(event.target.checked); if (event.target.checked) setSelectedGameweekId(""); }} />
+        <input type="checkbox" checked={isFriendly} disabled={Boolean(scheduledMatch)} onChange={(event) => { setIsFriendly(event.target.checked); if (event.target.checked) setSelectedGameweekId(""); }} />
         <span><strong>Partido amistoso</strong> · se puede publicar en estadísticas del club, pero no enlaza Fantasy, GazalBet ni genera cambios de precio.</span>
       </label>
 

@@ -1,3 +1,4 @@
+import MatchNavigation from "../components/MatchNavigation.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getMatches, getMatchStats } from "../lib/data";
@@ -130,6 +131,7 @@ export default function Match() {
 
   return (
     <section className="space-y-4">
+      <MatchNavigation matchId={id} />
       {/* Título */}
       <h2 style={{ fontSize: "22px", fontWeight: 700 }}>
         <span style={{ color: "var(--color-gold)" }}>{meta.date || "Fecha"}</span> · vs {meta.opponent || "—"}
