@@ -10,6 +10,12 @@
 .home-leader-identity .player-jersey { width: 34px; height: 42px; }
 .home-leader-identity h3 { margin: 0; min-width: 0; }
 @media (max-width: 350px) { .home-leader-identity { gap: 5px; } .home-leader-identity .player-jersey { width: 28px; height: 35px; } }
-.app-with-bottom-nav .gazalbet-floating-slip { bottom: calc(78px + env(safe-area-inset-bottom)); }
-.app-with-bottom-nav:has(.gazalbet-floating-slip) .active-live-shortcut { bottom: calc(148px + env(safe-area-inset-bottom)); }
-.app-with-bottom-nav:has(.gazalbet-floating-slip) { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+/* Portal dock avoids positioning against a transformed page ancestor. */
+:root { --bottom-nav-height: calc(62px + env(safe-area-inset-bottom)); }
+.gazalbet-coupon-dock { position: fixed; z-index: 1100; inset-inline: 0; bottom: calc(var(--bottom-nav-height) + 6px); display: flex; justify-content: center; padding-inline: 12px; pointer-events: none; }
+.gazalbet-coupon-dock .gazalbet-floating-slip { position: relative; left: auto; bottom: auto; transform: none; width: min(520px,100%); pointer-events: auto; min-height: 44px; padding: 11px 15px; }
+.gazalbet-coupon-dock .gazalbet-slip-pulse { animation: gazalbet-coupon-bounce .65s ease-out; }
+@keyframes gazalbet-coupon-bounce { 0% { transform: translateY(10px) scale(.97); } 40% { transform: translateY(-5px) scale(1.025); box-shadow: 0 0 22px #ffbf2470; } 70% { transform: translateY(2px); } 100% { transform: none; } }
+body:has(.gazalbet-coupon-dock) .app-with-bottom-nav .active-live-shortcut { bottom: calc(var(--bottom-nav-height) + 76px); }
+body:has(.gazalbet-coupon-dock) .app-with-bottom-nav { padding-bottom: calc(var(--bottom-nav-height) + 76px); }
+@media (prefers-reduced-motion: reduce) { .gazalbet-coupon-dock .gazalbet-slip-pulse { animation: none; } }

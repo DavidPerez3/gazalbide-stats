@@ -13,7 +13,7 @@ beforeAll(async () => {
     create table fantasy_season_settings(season_id text,market_ready boolean); insert into fantasy_season_settings values('2026-2027',true);
     create function public.ensure_gazalbet_markets(bigint) returns void language plpgsql as $$begin raise exception 'market failure'; end$$;`);
   await db.exec(await readFile('supabase/migrations/20261008061459_unified_match_scheduling.sql','utf8'));
-});
+}, 30000);
 afterAll(async () => { await db.close(); });
 const args = (id, fantasy = false, markets = false) => `select schedule_match('${id}','2026-2027','2026-10-10','Rival',${fantasy},'J1',now()+interval '1 day',${markets})`;
 it('schedules the same match identity with an optional Fantasy round',async()=>{

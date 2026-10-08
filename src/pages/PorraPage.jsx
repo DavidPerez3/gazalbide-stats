@@ -1,3 +1,4 @@
+import FloatingCoupon from "../features/gazalbet/FloatingCoupon.jsx";
 import { useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -125,13 +126,10 @@ export default function PorraPage() {
     if (selections.some((item) => keyOf(item) === keyOf(leg))) {
       setSlipOpen(true); return;
     }
-    if (ticketMode === "accumulator" && selections.length >= 6) {
-      setError("La combinada admite hasta 6 selecciones."); return;
-    }
     setSelections((current) => [...current, leg]);
     setSlipFeedback({ label: leg.label, id: Date.now() });
     if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) navigator.vibrate?.(15);
-    setSlipOpen(true); setError("");
+    setError("");
   }
   function addProp() {
     if (!quote) return;
@@ -166,7 +164,7 @@ export default function PorraPage() {
   if (loading) return <div className="gazalbet-page"><div className="gazalbet-loading">Calculando mercados y cuotas…</div></div>;
   return <div className="gazalbet-page">
     <header className="gazalbet-hero"><img src={`${import.meta.env.BASE_URL}gazalbet-logo.webp`} alt="GazalBet" /><div className="gazalbet-hero__copy"><span>APUESTAS CON FICHAS VIRTUALES</span><h1>GazalBet</h1><p>Crea tus líneas, apuesta por separado o monta una combinada.</p></div><div className="gazalbet-balance"><small>Tu saldo</small><strong>{formatCredits(data.wallet?.balance)} 🪙</strong></div></header>
-    <div className="gazalbet-limits"><span>Sin límite semanal</span><span>100 monedas iniciales</span><span>Rescate hasta 20 por jornada</span><span>Combinadas de hasta 6</span></div>
+    <div className="gazalbet-limits"><span>Sin límite semanal</span><span>100 monedas iniciales</span><span>Rescate hasta 20 por jornada</span><span>Combinadas sin límite de selecciones</span></div>
     <nav className="gazalbet-tabs">{TABS.map(([value, label]) => <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}>{label}</button>)}</nav>
     {error && <div className="gazalbet-alert gazalbet-alert--error">{error}</div>}{message && <div className="gazalbet-alert gazalbet-alert--ok">{message}</div>}
     {data.notification && <div className="gazalbet-alert gazalbet-alert--notice"><b>{data.notification.title}</b><span>{data.notification.body}</span></div>}
@@ -188,7 +186,7 @@ export default function PorraPage() {
       {builderType === "total" && <><label>Pronóstico</label><div className="gazalbet-direction"><button className={gameDirection === "over" ? "active" : ""} onClick={() => setGameDirection("over")}>Más de</button><button className={gameDirection === "under" ? "active" : ""} onClick={() => setGameDirection("under")}>Menos de</button></div><label>Puntos entre ambos equipos</label><div className="gazalbet-line"><button onClick={() => setGameLine((v) => Math.max(60.5, v - 1))}>−</button><strong>{gameLine.toFixed(1)}</strong><button onClick={() => setGameLine((v) => Math.min(220.5, v + 1))}>+</button></div><input className="gazalbet-range" type="range" min="80.5" max="180.5" step="1" value={gameLine} onChange={(e) => setGameLine(Number(e.target.value))}/><p className="gazalbet-builder__context">Suma del marcador final de Gazalbide y {data.gameweek?.opponent || "el rival"}.</p><div className="gazalbet-quote"><span>Cuota calculada</span><strong>{gameQuoteLoading ? "…" : gameQuote ? Number(gameQuote.odds).toFixed(2) : "—"}</strong></div><button className="gazalbet-confirm" disabled={!gameQuote || gameQuoteLoading} onClick={addGameProp}>Añadir al cupón</button></>}
     </section></div>}
 
-    {selections.length > 0 && <button className={`gazalbet-floating-slip ${slipFeedback ? "gazalbet-slip-pulse" : ""}`} onClick={() => setSlipOpen(true)}><span>Cupón · {selections.length} {selections.length === 1 ? "selección" : "selecciones"}</span><strong>{selections.length > 1 ? `Cuota ${combinedOdds.toFixed(2)}` : "Ver boleto"}</strong></button>}
+    <FloatingCoupon count={selections.length} odds={combinedOdds} feedbackId={slipFeedback?.id} onOpen={() => setSlipOpen(true)} />
     {slipOpen && selections.length > 0 && <div className="gazalbet-slip-backdrop" onClick={() => !saving && setSlipOpen(false)}><aside className="gazalbet-slip" onClick={(e) => e.stopPropagation()}><button className="gazalbet-slip__close" onClick={() => setSlipOpen(false)}>×</button><small>TU CUPÓN</small><h2>{selections.length} selecciones</h2><div className="gazalbet-slip-list">{selections.map((leg) => <div key={keyOf(leg)}><span>{leg.label}</span><strong>{Number(leg.odds).toFixed(2)}</strong><button onClick={() => setSelections((all) => all.filter((item) => keyOf(item) !== keyOf(leg)))}>×</button></div>)}</div>{selections.length > 1 && <div className="gazalbet-ticket-modes"><button className={ticketMode === "singles" ? "active" : ""} onClick={() => setTicketMode("singles")}>Individuales</button><button className={ticketMode === "accumulator" ? "active" : ""} onClick={() => setTicketMode("accumulator")}>Combinada</button></div>}<label>{ticketMode === "singles" ? "Monedas por apuesta" : "Monedas apostadas"}</label><div className="gazalbet-stakes">{STAKES.map((value) => <button className={stake === value ? "active" : ""} onClick={() => setStake(value)} key={value}>{value}</button>)}</div><input className="gazalbet-stake-input" type="number" min="1" step="1" value={stake} onChange={(e) => setStake(Math.max(1, Math.floor(Number(e.target.value) || 1)))} aria-label="Cantidad personalizada"/><div className="gazalbet-return"><span>{ticketMode === "singles" ? `Total: ${totalStake}` : `Cuota: ${combinedOdds.toFixed(2)}`}<small>Saldo: {formatCredits(balance)} monedas</small></span><strong>{ticketMode === "singles" ? "Simples" : `${formatCredits(stake * combinedOdds)} 🪙`}</strong></div><button className="gazalbet-confirm" disabled={saving || totalStake > balance} onClick={confirm}>{saving ? "Confirmando…" : ticketMode === "singles" ? "Confirmar individuales" : "Confirmar combinada"}</button><p className="gazalbet-responsible">Solo monedas virtuales. Sin dinero real ni efecto sobre Fantasy.</p></aside></div>}
   </div>;
 }
