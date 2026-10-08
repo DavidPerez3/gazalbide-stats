@@ -1,3 +1,5 @@
+import ScheduleMatchForm from "../components/ScheduleMatchForm.jsx";
+import { Link } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseClient.js";
@@ -5,22 +7,10 @@ import { CURRENT_SEASON_ID } from "../lib/seasons.js";
 import { getFantasySeasonStatus, loadFantasyCoaches, loadFantasyMarket, loadFantasyTraitConfig, replaceFantasyTraitAssignments, setFantasySeasonReady } from "../lib/fantasyMarket.js";
 import FantasyGameweekStatuses from "../components/FantasyGameweekStatuses.jsx";
 
-// Genera un slug tipo "2025-11-09-vs-pozo-i-moicar"
-function slugifyOpponent(str) {
-  return String(str || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 export default function AdminPage() {
   const { user, profile } = useAuth();
   const [gameweeks, setGameweeks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [infoMsg, setInfoMsg] = useState(null);
   const [marketStatus, setMarketStatus] = useState(null);
@@ -35,11 +25,6 @@ export default function AdminPage() {
   const [togglingMarketReady, setTogglingMarketReady] = useState(false);
   const [statusesGameweekId, setStatusesGameweekId] = useState(null);
 
-  const [name, setName] = useState("");
-  const [opponent, setOpponent] = useState("");
-  const [date, setDate] = useState(""); // YYYY-MM-DD
-  const [deadline, setDeadline] = useState(""); // datetime-local
-  const [matchId, setMatchId] = useState("");
 
   useEffect(() => {
     async function fetchGameweeks() {
@@ -199,76 +184,7 @@ export default function AdminPage() {
     setInfoMsg("Precios Fantasy guardados. Las jornadas ya creadas conservan su snapshot de precios.");
   }
 
-  async function handleCreateGameweek(e) {
-    e.preventDefault();
-    setErrorMsg(null);
-    setInfoMsg(null);
 
-    if (!marketStatus?.marketReady) {
-      setErrorMsg(
-        `El mercado ${CURRENT_SEASON_ID} todavía está en preparación (${marketStatus?.pricedPlayers ?? 0}/${marketStatus?.activePlayers ?? 0} jugadores con precio).`
-      );
-      return;
-    }
-
-    if (!date || !deadline) {
-      setErrorMsg("Debes indicar fecha del partido y deadline.");
-      return;
-    }
-
-    setSaving(true);
-
-    // deadline viene como "2025-10-12T23:59" → lo pasamos a ISO
-    const deadlineIso = new Date(deadline).toISOString();
-
-    // 1) Generar ID base si no se ha escrito a mano
-    let finalMatchId = matchId.trim() || null;
-
-    if (!finalMatchId) {
-      const oppSlug = slugifyOpponent(opponent) || "sin-rival";
-      // ID tipo "2025-11-09-vs-pozo-i-moicar"
-      finalMatchId = `${date}-vs-${oppSlug}`;
-    }
-
-    // 2) stats_file = id + ".json"
-    const statsFile = finalMatchId ? `${finalMatchId}.json` : null;
-
-    const { data, error } = await supabase
-      .from("gameweeks")
-      .insert({
-        name: name.trim() || null,
-        opponent: opponent.trim() || null,
-        date, // el input date ya da "YYYY-MM-DD"
-        deadline: deadlineIso,
-        match_id: finalMatchId,
-        stats_file: statsFile,
-        season_id: CURRENT_SEASON_ID,
-      })
-      .select("*")
-      .single();
-
-    setSaving(false);
-
-    if (error) {
-      console.error("Error creando gameweek:", error);
-      setErrorMsg(
-        "No se ha podido crear la jornada: " +
-          (error.message || "error desconocido")
-      );
-      return;
-    }
-
-    setInfoMsg("Jornada creada correctamente.");
-
-    setGameweeks((prev) => [data, ...prev]);
-
-    // limpiar formulario
-    setName("");
-    setOpponent("");
-    setDate("");
-    setDeadline("");
-    setMatchId("");
-  }
 
   const adminName =
     profile?.username || user?.email?.split("@")[0] || "admin";
@@ -521,78 +437,7 @@ export default function AdminPage() {
               </p>
             )}
 
-            <form className="admin__form" onSubmit={handleCreateGameweek}>
-              <div className="admin__field">
-                <label className="admin__label">
-                  Nombre (opcional)
-                  <input
-                    type="text"
-                    className="admin__input"
-                    placeholder="Ej: Jornada 3 vs Anboto"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="admin__field">
-                <label className="admin__label">
-                  Rival (opcional)
-                  <input
-                    type="text"
-                    className="admin__input"
-                    placeholder="Ej: Anboto Jatetxea"
-                    value={opponent}
-                    onChange={(e) => setOpponent(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="admin__field admin__field--inline">
-                <label className="admin__label admin__label--inline">
-                  Fecha del partido
-                  <input
-                    type="date"
-                    className="admin__input"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                  />
-                </label>
-
-                <label className="admin__label admin__label--inline">
-                  Deadline para hacer equipo
-                  <input
-                    type="datetime-local"
-                    className="admin__input"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    required
-                  />
-                </label>
-              </div>
-
-              <div className="admin__field">
-                <label className="admin__label">
-                  ID del partido (opcional)
-                  <input
-                    type="text"
-                    className="admin__input"
-                    placeholder="Ej: 2025-10-12-vs-anboto-jatetxea"
-                    value={matchId}
-                    onChange={(e) => setMatchId(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                className="admin__button"
-                disabled={saving || !marketStatus?.marketReady}
-              >
-                {saving ? "Creando jornada..." : "Crear jornada"}
-              </button>
-            </form>
+            <ScheduleMatchForm marketReady={marketStatus?.marketReady} onCreated={(gw) => setGameweeks((prev) => [gw, ...prev])} />
           </section>
 
           {/* Lista de jornadas existentes */}
@@ -608,7 +453,7 @@ export default function AdminPage() {
             ) : (
               <ul className="admin__list">
                 {gameweeks.map((gw) => (
-                  <li key={gw.id} className="admin__list-item">
+                  <li key={gw.id} className="admin__list-item"><Link to={`/admin/live/setup?gameweek=${gw.id}&match=${encodeURIComponent(gw.match_id || "")}`}>Preparar convocatoria</Link>
                     <div className="admin__list-main">
                       <div>
                         <div className="admin__gw-name">
