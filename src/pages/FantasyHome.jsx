@@ -1,3 +1,4 @@
+import FantasyScoreBreakdown from "../components/FantasyScoreBreakdown.jsx";
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -1184,6 +1185,7 @@ export default function FantasyHome() {
                     </p>
                   )}
 
+                  <FantasyScoreBreakdown breakdown={breakdown} available={!loadingStats && Boolean(statsByNumber?.size)} />
                   {/* Leyenda atributos */}
                   <section className="fantasy__section" style={{ marginTop: 12 }}>
                     <h3 className="fantasy__section-subtitle">

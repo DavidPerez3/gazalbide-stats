@@ -141,12 +141,14 @@ export function computeLineupBreakdown({
   traitConfig = null,
 }) {
   if (!Array.isArray(playersNums) || playersNums.length === 0) {
-    return { totalPoints: 0, baseTotal: 0, bonusTotal: 0, players: [] };
+    return { totalPoints: 0, baseTotal: 0, bonusTotal: 0, captainBonus: 0, synergyBonus: 0, victoryBonus: 0, players: [] };
   }
 
   const ctx = buildSynergyContext(playersNums, statsMap, coachCode, traitConfig);
   let baseTotal = 0;
   let totalPoints = 0;
+  let captainBonus = 0;
+  let synergyBonus = 0;
   const players = [];
 
   for (const num of playersNums) {
@@ -167,6 +169,10 @@ export function computeLineupBreakdown({
 
     baseTotal += pirBase;
     totalPoints += finalScore;
+    const playerCaptainBonus = pirBase * (captainMult - 1);
+    const playerSynergyBonus = pirBase * captainMult * (synergyFactor - 1);
+    captainBonus += playerCaptainBonus;
+    synergyBonus += playerSynergyBonus;
 
     players.push({
       number: num,
@@ -174,6 +180,9 @@ export function computeLineupBreakdown({
       pirBase,
       isCaptain,
       captainMult,
+      captainBonus: playerCaptainBonus,
+      synergyBonus: playerSynergyBonus,
+      victoryBonus: 0,
       synergyFactor,
       synergies: synergiesText,
       finalScore,
@@ -184,6 +193,7 @@ export function computeLineupBreakdown({
     totalPoints,
     baseTotal,
     bonusTotal: totalPoints - baseTotal,
+    captainBonus, synergyBonus, victoryBonus: 0,
     players,
   };
 }
