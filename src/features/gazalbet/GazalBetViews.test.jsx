@@ -6,6 +6,22 @@ vi.mock("../../lib/gazalbet", () => ({ formatCredits: (v) => String(v), formatDe
 const week = { id: 1, name: "Jornada 1", opponent: "Rival", match_id: "m1" };
 const ticket = { id: "t1", gameweek_id: 1, ticket_type: "single", stake: 10, total_odds: 2, payout: 0, status: "pending", placed_at: "2026-10-06", gazalbet_ticket_legs: [{ id: "l1", leg_type: "game_prop", stat_key: "total", direction: "over", line: 120.5, odds: 2, label: "Más de 120.5", status: "pending" }] };
 describe("GazalBet Live and history views", () => {
+  it("tracks previous single bets alongside new tickets", () => {
+    const bet = { id: "t1", stake: 5, odds: 2.1, status: "pending", selection_key: "gazalbide", selection_label: "Gazalbide gana", gazalbet_markets: { kind: "winner" } };
+    render(<GazalBetLive gameweeks={[week]} gameweek={week} onGameweekChange={vi.fn()} tickets={[ticket]} bets={[bet]} snapshot={{ phase: "live", score: { gazalbide: 80, opponent: 70 } }} />);
+    expect(screen.getByRole("img", { name: /Gazalbide gana: Cumpliéndose/ })).toBeInTheDocument();
+    expect(screen.getByText("Posible retorno: 10.5 🪙")).toBeInTheDocument();
+    expect(screen.queryByText("No tienes boletos para esta jornada.")).not.toBeInTheDocument();
+  });
+  it("provides a disabled empty selector when no gameweeks exist", () => {
+    render(<GazalBetLive gameweeks={[]} tickets={[]} />);
+    expect(screen.getByRole("combobox", { name: "Jornada" })).toBeDisabled();
+    expect(screen.getByText("No hay jornadas disponibles")).toBeInTheDocument();
+  });
+  it("uses the settlement cap and rounding for possible returns in history", () => {
+    render(<GazalBetHistory tickets={[{ ...ticket, total_odds: 150, stake: 5 }]} bets={[]} gameweeks={[week]} />);
+    expect(screen.getByText("Posible retorno 500 🪙")).toBeInTheDocument();
+  });
   it("shows the review phase and accessible provisional tracking", () => {
     render(<GazalBetLive gameweeks={[week]} gameweek={week} onGameweekChange={vi.fn()} tickets={[ticket]} snapshot={{ phase: "review", score: { gazalbide: 80, opponent: 70 } }} />);
     expect(screen.getByText("PENDIENTE DE REVISIÓN")).toBeInTheDocument();
