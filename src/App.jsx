@@ -1,4 +1,4 @@
-import AppInstall from "./components/AppInstall.jsx";
+import { OfflineStatus } from "./components/AppInstall.jsx";
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
@@ -47,7 +47,7 @@ export default function App() {
     return (
       <div className={`le-gazal-app-shell${demoSuffix}`}>
         <Navbar />
-      <AppInstall />
+      <OfflineStatus />
         <main className={`main le-gazal-app-main${demoSuffix}`}>
           <div className={`container le-gazal-app-container${demoSuffix}`}>
             <Outlet />
@@ -61,7 +61,7 @@ export default function App() {
   return (
     <div className="h-100">
       <Navbar />
-      <AppInstall />
+      <OfflineStatus />
       {isFantasy && !isCoachSelection && <FantasyEconomySummary />}
       {isFantasyHome && <FantasyLeGazalOffer />}
       {!hidesSeasonTabs && <SeasonTabs />}

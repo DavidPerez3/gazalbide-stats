@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import AppInstall from "./AppInstall.jsx";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -109,6 +110,7 @@ export default function Navbar() {
               </button>
             </>
           )}
+          <AppInstall />
         </nav>
       </div>
     </header>
