@@ -1,3 +1,4 @@
+import { fantasyPlayerStatus } from "../lib/fantasyPlayerStatus.js";
 import { loadFantasyGameweekStats } from "../lib/fantasyGameweekStats.js";
 import FantasyScoreBreakdown from "../components/FantasyScoreBreakdown.jsx";
 import React, { useEffect, useState, useMemo } from "react";
@@ -509,34 +510,9 @@ export default function FantasyHome() {
         }
       }
 
-      // --- STATUS (default available unless there is a DB row) ---
-      let statusColor = "available";
-      let statusLabel = "Disponible";
-      let statusNote = "";
-
-      if (playerStatuses && playerStatuses.size && !Number.isNaN(num)) {
-        const st = playerStatuses.get(num);
-      
-        // SOLO si hay fila en DB para este jugador
-        if (st) {
-          const statusRaw = st.status ?? null;
-          statusNote = st.note || "";
-        
-          const s = (statusRaw ?? "").trim().toLowerCase();
-        
-          if (!s) {
-            // hay fila pero el texto está vacío -> lo tratamos como disponible
-            statusColor = "available";
-            statusLabel = "Disponible";
-          } else if (s === "dudoso" || s === "doubtful") {
-            statusColor = "doubtful";
-            statusLabel = statusNote ? `Dudoso · ${statusNote}` : "Dudoso";
-          } else {
-            statusColor = "custom-red";
-            statusLabel = statusNote || (s === "injured" ? "No disponible" : statusRaw);
-          }
-        }
-      }
+      const { statusColor, statusLabel, statusNote } = fantasyPlayerStatus(
+        playerStatuses?.get(num)
+      );
 
       return {
         ...p,

@@ -1,3 +1,4 @@
+import { fantasyPlayerStatus } from "../lib/fantasyPlayerStatus.js";
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -643,22 +644,9 @@ export default function FantasyBuilder() {
                 const last3 = p.last3_pir || [];
                 const traits = traitConfig?.playerTraitsByNumber?.[fantasyNumberKey(rawNumber)] || [];
 
-                const st = playerStatuses.get(Number(p.number));
-                const statusRaw = st?.status ?? null;
-                const note = st?.note || "";
-
-                const s = (statusRaw ?? "").trim().toLowerCase();
-                const statusColor = !s
-                  ? "available"
-                  : (s === "dudoso" || s === "doubtful")
-                  ? "doubtful"
-                  : "custom-red";
-
-                const statusLabel = !s
-                  ? "Disponible"
-                  : (s === "dudoso" || s === "doubtful")
-                  ? (note ? `Dudoso · ${note}` : "Dudoso")
-                  : (note || (s === "injured" ? "No disponible" : statusRaw));
+                const { statusColor, statusLabel, statusNote: note } = fantasyPlayerStatus(
+                  playerStatuses.get(num)
+                );
 
                 const isInTeam =
                   !Number.isNaN(num) && selectedNumbersSet.has(num);
