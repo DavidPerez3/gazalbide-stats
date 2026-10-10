@@ -1,4 +1,15 @@
 export const BET_STATUS = { pending: "Pendiente", won: "Ganada", lost: "Perdida", void: "Anulada" };
+export function legStateLabel(leg) {
+  if (leg.status === "pending" && leg.availability_status === "doubtful") return "Dudoso · pendiente de participación";
+  if (leg.status === "pending" && leg.availability_status === "unavailable") return "No disponible · pendiente de participación";
+  if (leg.status === "pending" && leg.gazalbet_markets?.availability_suspended) return "Mercado suspendido · pendiente de participación";
+  return BET_STATUS[leg.status];
+}
+export function isCurrentVoidNotice(notification, tickets) {
+  if (!notification) return false;
+  const ticket = tickets.find((item) => item.id === notification.payload?.ticketId);
+  return !ticket || ticket.status !== "pending" || ticket.gazalbet_ticket_legs.some((leg) => leg.status === "void");
+}
 export const LIVE_PHASE = { pregame: "PREPARTIDO", live: "EN DIRECTO", paused: "PAUSA", review: "PENDIENTE DE REVISIÓN", official: "RESULTADO OFICIAL" };
 
 // Adapt the previous single-bet format without changing persisted bets.
@@ -30,7 +41,12 @@ export function trackLeg(leg, snapshot) {
   if (["won", "lost", "void"].includes(leg.status)) {
     return { progress: leg.status === "won" ? 100 : 0, caption: leg.status === "void" ? "Selección anulada · no cuenta en la combinada" : numeric(leg.result_value) ? `Resultado oficial: ${Number(leg.result_value)}` : "Resultado liquidado", tone: leg.status, label: BET_STATUS[leg.status], marker: null };
   }
-  if (!snapshot || snapshot.phase === "pregame") return waiting();
+  if (!snapshot || snapshot.phase === "pregame") {
+    const label = legStateLabel(leg);
+    return label !== BET_STATUS.pending
+      ? { ...waiting("Conserva su cuota original; si no juega, la selección queda a 1,00"), label }
+      : waiting();
+  }
   const market = leg.gazalbet_markets;
   const kind = leg.leg_type === "market" ? market?.kind : leg.stat_key;
   const line = Number(leg.line ?? market?.line);

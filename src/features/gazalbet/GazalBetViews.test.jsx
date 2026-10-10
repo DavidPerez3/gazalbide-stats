@@ -46,3 +46,11 @@ describe("GazalBet Live and history views", () => {
     expect(screen.queryByText("Más de 120.5")).not.toBeInTheDocument();
   });
 });
+
+it("shows doubtful legs as pending with original odds in history", () => {
+  const doubtful={...ticket,gazalbet_ticket_legs:[{...ticket.gazalbet_ticket_legs[0],availability_status:"doubtful",odds:1.91}]};
+  render(<GazalBetHistory tickets={[doubtful]} bets={[]} gameweeks={[week]}/>);
+  expect(screen.getByText(/Dudoso · pendiente de participación · cuota 1.91/)).toBeInTheDocument();
+  expect(screen.getByText(/Cuotas originales conservadas/)).toBeInTheDocument();
+  expect(screen.queryByText("Fichas devueltas al saldo")).not.toBeInTheDocument();
+});

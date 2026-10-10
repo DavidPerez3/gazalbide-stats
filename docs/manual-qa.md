@@ -26,3 +26,11 @@ Abre https://davidperez3.github.io/gazalbide-stats/ y recarga con conexión ante
 | Actualización | Tras un despliegue, abre con conexión y vuelve a cargar. | Se muestra la versión nueva; conserva acceso y navegación. |
 
 Los enlaces sociales y el sitemap describen la página principal. Las rutas con hash no tienen metadatos sociales independientes. La revisión visual queda a tu cargo; las pruebas automatizadas no sustituyen esta lista.
+
+## Disponibilidad y combinadas
+
+- Con una combinada ya colocada, marcar dos jugadores como Dudoso: sus selecciones siguen pendientes y mantienen la cuota original; no se devuelve el importe.
+- Cambiar uno a Disponible: su selección vuelve a aparecer activa. El otro continúa pendiente de participación.
+- Publicar estadísticas con minutos para el primero y sin minutos para el segundo: solo el segundo queda anulado, equivalente a cuota 1,00.
+- Un jugador que participa cuenta con su cuota original aunque su estado provisional siguiera siendo Lesionado.
+- Los mercados suspendidos vuelven a admitir apuestas al estar disponibles sus participantes, únicamente antes del cierre. Los boletos ya reembolsados permanecen anulados.

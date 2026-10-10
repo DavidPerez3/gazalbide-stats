@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { fetchGazalBetBuilder, fetchGazalBetData, fetchGazalBetRanking, formatCredits, formatDeadline, placeGazalBetSingles, placeGazalBetTicket, quoteGazalBetGameLine, quoteGazalBetPlayerLine, STAKES } from "../lib/gazalbet.js";
 import GazalBetLive from "../features/gazalbet/GazalBetLive";
 import GazalBetHistory from "../features/gazalbet/GazalBetHistory";
-import { selectTrackingGameweek } from "../features/gazalbet/liveTracking";
+import { isCurrentVoidNotice, selectTrackingGameweek } from "../features/gazalbet/liveTracking";
 import { useGazalBetTracking } from "../features/gazalbet/useGazalBetTracking";
 import "../gazalbet.css";
 
@@ -167,7 +167,7 @@ export default function PorraPage() {
     <div className="gazalbet-limits"><span>Sin límite semanal</span><span>100 monedas iniciales</span><span>Rescate hasta 20 por jornada</span><span>Combinadas sin límite de selecciones</span></div>
     <nav className="gazalbet-tabs">{TABS.map(([value, label]) => <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}>{label}</button>)}</nav>
     {error && <div className="gazalbet-alert gazalbet-alert--error">{error}</div>}{message && <div className="gazalbet-alert gazalbet-alert--ok">{message}</div>}
-    {data.notification && <div className="gazalbet-alert gazalbet-alert--notice"><b>{data.notification.title}</b><span>{data.notification.body}</span></div>}
+    {isCurrentVoidNotice(data.notification, data.tickets) && <div className="gazalbet-alert gazalbet-alert--notice"><b>{data.notification.title}</b><span>{data.notification.body}</span></div>}
 
     {tab === "markets" && <section>
       {data.gameweek ? <div className="gazalbet-event"><div><small>JORNADA {data.gameweek.id}</small><h2>Gazalbide vs {data.gameweek.opponent || "Rival"}</h2><p>{formatCredits(balance)} monedas disponibles</p></div><div className={closed ? "gazalbet-event__status closed" : "gazalbet-event__status"}>{closed ? "Cerrado" : `Cierra ${formatDeadline(data.gameweek.deadline)}`}</div></div> : <div className="gazalbet-empty">No hay una jornada disponible.</div>}
