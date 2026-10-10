@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { trackLeg, selectTrackingGameweek, matchesHistoryFilter, getTrackingTickets, ticketReturn } from "./liveTracking";
+import { isCurrentVoidNotice, trackLeg, selectTrackingGameweek, matchesHistoryFilter, getTrackingTickets, ticketReturn } from "./liveTracking";
 const snapshot = { phase: "live", score: { gazalbide: 60, opponent: 55 }, players: [{ playerId: 1, stats: { pts: 10, pir: -3 } }, { playerId: 2, stats: { pts: 8 } }] };
 const playerLeg = { leg_type: "player_prop", player_id: "1", stat_key: "pts", line: 10.5, direction: "over", status: "pending" };
 describe("GazalBet live tracking", () => {
@@ -86,4 +86,18 @@ describe("tracking gameweek and history", () => {
     expect(matchesHistoryFilter("void", "settled")).toBe(false);
     expect(matchesHistoryFilter("pending", "pending")).toBe(true);
   });
+});
+
+it("marks doubtful selections as provisional without losing their original odds", () => {
+  const leg={leg_type:"player_prop",status:"pending",availability_status:"doubtful",odds:1.91};
+  expect(trackLeg(leg,null)).toMatchObject({tone:"waiting",label:"Dudoso · pendiente de participación"});
+  expect(trackLeg({...leg,availability_status:"available"},null).label).toBe("Pendiente");
+  expect(leg.odds).toBe(1.91);
+});
+
+it("hides an old automatic void notice after restoring its pending ticket", () => {
+  const notification={payload:{ticketId:"restored"}};
+  const tickets=[{id:"restored",status:"pending",gazalbet_ticket_legs:[{status:"pending"}]}];
+  expect(isCurrentVoidNotice(notification,tickets)).toBe(false);
+  expect(isCurrentVoidNotice(notification,[{...tickets[0],status:"void"}])).toBe(true);
 });
