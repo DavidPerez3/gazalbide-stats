@@ -13,11 +13,10 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      // Aquí el cambio importante 👇
       const redirectTo = new URL(window.location.href);
       redirectTo.hash = "";         // limpia el hash
       redirectTo.search = "";       // limpia query
-      redirectTo.pathname = "/gazalbide-stats/"; // fuerza subpath correcto
+      redirectTo.pathname = import.meta.env.BASE_URL; // respeta el dominio y la base publicados
           
       const { error } = await supabase.auth.signInWithOtp({
         email,
