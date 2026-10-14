@@ -75,7 +75,12 @@ export default function App() {
         </div>
       </main>
       <footer className="footer">
-        <div className="container">© {new Date().getFullYear()} Gazalbide CB</div>
+        <div className="container">© {new Date().getFullYear()} Gazalbide CB
+          <nav aria-label="Información legal" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: ".5rem" }}>
+            <a href={`${import.meta.env.BASE_URL}privacidad.html`}>Privacidad</a>
+            <a href={`${import.meta.env.BASE_URL}condiciones.html`}>Condiciones de uso</a>
+          </nav>
+        </div>
       </footer>
       {!isLiveFlow ? <ActiveLiveShortcut /> : null}
       {hasBottomNav && <BottomNavigation />}
