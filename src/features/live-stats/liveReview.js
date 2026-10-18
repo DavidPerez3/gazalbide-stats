@@ -23,7 +23,10 @@ function asNumber(value) {
 }
 
 function eventSequence(event) {
-  return asNumber(event?.server_sequence || event?.client_sequence || 0);
+  // A recovered session contains server sequences, but newly appended local
+  // actions do not. Use the same client order as deriveGameState: comparing
+  // server ids with local counters makes old actions appear after a new end.
+  return asNumber(event?.client_sequence ?? event?.server_sequence ?? 0);
 }
 
 function activeEvents(events) {
