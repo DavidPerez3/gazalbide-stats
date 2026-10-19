@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { getMatches, getMatchStats, getPlayers, getTechs } from "../lib/data";
 import { useSeason } from "../context/SeasonContext.jsx";
 import DashboardHighlights from "../components/DashboardHighlights";
+import MatchTypeFilter from "../components/MatchTypeFilter.jsx";
+import { filterMatchCompetition } from "../lib/matchCompetition.js";
 import PublicLiveBanner from "../components/PublicLiveBanner.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 
@@ -12,6 +14,7 @@ const num = (v) => Number(v || 0);
 
 export default function Home() {
   const { activeSeason } = useSeason();
+  const [matchType, setMatchType] = useState("league");
   const [matches, setMatches] = useState([]);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,13 +29,16 @@ export default function Home() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       setLoading(true);
-      const [seasonTechs, seasonPlayers, ms] = await Promise.all([
+      const [seasonTechs, seasonPlayers, loadedMatches] = await Promise.all([
         getTechs(activeSeason.id),
         getPlayers(activeSeason.id),
-        getMatches(activeSeason.id),
+        getMatches(activeSeason.id, { matchType }),
       ]);
+      if (cancelled) return;
+      const ms = filterMatchCompetition(loadedMatches || [], matchType);
       setTechs(seasonTechs || {});
       setPlayers(seasonPlayers || []);
       setMatches(ms || []);
@@ -71,10 +77,12 @@ export default function Home() {
         }
       }
 
+      if (cancelled) return;
       setTeamTotals({ games, pointsFor, pointsAgainst, wins, losses, maxPF });
       setLoading(false);
     })();
-  }, [activeSeason.id]);
+    return () => { cancelled = true; };
+  }, [activeSeason.id, matchType]);
 
   useEffect(() => {
     let active = true;
@@ -126,7 +134,8 @@ export default function Home() {
   return (
     <section className="home-dashboard">
       <PublicLiveBanner />
-      <div className="home-section-heading"><h2>Temporada en cifras</h2><span>{loading ? 'Cargando…' : `${teamTotals.games} partidos`}</span></div>
+      <MatchTypeFilter value={matchType} onChange={type => { setMatchType(type); setShowAll(false); setQ(""); }} />
+      <div className="home-section-heading"><h2>{matchType === "friendly" ? "Amistosos en cifras" : "Liga en cifras"}</h2><span>{loading ? 'Cargando…' : `${teamTotals.games} partidos`}</span></div>
       <div className="home-panel home-team-stats" aria-label="Resumen de temporada">
         <div className="home-team-main">
           <div><strong>{loading ? '—' : `${teamTotals.wins}–${teamTotals.losses}`}</strong><span>Victorias · Derrotas</span></div>
@@ -138,7 +147,7 @@ export default function Home() {
           <div title={techTotals.topPlayerId ? `Máximo: #${techTotals.topPlayerId} ${techTotals.topPlayer} (${techTotals.topValue})` : 'Sin técnicas'}><strong>{loading ? '—' : techTotals.total}</strong><span>Técnicas</span></div>
         </div>
       </div>
-      {!loading && matches.length > 0 && <DashboardHighlights seasonId={activeSeason.id} />}
+      {!loading && matches.length > 0 && <DashboardHighlights seasonId={activeSeason.id} matchType={matchType} />}
       <div className="home-panel home-shoulder">
         <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 8h17c9 0 13 6 13 12M10 40l8-14c-4-4-5-10-1-14m8 13c-7 0-9 5-8 10l-3 7m11-17c8-1 12 4 13 12l2 5H29l-4-9m14-22 4-3m-3 12h5" /></svg>
         <div><h3>Hombro de Imanol</h3><p>Veces que se le ha salido</p></div><strong>4</strong>
@@ -148,7 +157,7 @@ export default function Home() {
         {gameweeksError && <p role="alert">{gameweeksError}</p>}
         {plannedGameweeks.filter(gw => gw.season_id === activeSeason.id).slice(0, 2).map(gw => <Link className="home-panel home-upcoming-row" key={gw.id} to="/fantasy"><div><strong>{gw.opponent || gw.name}</strong><span>{gw.name} · {gw.date}</span></div><span>Fantasy →</span></Link>)}
       </section>}
-      {!loading && matches.length === 0 && <p className="home-panel home-empty">{activeSeason.current ? 'Todavía no hay partidos publicados. Puedes consultar temporadas anteriores.' : 'No hay partidos en esta temporada.'}</p>}
+      {!loading && matches.length === 0 && <p className="home-panel home-empty">{activeSeason.current ? `Todavía no hay partidos publicados de ${matchType === 'friendly' ? 'amistosos' : 'liga'}. Puedes consultar temporadas anteriores.` : 'No hay partidos en esta temporada.'}</p>}
       <div className="home-section-heading"><h2>{showAll ? 'Todos los partidos' : 'Últimos partidos'}</h2><span>{activeSeason.label}</span></div>
       {showAll && <div className="home-filters">
         <input className="input" aria-label="Buscar por rival" placeholder="Buscar por rival…" value={q} onChange={event => setQ(event.target.value)} />

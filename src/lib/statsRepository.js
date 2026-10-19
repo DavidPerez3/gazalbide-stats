@@ -4,7 +4,7 @@ export async function getMatchesFromSupabase(seasonId) {
   let query = supabase
     .from("matches")
     .select(
-      "id,season,date,opponent,source_file,source_sheet,gazal_pts,opp_pts,q_pf,q_pa,result,status"
+      "id,season,date,opponent,source_file,source_sheet,gazal_pts,opp_pts,q_pf,q_pa,result,status,is_friendly"
     )
     .eq("status", "published")
     .order("date", { ascending: true });
@@ -16,6 +16,7 @@ export async function getMatchesFromSupabase(seasonId) {
 
   return (data || []).map((match) => ({
     id: match.id,
+    is_friendly: Boolean(match.is_friendly),
     season: match.season,
     date: match.date,
     opponent: match.opponent,

@@ -9,6 +9,7 @@ import {
   getSeasonIdForDate,
   normaliseSeasonId,
 } from "./seasons.js";
+import { filterMatchCompetition } from "./matchCompetition.js";
 import { getLocalRosterDraft } from "./localRosterDraft.js";
 
 const BASE = import.meta.env.BASE_URL;
@@ -91,13 +92,14 @@ async function derivePlayersFromSeasonMatches(seasonId) {
   return Array.from(unique.values()).sort((a, b) => Number(a.number) - Number(b.number));
 }
 
-export async function getMatches(seasonId) {
+export async function getMatches(seasonId, { matchType = "league" } = {}) {
   const resolved = resolveSeasonId(seasonId);
-  return fromConfiguredSource(
+  const matches = await fromConfiguredSource(
     () => getMatchesFromSupabase(resolved),
     () => getMatchesFromJson(resolved),
     `matches:${resolved}`
   );
+  return filterMatchCompetition(matches, matchType);
 }
 
 export async function getPlayers(seasonId) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSeason } from "../context/SeasonContext.jsx";
+import MatchTypeFilter from "../components/MatchTypeFilter.jsx";
 import StatLegend from "../components/StatLegend";
 import { SEASONS } from "../lib/seasons.js";
 import {
@@ -125,6 +126,7 @@ function aggregateStaff(payload) {
 
 export default function Ranking() {
   const { activeSeason } = useSeason();
+  const [matchType, setMatchType] = useState("league");
   const [scope, setScope] = useState(activeSeason.id);
   const [view, setView] = useState("players");
   const [metric, setMetric] = useState("pts");
@@ -148,15 +150,15 @@ export default function Ranking() {
     const seasonId = scope === "all" ? null : scope;
 
     Promise.all([
-      loadHistoricalPlayerRows({ seasonId }),
+      loadHistoricalPlayerRows({ seasonId, matchType }),
       loadPlayerDisciplineAdjustments({ seasonId }),
-      loadLineupHistory({ seasonId }),
-      loadStaffDisciplineHistory({ seasonId }),
+      loadLineupHistory({ seasonId, matchType }),
+      loadStaffDisciplineHistory({ seasonId, matchType }),
     ])
       .then(([stats, adjustments, lineups, staff]) => {
         if (cancelled) return;
         setPlayerRows(stats);
-        setDisciplineAdjustments(adjustments);
+        setDisciplineAdjustments(matchType === "friendly" ? [] : adjustments);
         setLineupRows(lineups);
         setStaffPayload(staff);
       })
@@ -171,7 +173,7 @@ export default function Ranking() {
     return () => {
       cancelled = true;
     };
-  }, [scope]);
+  }, [scope, matchType]);
 
   const players = useMemo(
     () => aggregatePlayerRows(playerRows, disciplineAdjustments),
@@ -241,6 +243,7 @@ export default function Ranking() {
       <header className="stats-page__header history-ranking__header">
         <div className="stats-page__heading">
           <h2>Rankings e histórico</h2>
+          <MatchTypeFilter value={matchType} onChange={setMatchType} />
           <div className="stats-page__season">{scopeLabel(scope)}</div>
         </div>
 
