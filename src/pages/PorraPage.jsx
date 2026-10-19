@@ -1,3 +1,4 @@
+import LeaguePreview from "../components/LeaguePreview.jsx";
 import FloatingCoupon from "../features/gazalbet/FloatingCoupon.jsx";
 import { useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
@@ -173,6 +174,7 @@ export default function PorraPage() {
       {data.gameweek ? <div className="gazalbet-event"><div><small>JORNADA {data.gameweek.id}</small><h2>Gazalbide vs {data.gameweek.opponent || "Rival"}</h2><p>{formatCredits(balance)} monedas disponibles</p></div><div className={closed ? "gazalbet-event__status closed" : "gazalbet-event__status"}>{closed ? "Cerrado" : `Cierra ${formatDeadline(data.gameweek.deadline)}`}</div></div> : <div className="gazalbet-empty">No hay una jornada disponible.</div>}
       <button className="gazalbet-builder-cta" disabled={closed} onClick={() => setBuilderOpen(true)}><span><small>CREADOR DE APUESTAS</small><strong>Jugador, hándicap o puntos totales</strong></span><b>Crear apuesta →</b></button>
       <h2 className="gazalbet-section-title">Mercado rápido</h2>
+      {data.gameweek && <LeaguePreview seasonId={data.gameweek.season_id} gameweek={data.gameweek} />}
       <div className="gazalbet-markets">{data.markets.filter((m) => m.kind === "winner").map((market) => <article className="gazalbet-market" key={market.id}><div className="gazalbet-market__head"><div><h3>{market.title}</h3><p>{market.subtitle}</p></div><span>{market.sample_size ? `${market.sample_size} partidos` : "Datos iniciales"}</span></div><div className={`gazalbet-options gazalbet-options--${market.selections.length}`}>{market.selections.map((selection) => <button key={selection.key} disabled={closed || market.status !== "open"} onClick={() => add({ type: "market", market_id: market.id, selection_key: selection.key, label: `${market.title} · ${selection.label}`, odds: Number(selection.odds) })}><span>{selection.label}</span><strong>{Number(selection.odds).toFixed(2)}</strong></button>)}</div></article>)}</div>
     </section>}
     {tab === "live" && <GazalBetLive gameweeks={data.gameweeks} gameweek={trackingGameweek} onGameweekChange={setTrackingGameweekId} tickets={data.tickets.filter((ticket) => String(ticket.gameweek_id) === String(trackingGameweek?.id))} bets={data.bets.filter((bet) => String(bet.gameweek_id) === String(trackingGameweek?.id))} snapshot={tracking.snapshot} loading={tracking.loading} error={tracking.error} updatedAt={tracking.updatedAt} />}

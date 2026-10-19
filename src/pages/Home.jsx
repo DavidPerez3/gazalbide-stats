@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getMatches, getMatchStats, getPlayers, getTechs } from "../lib/data";
 import { useSeason } from "../context/SeasonContext.jsx";
 import DashboardHighlights from "../components/DashboardHighlights";
+import LeaguePreview from "../components/LeaguePreview.jsx";
 import MatchTypeFilter from "../components/MatchTypeFilter.jsx";
 import { filterMatchCompetition } from "../lib/matchCompetition.js";
 import PublicLiveBanner from "../components/PublicLiveBanner.jsx";
@@ -148,6 +149,7 @@ export default function Home() {
         </div>
       </div>
       {!loading && matches.length > 0 && <DashboardHighlights seasonId={activeSeason.id} matchType={matchType} />}
+      {matchType === "league" && <LeaguePreview seasonId={activeSeason.id} />}
       <div className="home-panel home-shoulder">
         <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 8h17c9 0 13 6 13 12M10 40l8-14c-4-4-5-10-1-14m8 13c-7 0-9 5-8 10l-3 7m11-17c8-1 12 4 13 12l2 5H29l-4-9m14-22 4-3m-3 12h5" /></svg>
         <div><h3>Hombro de Imanol</h3><p>Veces que se le ha salido</p></div><strong>4</strong>
