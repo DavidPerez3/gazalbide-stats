@@ -9,7 +9,7 @@ export async function getMatchesFromSupabase(seasonId) {
     .eq("status", "published")
     .order("date", { ascending: true });
 
-  if (seasonId) query = query.eq("season", seasonId);
+  if (seasonId && seasonId !== "all") query = query.eq("season", seasonId);
 
   const { data, error } = await query;
   if (error) throw error;

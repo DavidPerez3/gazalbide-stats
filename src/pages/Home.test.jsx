@@ -5,6 +5,7 @@ const { matches } = vi.hoisted(() => ({ matches: [] }));
 vi.mock('../context/SeasonContext.jsx', () => ({ useSeason: () => ({ activeSeason: { id: 'test', label: '2026–2027', current: true } }) }));
 vi.mock('../lib/data', () => ({ getMatches: async () => matches, getPlayers: async () => [], getTechs: async () => ({}), getMatchStats: async () => [] }));
 vi.mock('../lib/supabaseClient.js', () => ({ supabase: { from: () => { const q = { select: () => q, eq: () => q, gte: () => q, order: () => q, then: (fn) => Promise.resolve({ data: [] }).then(fn) }; return q; } } }));
+vi.mock('../components/LeaguePreview.jsx', () => ({ default: () => null }));
 vi.mock('../components/PublicLiveBanner.jsx', () => ({ default: () => null }));
 vi.mock('../components/DashboardHighlights', () => ({ default: () => <div>Destacados</div> }));
 import Home from './Home.jsx';

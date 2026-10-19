@@ -1,0 +1,18 @@
+.league-preview { padding: 16px; border: 1px solid #62522b; border-radius: 16px; background: #111; color: #eee; min-width: 0; }
+.league-preview__header { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.league-preview__header span { color: #dbb748; font-size: 11px; letter-spacing: .08em; }
+.league-preview__header h2 { font-size: 20px; margin: 5px 0; overflow-wrap: anywhere; }
+.league-preview__header > strong { color: #dbb748; font-size: 30px; white-space: nowrap; text-align: center; }
+.league-preview__header small { display: block; font-size: 10px; color: #aaa; font-weight: 400; }
+.league-preview p { color: #aaa; font-size: 13px; line-height: 1.5; margin: 8px 0; }
+.league-preview__h2h { border-block: 1px solid #333; padding-block: 12px; margin-block: 12px; }
+.league-preview h3 { font-size: 15px; margin: 0; }
+.league-preview__h2h a { display: flex; justify-content: space-between; gap: 12px; padding-block: 8px; color: #ddd; text-decoration: none; }
+.league-preview__h2h strong, .league-preview__source a { color: #dbb748; }
+.league-preview summary { cursor: pointer; font-size: 14px; min-height: 44px; padding-top: 12px; }
+.league-preview__table { overflow-x: auto; }
+.league-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.league-preview th, .league-preview td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #303030; }
+.league-preview caption { text-align: left; color: #aaa; font-size: 11px; margin-bottom: 8px; }
+.league-preview__notice { color: #aaa; font-size: 12px; }
+.league-preview a:focus-visible, .league-preview summary:focus-visible { outline: 2px solid #dbb748; outline-offset: 3px; }

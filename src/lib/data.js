@@ -53,7 +53,7 @@ function withSeason(match) {
 
 async function getMatchesFromJson(seasonId) {
   const matches = (await getJson("data/matches.json")).map(withSeason);
-  return matches.filter((match) => match.season === seasonId);
+  return seasonId === "all" ? matches : matches.filter((match) => match.season === seasonId);
 }
 
 async function getLegacyPhotoMap() {

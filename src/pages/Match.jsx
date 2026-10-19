@@ -47,7 +47,7 @@ export default function Match() {
     let cancelled = false;
     (async () => {
       try {
-        const matches = await getMatches(undefined, { matchType: "all" });
+        const matches = await getMatches("all", { matchType: "all" });
         const found = matches.find((m) => m.id === id) || null;
         if (!cancelled) setMeta(found);
 
