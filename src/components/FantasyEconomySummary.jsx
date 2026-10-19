@@ -222,7 +222,7 @@ export default function FantasyEconomySummary() {
         >
           <div style={{ width: "100%" }}>
             <strong style={{ color: isValid ? "#86EFAC" : "#FAFAFA", fontSize: "0.85rem" }}>
-              {isValid ? (economy.locked_at ? "✓ Alineación cerrada" : "✓ Alineación lista para cerrar") : "Para que puntúe tu alineación:"}
+              {isValid ? (economy.locked_at ? "✓ Alineación cerrada" : "✓ Alineación válida") : "Para que puntúe tu alineación:"}
             </strong>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               {checks.map(({ label, done }) => (
@@ -239,7 +239,7 @@ export default function FantasyEconomySummary() {
               </p>
             )}
             <p style={{ fontSize: "0.8rem", color: "#A1A1AA", margin: "8px 0 0" }}>
-              {isValid ? (economy.locked_at ? "Tu alineación está congelada y puntúa en esta jornada." : "Ciérrala cuando quieras para elegir entre ahorro y Le Gazal.") : "0 puntos · 0 ahorro hasta completar los requisitos."}
+              {isValid ? (economy.locked_at ? "Tu alineación está congelada y puntúa en esta jornada." : "Se cerrará automáticamente al llegar el plazo y ahorrará el sobrante con el límite de la temporada. Puedes cerrarla antes para jugar Le Gazal.") : "0 puntos · 0 ahorro hasta completar los requisitos."}
             </p>
           </div>
         </div>

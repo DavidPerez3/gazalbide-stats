@@ -97,7 +97,7 @@ export default function FantasyLeGazalOffer() {
               Te quedan {Math.max(Number(economy.available_budget) - Number(economy.lineup_cost || 0), 0)} 🍺.
               {deadlinePassed
                 ? " Activa el ahorro para elegir entre guardarlas o jugar Le Gazal. La alineación ya no se puede modificar."
-                : " Ciérrala para elegir entre ahorrar o jugar Le Gazal. Después no podrás cambiar jugadores, entrenador ni capitán."}
+                : " Al llegar el plazo se cerrará automáticamente y ahorrará el sobrante con el límite de la temporada. Si quieres jugar Le Gazal antes, ciérrala ahora; después no podrás cambiar jugadores, entrenador ni capitán."}
             </p>
             <button className="fantasy__button" type="button" disabled={busy} onClick={() => act("close_fantasy_lineup")}>
               {busy ? "Procesando…" : deadlinePassed ? "Activar ahorro" : "Cerrar alineación"}
