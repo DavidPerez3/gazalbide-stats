@@ -10,7 +10,7 @@ const byDateDesc = (a, b) => new Date(b.date) - new Date(a.date);
 // Configurable
 const MIN_FGA_FOR_TOP_FG = 20; // mínimo de intentos en la temporada para optar a Top FG%
 
-export default function DashboardHighlights({ seasonId }) {
+export default function DashboardHighlights({ seasonId, matchType = "league" }) {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState([]);
   const [byMatchStats, setByMatchStats] = useState(new Map()); // matchId -> rows[]
@@ -19,7 +19,7 @@ export default function DashboardHighlights({ seasonId }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const ms = await getMatches(seasonId);
+      const ms = await getMatches(seasonId, { matchType });
       // ordenamos por fecha descendente por si no vienen ya así
       const sorted = [...ms].sort(byDateDesc);
       const rows = await Promise.all(sorted.map((m) => getMatchStats(m.id)));
@@ -32,7 +32,7 @@ export default function DashboardHighlights({ seasonId }) {
       if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [seasonId]);
+  }, [seasonId, matchType]);
 
   // Último partido y su MVP
   const lastMatch = useMemo(() => matches[0] || null, [matches]);

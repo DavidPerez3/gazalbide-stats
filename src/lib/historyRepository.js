@@ -1,3 +1,4 @@
+import { filterMatchCompetition } from "./matchCompetition.js";
 import { supabase } from "./supabaseClient.js";
 
 const PLAYER_STAT_SELECT = [
@@ -8,13 +9,13 @@ const PLAYER_STAT_SELECT = [
   "pf_technical_cat_1", "pf_technical_cat_2", "pf_disruptive", "pf_flagrant",
 ].join(",");
 
-export async function loadHistoricalPlayerRows({ seasonId = null } = {}) {
+export async function loadHistoricalPlayerRows({ seasonId = null, matchType = "league" } = {}) {
   let query = supabase
     .from("player_match_stats")
     .select(
       `${PLAYER_STAT_SELECT},` +
       "player:players!player_match_stats_player_id_fkey(id,name,number,photo_path)," +
-      "match:matches!player_match_stats_match_id_fkey!inner(id,season,date,opponent,result,status,gazal_pts,opp_pts)"
+      "match:matches!player_match_stats_match_id_fkey!inner(id,season,date,opponent,result,status,gazal_pts,opp_pts,is_friendly)"
     )
     .eq("match.status", "published")
     .order("match_id", { ascending: true });
@@ -24,7 +25,8 @@ export async function loadHistoricalPlayerRows({ seasonId = null } = {}) {
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data || []).map((row) => ({
+  return filterMatchCompetition((data || []).map((row) => ({
+    is_friendly: Boolean(row.match?.is_friendly),
     ...row,
     playerId: Number(row.player_id),
     playerName: row.player?.name || "Jugador",
@@ -36,7 +38,7 @@ export async function loadHistoricalPlayerRows({ seasonId = null } = {}) {
     result: row.match?.result || null,
     gazalPts: row.match?.gazal_pts ?? null,
     opponentPts: row.match?.opp_pts ?? null,
-  }));
+  })), matchType);
 }
 
 export async function loadPlayerDisciplineAdjustments({ seasonId = null } = {}) {
@@ -53,34 +55,35 @@ export async function loadPlayerDisciplineAdjustments({ seasonId = null } = {}) 
   return data || [];
 }
 
-export async function loadLineupHistory({ seasonId = null } = {}) {
+export async function loadLineupHistory({ seasonId = null, matchType = "league" } = {}) {
   let query = supabase
     .from("match_lineup_stats")
     .select(
       "match_id,lineup_key,player_ids,stint_count,duration_ms,gazal_pts,opp_pts,plus_minus," +
-      "match:matches!match_lineup_stats_match_id_fkey!inner(id,season,date,opponent,status)"
+      "match:matches!match_lineup_stats_match_id_fkey!inner(id,season,date,opponent,status,is_friendly)"
     )
     .eq("match.status", "published");
 
   if (seasonId && seasonId !== "all") query = query.eq("match.season", seasonId);
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []).map((row) => ({
+  return filterMatchCompetition((data || []).map((row) => ({
+    is_friendly: Boolean(row.match?.is_friendly),
     ...row,
     season: row.match?.season || null,
     date: row.match?.date || null,
     opponent: row.match?.opponent || "Rival",
     player_ids: (row.player_ids || []).map(Number),
-  }));
+  })), matchType);
 }
 
-export async function loadStaffDisciplineHistory({ seasonId = null } = {}) {
+export async function loadStaffDisciplineHistory({ seasonId = null, matchType = "league" } = {}) {
   let eventQuery = supabase
     .from("game_events")
     .select(
       "staff_id,foul_kind,is_void," +
       "staff:staff_members!game_events_staff_id_fkey(id,name,code)," +
-      "match:matches!game_events_match_id_fkey!inner(id,season,status)"
+      "match:matches!game_events_match_id_fkey!inner(id,season,status,is_friendly)"
     )
     .not("staff_id", "is", null)
     .eq("is_void", false)
@@ -103,13 +106,14 @@ export async function loadStaffDisciplineHistory({ seasonId = null } = {}) {
   if (adjustmentsResult.error) throw adjustmentsResult.error;
 
   return {
-    events: (eventsResult.data || []).map((row) => ({
+    events: filterMatchCompetition((eventsResult.data || []).map((row) => ({
+      is_friendly: Boolean(row.match?.is_friendly),
       ...row,
       season: row.match?.season || null,
       staffName: row.staff?.name || "Staff",
       staffCode: row.staff?.code || "",
-    })),
-    adjustments: (adjustmentsResult.data || []).map((row) => ({
+    })), matchType),
+    adjustments: (matchType === "friendly" ? [] : adjustmentsResult.data || []).map((row) => ({
       ...row,
       season: row.season_id,
       staffName: row.staff?.name || "Staff",

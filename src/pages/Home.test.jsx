@@ -28,3 +28,20 @@ it('starts with three recent games, then expands and filters the full list', asy
   expect(screen.getByText('Rival 2')).toBeTruthy();
   expect(screen.queryByText('Rival 4')).toBeNull();
 });
+it('defaults to league and isolates friendly results when switching sections', async () => {
+  matches.splice(0, matches.length,
+    { id: 'league', date: '2026-10-18', opponent: 'Vedrisko', gazal_pts: 44, opp_pts: 42, result: 'W', is_friendly: false },
+    { id: 'friendly', date: '2026-10-03', opponent: 'Atzurrak Sugoiak', gazal_pts: 50, opp_pts: 34, result: 'W', is_friendly: true });
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  await screen.findByText('Vedrisko');
+  expect(screen.queryByText('Atzurrak Sugoiak')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Liga' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getByText('44,0')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Amistosos' }));
+  await screen.findByText('Atzurrak Sugoiak');
+  expect(screen.queryByText('Vedrisko')).toBeNull();
+  expect(screen.getByText('50,0')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Liga' }));
+  await screen.findByText('Vedrisko');
+  expect(screen.queryByText('Atzurrak Sugoiak')).toBeNull();
+});
