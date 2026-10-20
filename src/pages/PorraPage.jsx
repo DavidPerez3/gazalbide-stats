@@ -1,3 +1,4 @@
+import { parseGazalBetStake, totalGazalBetStake } from "../lib/gazalbetStake.js";
 import LeaguePreview from "../components/LeaguePreview.jsx";
 import FloatingCoupon from "../features/gazalbet/FloatingCoupon.jsx";
 import { useSearchParams } from "react-router-dom";
@@ -38,7 +39,7 @@ export default function PorraPage() {
   const [selections, setSelections] = useState([]);
   const [slipOpen, setSlipOpen] = useState(false);
   const [ticketMode, setTicketMode] = useState("accumulator");
-  const [stake, setStake] = useState(5);
+  const [stake, setStake] = useState("5");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -121,7 +122,8 @@ export default function PorraPage() {
   const balance = Number(data.wallet?.balance || 0);
   const closed = !data.gameweek || Date.now() >= new Date(data.gameweek.deadline).getTime();
   const combinedOdds = Math.min(100, selections.reduce((total, leg) => total * Number(leg.odds), 1));
-  const totalStake = ticketMode === "singles" ? stake * selections.length : stake;
+  const stakeAmount = parseGazalBetStake(stake);
+  const totalStake = totalGazalBetStake(stakeAmount, ticketMode === "singles" ? selections.length : 1);
 
   function add(leg) {
     if (selections.some((item) => keyOf(item) === keyOf(leg))) {
@@ -144,16 +146,17 @@ export default function PorraPage() {
   }
   async function confirm() {
     if (!selections.length || !data.gameweek) return;
+    if (stakeAmount == null) { setError("Introduce un importe desde 0,01 monedas, con un máximo de dos decimales."); return; }
     if (totalStake > balance) { setError(`Tu saldo disponible es de ${formatCredits(balance)} monedas.`); return; }
     const related = ticketMode === "accumulator" && selections.some((leg, i) => (leg.type === "player_prop" && selections.findIndex((other) => other.type === "player_prop" && other.player_id === leg.player_id && other.stat_key === leg.stat_key) !== i) || (leg.type === "game_prop" && selections.findIndex((other) => other.type === "game_prop" && other.stat_key === leg.stat_key) !== i));
     if (related) { setError("Esas líneas están relacionadas. Puedes jugarlas como apuestas individuales, pero no en una misma combinada."); return; }
     setSaving(true); setError(""); setMessage("");
     try {
       if (ticketMode === "singles") {
-        await placeGazalBetSingles({ gameweekId: data.gameweek.id, legs: selections, stake });
+        await placeGazalBetSingles({ gameweekId: data.gameweek.id, legs: selections, stake: stakeAmount });
         setMessage(`${selections.length} apuestas individuales confirmadas.`);
       } else {
-        const result = await placeGazalBetTicket({ gameweekId: data.gameweek.id, legs: selections, stake });
+        const result = await placeGazalBetTicket({ gameweekId: data.gameweek.id, legs: selections, stake: stakeAmount });
         setMessage(`Combinada confirmada a cuota ${Number(result.odds).toFixed(2)}.`);
       }
       setSelections([]); setSlipOpen(false); await load();
@@ -189,6 +192,6 @@ export default function PorraPage() {
     </section></div>}
 
     <FloatingCoupon count={selections.length} odds={combinedOdds} feedbackId={slipFeedback?.id} onOpen={() => setSlipOpen(true)} />
-    {slipOpen && selections.length > 0 && <div className="gazalbet-slip-backdrop" onClick={() => !saving && setSlipOpen(false)}><aside className="gazalbet-slip" onClick={(e) => e.stopPropagation()}><button className="gazalbet-slip__close" onClick={() => setSlipOpen(false)}>×</button><small>TU CUPÓN</small><h2>{selections.length} selecciones</h2><div className="gazalbet-slip-list">{selections.map((leg) => <div key={keyOf(leg)}><span>{leg.label}</span><strong>{Number(leg.odds).toFixed(2)}</strong><button onClick={() => setSelections((all) => all.filter((item) => keyOf(item) !== keyOf(leg)))}>×</button></div>)}</div>{selections.length > 1 && <div className="gazalbet-ticket-modes"><button className={ticketMode === "singles" ? "active" : ""} onClick={() => setTicketMode("singles")}>Individuales</button><button className={ticketMode === "accumulator" ? "active" : ""} onClick={() => setTicketMode("accumulator")}>Combinada</button></div>}<label>{ticketMode === "singles" ? "Monedas por apuesta" : "Monedas apostadas"}</label><div className="gazalbet-stakes">{STAKES.map((value) => <button className={stake === value ? "active" : ""} onClick={() => setStake(value)} key={value}>{value}</button>)}</div><input className="gazalbet-stake-input" type="number" min="1" step="1" value={stake} onChange={(e) => setStake(Math.max(1, Math.floor(Number(e.target.value) || 1)))} aria-label="Cantidad personalizada"/><div className="gazalbet-return"><span>{ticketMode === "singles" ? `Total: ${totalStake}` : `Cuota: ${combinedOdds.toFixed(2)}`}<small>Saldo: {formatCredits(balance)} monedas</small></span><strong>{ticketMode === "singles" ? "Simples" : `${formatCredits(stake * combinedOdds)} 🪙`}</strong></div><button className="gazalbet-confirm" disabled={saving || totalStake > balance} onClick={confirm}>{saving ? "Confirmando…" : ticketMode === "singles" ? "Confirmar individuales" : "Confirmar combinada"}</button><p className="gazalbet-responsible">Solo monedas virtuales. Sin dinero real ni efecto sobre Fantasy.</p></aside></div>}
+    {slipOpen && selections.length > 0 && <div className="gazalbet-slip-backdrop" onClick={() => !saving && setSlipOpen(false)}><aside className="gazalbet-slip" onClick={(e) => e.stopPropagation()}><button className="gazalbet-slip__close" onClick={() => setSlipOpen(false)}>×</button><small>TU CUPÓN</small><h2>{selections.length} selecciones</h2><div className="gazalbet-slip-list">{selections.map((leg) => <div key={keyOf(leg)}><span>{leg.label}</span><strong>{Number(leg.odds).toFixed(2)}</strong><button onClick={() => setSelections((all) => all.filter((item) => keyOf(item) !== keyOf(leg)))}>×</button></div>)}</div>{selections.length > 1 && <div className="gazalbet-ticket-modes"><button className={ticketMode === "singles" ? "active" : ""} onClick={() => setTicketMode("singles")}>Individuales</button><button className={ticketMode === "accumulator" ? "active" : ""} onClick={() => setTicketMode("accumulator")}>Combinada</button></div>}<label>{ticketMode === "singles" ? "Monedas por apuesta" : "Monedas apostadas"}</label><div className="gazalbet-stakes">{STAKES.map((value) => <button className={stakeAmount === value ? "active" : ""} onClick={() => setStake(String(value))} key={value}>{value}</button>)}</div><input className="gazalbet-stake-input" type="text" inputMode="decimal" value={stake} onChange={(e) => setStake(e.target.value)} aria-invalid={stakeAmount == null} aria-label="Cantidad personalizada"/><div className="gazalbet-return"><span>{ticketMode === "singles" ? `Total: ${formatCredits(totalStake)}` : `Cuota: ${combinedOdds.toFixed(2)}`}<small>Saldo: {formatCredits(balance)} monedas</small></span><strong>{ticketMode === "singles" ? "Simples" : `${formatCredits((stakeAmount || 0) * combinedOdds)} 🪙`}</strong></div><button className="gazalbet-confirm" disabled={saving || stakeAmount == null || totalStake > balance} onClick={confirm}>{saving ? "Confirmando…" : ticketMode === "singles" ? "Confirmar individuales" : "Confirmar combinada"}</button><p className="gazalbet-responsible">Solo monedas virtuales. Sin dinero real ni efecto sobre Fantasy.</p></aside></div>}
   </div>;
 }
