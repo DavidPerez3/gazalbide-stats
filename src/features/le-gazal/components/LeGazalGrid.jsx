@@ -9,7 +9,9 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
   winningCombinations = [], coinBurstKey, amountWon, reduceMotion, living = false, livingRound = null, livingFrame = null }) {
   const displayGrid = livingFrame?.grid || grid;
   const rows = displayGrid.length, columns = displayGrid[0].length;
-  const floor = livingFrame?.board || livingRound?.initialBoard;
+  const floor = livingFrame?.playing ? livingFrame.board : isSpinning
+    ? livingRound?.initialBoard
+    : livingRound?.nextBoard || livingFrame?.board || livingRound?.initialBoard;
   const boardRef = useRef(null);
   const [geometry, setGeometry] = useState(null);
   const [previewId, setPreviewId] = useState(null);

@@ -65,3 +65,12 @@ it('explains stationary losses and shows the four useful symbols without charact
  expect(screen.getByRole('status')).toHaveTextContent('10 tiradas gratis x2');
  expect(screen.getByRole('status')).not.toHaveTextContent('Sin premio');
 });
+
+it('shows final bonus progress after a capped x3 pickup without previewing it before playback',()=>{
+ const round=createCollectionRound({forcedOutcome:'small',inBonus:true,boardState:{columns:6,collections:1,levels:{'2-1':2}}});
+ const frame={...round.events.at(-1),playing:false};
+ const {rerender}=render(<LeGazalGrid {...props} grid={round.grid} isSpinning livingRound={round} winningCombinations={[]}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('1 recogidas');
+ rerender(<LeGazalGrid {...props} grid={round.finalGrid} livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('2 recogidas');
+});
