@@ -1,9 +1,9 @@
+import PAYLINES from "./paylines.json";
 import {
   BONUS_CONFIG,
   DEFAULT_DISPLAY_SYMBOLS,
   LE_GAZAL_PAYTABLE,
   RANDOM_SCENARIO_WEIGHTS,
-  SAFE_ROW_PATTERNS,
   getSymbolDefinition,
 } from "./slotConfig";
 import { BONUS_MODES, SLOT_COLUMNS, SLOT_ROWS, SPECIAL_SYMBOLS } from "./slotTypes";
@@ -26,11 +26,10 @@ function createRng(randomSource = Math.random) {
   };
 }
 
-function createBaseGrid(rng) {
-  return Array.from({ length: SLOT_ROWS }, () => {
-    const pattern = rng.pick(SAFE_ROW_PATTERNS);
-    return [...pattern];
-  });
+function createBaseGrid(rng, excluded) {
+  const pool = ["TEN","J","Q","K","A","BALL","HOOP","WHISTLE","JERSEY88","TROPHY"].filter(s => s !== excluded);
+  const shift = rng.int(pool.length);
+  return Array.from({length: SLOT_ROWS}, (_, row) => Array.from({length: SLOT_COLUMNS}, (_, col) => pool[(col + row * 2 + shift) % pool.length]));
 }
 
 function cloneGrid(grid) {
@@ -66,96 +65,30 @@ function randomOpenCells(rng, count, forbiddenKeys = new Set()) {
 }
 
 function buildScenarioGrid(scenarioId, rng) {
-  const grid = createBaseGrid(rng);
-
-  if (scenarioId === "small") {
-    const row = rng.int(SLOT_ROWS);
-    const symbolId = rng.pick(["TEN", "J", "Q", "K", "A"]);
-    placeCells(
-      grid,
-      [
-        { row, col: 0 },
-        { row, col: 1 },
-        { row, col: 2 },
-      ],
-      symbolId
-    );
-    return grid;
-  }
-
-  if (scenarioId === "medium") {
-    const row = rng.int(SLOT_ROWS);
-    const symbolId = rng.pick(["BALL", "HOOP", "WHISTLE"]);
-    placeCells(
-      grid,
-      [
-        { row, col: 0 },
-        { row, col: 1 },
-        { row, col: 2 },
-        { row, col: 3 },
-      ],
-      symbolId
-    );
-    return grid;
-  }
-
-  if (scenarioId === "high") {
-    const row = rng.int(SLOT_ROWS);
-    placeCells(
-      grid,
-      [
-        { row, col: 0 },
-        { row, col: 1 },
-        { row, col: 3 },
-        { row, col: 4 },
-        { row, col: 5 },
-      ],
-      "TROPHY"
-    );
-    grid[row][2] = SPECIAL_SYMBOLS.WILD;
-    return grid;
-  }
-
-  if (scenarioId === "wild") {
-    const row = rng.int(SLOT_ROWS);
-    placeCells(
-      grid,
-      [
-        { row, col: 0 },
-        { row, col: 2 },
-        { row, col: 3 },
-      ],
-      "JERSEY88"
-    );
-    grid[row][1] = SPECIAL_SYMBOLS.WILD;
-    return grid;
-  }
-
-  if (["scatter", "scatter4", "scatter5"].includes(scenarioId)) {
-    const used = new Set();
-    const scatterTarget = scenarioId === "scatter5" ? 5 : scenarioId === "scatter4" ? 4 : 3;
-    const cells = randomOpenCells(rng, scatterTarget, used);
-    for (const cell of cells) {
-      grid[cell.row][cell.col] = SPECIAL_SYMBOLS.SCATTER;
-      used.add(cell.key);
+  const symbol = scenarioId === "small" ? rng.pick(["TEN","J","Q","K","A"]) : scenarioId === "medium" ? "HOOP" : scenarioId === "wild" ? "JERSEY88" : "TROPHY";
+  const dual = scenarioId === "high" && rng.next() < .5;
+  const winner = dual ? "BALL" : symbol;
+  const grid = createBaseGrid(rng, winner);
+  const length = scenarioId === "small" ? 3 : scenarioId === "high" && !dual ? 6 : 4;
+  if (["small","medium","high","wild"].includes(scenarioId)) {
+    const paths = dual ? [PAYLINES[5],PAYLINES[6]] : [rng.pick(PAYLINES)];
+    for (const path of paths) {
+      for(let col=0;col<length;col++) grid[path.rows[col]][col] = winner;
+      if (!dual && ["high","wild"].includes(scenarioId)) {
+        const col = scenarioId === "high" ? 2 : 1;
+        grid[path.rows[col]][col] = SPECIAL_SYMBOLS.WILD;
+      }
     }
-    return grid;
   }
-
-  if (scenarioId === "bonus") {
-    const used = new Set();
-    const cells = randomOpenCells(rng, 3, used);
-    for (const cell of cells) {
-      grid[cell.row][cell.col] = SPECIAL_SYMBOLS.BONUS;
-      used.add(cell.key);
-    }
-    return grid;
+  if (["scatter","scatter4","scatter5","bonus"].includes(scenarioId)) {
+    const count = scenarioId === "scatter5" ? 5 : scenarioId === "scatter4" ? 4 : 3;
+    placeCells(grid, randomOpenCells(rng,count), scenarioId === "bonus" ? SPECIAL_SYMBOLS.BONUS : SPECIAL_SYMBOLS.SCATTER);
   }
-
   return grid;
 }
 
-function evaluateRow(rowSymbols, rowIndex, bet, roundMultiplier) {
+function evaluateLine(grid, path, bet, roundMultiplier) {
+  const rowSymbols = path.rows.map((row, col) => grid[row][col]);
   const cells = [];
   let candidateSymbol = null;
 
@@ -168,17 +101,17 @@ function evaluateRow(rowSymbols, rowIndex, bet, roundMultiplier) {
 
     if (candidateSymbol === null) {
       if (symbolId === SPECIAL_SYMBOLS.WILD) {
-        cells.push({ row: rowIndex, col });
+        cells.push({ row: path.rows[col], col });
         continue;
       }
 
       candidateSymbol = symbolId;
-      cells.push({ row: rowIndex, col });
+      cells.push({ row: path.rows[col], col });
       continue;
     }
 
     if (symbolId === candidateSymbol || symbolId === SPECIAL_SYMBOLS.WILD) {
-      cells.push({ row: rowIndex, col });
+      cells.push({ row: path.rows[col], col });
       continue;
     }
 
@@ -200,15 +133,16 @@ function evaluateRow(rowSymbols, rowIndex, bet, roundMultiplier) {
   }
 
   const wildCount = cells.filter((cell) => rowSymbols[cell.col] === SPECIAL_SYMBOLS.WILD).length;
-  const wildBoost = 1 + wildCount * 0.15;
+  const wildBoost = 1;
   const totalMultiplier = roundValue(baseMultiplier * wildBoost * roundMultiplier);
   const amountWon = roundValue(bet * totalMultiplier);
 
   return {
-    id: `${rowIndex}-${candidateSymbol}-${cells.length}`,
+    id: `${path.id}-${candidateSymbol}-${cells.length}`,
     symbolId: candidateSymbol,
     symbolLabel: getSymbolDefinition(candidateSymbol).label,
-    row: rowIndex,
+    lineId: path.id,
+    lineLabel: path.label,
     matchCount: cells.length,
     cells,
     usedWild: wildCount > 0,
@@ -217,14 +151,14 @@ function evaluateRow(rowSymbols, rowIndex, bet, roundMultiplier) {
   };
 }
 
-function evaluateGrid(grid, bet, roundMultiplier) {
+export function evaluateGrid(grid, bet, roundMultiplier = 1) {
   const winningCombinations = [];
   const winningCellKeys = new Set();
   let scatterCount = 0;
   let bonusCount = 0;
 
-  for (let row = 0; row < SLOT_ROWS; row += 1) {
-    const result = evaluateRow(grid[row], row, bet, roundMultiplier);
+  for (const path of PAYLINES) {
+    const result = evaluateLine(grid, path, bet, roundMultiplier);
     if (result) {
       winningCombinations.push(result);
       for (const cell of result.cells) {

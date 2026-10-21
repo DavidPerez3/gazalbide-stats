@@ -163,6 +163,7 @@ export default function FantasyLeGazalPage() {
                   isSpinning={state.isSpinning}
                   stoppedColumns={state.stoppedColumns}
                   winningCellKeys={state.winningCellKeys}
+                  winningCombinations={state.result?.visual_result?.winningCombinations || []}
                   coinBurstKey={state.coinBurstKey}
                   amountWon={Number(state.result?.payout || 0)}
                   reduceMotion={state.prefersReducedMotion}

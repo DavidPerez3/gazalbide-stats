@@ -155,6 +155,15 @@ export function useLeGazalFantasy() {
         setSession(activeSession);
         setGameweek(activeGameweek);
         setOffer(null);
+        const { data: lastSpin, error: lastSpinError } = await supabase
+          .from("le_gazal_spins").select("*").eq("session_id", activeSession.id)
+          .order("spin_number", { ascending: false }).limit(1).maybeSingle();
+        if (lastSpinError) throw lastSpinError;
+        if (lastSpin?.visual_result) {
+          setGrid(lastSpin.visual_result.grid);
+          setWinningCellKeys(lastSpin.visual_result.winningCellKeys);
+          setResult({ ...lastSpin, balance: lastSpin.balance_after });
+        }
         return;
       }
 
@@ -365,7 +374,7 @@ export function useLeGazalFantasy() {
       );
       if (rpcError) throw rpcError;
 
-      const visualOutcome = spinSlot({
+      const visualOutcome = serverResult.visual_result || spinSlot({
         bet: Number(serverResult.bet),
         roundMultiplier: Number(serverResult.round_multiplier || 1),
         forcedOutcome: serverResult.scenario,

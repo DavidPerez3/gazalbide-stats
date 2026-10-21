@@ -47,7 +47,6 @@ export default function LeGazalPage() {
   } = useLeGazalDemo();
 
   const activeWin = result?.amountWon || 0;
-  const winningCombinations = result?.winningCombinations || [];
   const resultMessage = result ? result.message : "Pulsa girar para arrancar el modo demo.";
 
   return (
@@ -82,23 +81,12 @@ export default function LeGazalPage() {
                   isSpinning={isSpinning}
                   stoppedColumns={stoppedColumns}
                   winningCellKeys={result ? result.winningCellKeys : []}
+                  winningCombinations={result?.winningCombinations || []}
                   coinBurstKey={coinBurstKey}
                   amountWon={activeWin}
                   reduceMotion={prefersReducedMotion}
                 />
 
-                {winningCombinations.length > 0 ? (
-                  <div className="le-gazal-machine__footer" aria-live="polite">
-                    <div className="le-gazal-machine__wins">
-                      {winningCombinations.map((combination) => (
-                        <div key={combination.id} className="le-gazal-win-pill">
-                          Fila {combination.row + 1}: {combination.symbolLabel} x{combination.matchCount}
-                          {combination.usedWild ? " + WILD" : ""} {"->"} {combination.amountWon}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </section>
 
               <LeGazalControlPanel
