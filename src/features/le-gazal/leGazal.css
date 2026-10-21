@@ -1232,8 +1232,6 @@
 .le-gazal-living { position:absolute; inset:0; z-index:7; pointer-events:none; }
 .le-gazal-living__actor { position:absolute; width:18%; max-width:115px; transform:translate(-50%,-55%); transition:left .38s ease-in-out,top .38s ease-in-out; filter:drop-shadow(0 4px 4px #000b); }
 .le-gazal-living__actor img { display:block; width:100%; height:auto; }
-.le-gazal-living__actor span { display:block; width:max-content; margin:-5px auto 0; font-size:clamp(.45rem,1.5vw,.65rem); color:#f5d46b; background:#101010e8; border:1px solid #cfac4b80; border-radius:10px; padding:2px 5px; }
-.le-gazal-living__actor--salamander span { color:#b7f07d; }
 .le-gazal-living__actor--move img,.le-gazal-living__actor--scout img { animation:leGazalWalk .18s ease-in-out infinite alternate; }
 .le-gazal-living__actor--transform img { animation:leGazalAssist .32s ease-out; }
 .le-gazal-living__actor--collect img { animation:leGazalAssist .26s ease-out; }
@@ -1251,3 +1249,12 @@
 @keyframes leGazalRefill { from { transform:translateY(-14px); opacity:.4; } to { transform:translateY(0); opacity:1; } }
 .le-gazal-living--still * { animation:none!important; transition:none!important; }
 @media(prefers-reduced-motion:reduce) { .le-gazal-living *, .le-gazal-board__column--dropping * { animation:none!important; transition:none!important; } }
+/* Floor levels survive symbol gravity, with compact badges on mobile. */
+.le-gazal-board__cell { position:relative; }
+.le-gazal-board__cell--level-1 { box-shadow:inset 0 0 0 2px #b98b32; background:linear-gradient(145deg,#453718,#171713); }
+.le-gazal-board__cell--level-2 { box-shadow:inset 0 0 0 2px #f9d760; background:linear-gradient(145deg,#73602b,#29220e); }
+.le-gazal-tile-level { position:absolute; top:3px; right:3px; z-index:3; border-radius:5px; padding:1px 3px; color:#fff2ac; background:#17120de8; font-size:clamp(.5rem,1.6vw,.75rem); font-weight:800; line-height:1.2; }
+.le-gazal-living__actor { width:calc(108% / var(--board-columns,6)); }
+.le-gazal-board__cell--upgrade { animation:leGazalAssist .36s ease-out; }
+.le-gazal-living__effect--expand { left:50% !important; top:50% !important; white-space:nowrap; font-size:clamp(.7rem,2vw,1.1rem); padding:10px; border-radius:12px; background:#16140aee; color:#fadd71; }
+.le-gazal-living__effect--upgrade { color:#fff0a0; }

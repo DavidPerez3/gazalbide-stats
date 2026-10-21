@@ -37,7 +37,7 @@ export function createLivingRound({scenario,seed=0,bet=1,multiplier=1}) {
   return {patternVersion:2,mode:'living',grid:initial,finalGrid:copy(grid),starts,events,amountWon,winningCombinations:[],winningCellKeys:[]};
 }
 
-export const LIVING_DURATIONS = {transform:320,move:420,collect:260,cascade:300,signal:350,scout:350};
+export const LIVING_DURATIONS = {upgrade:360,expand:650,transform:320,move:420,collect:260,cascade:300,signal:350,scout:350};
 // All timers belong to the caller, so unmount/reset cancels the complete sequence.
 export function queueLivingPlayback({round,startDelay=0,reducedMotion=false,timers,onFrame,onFinish}) {
   if(!round?.events?.length || reducedMotion){
