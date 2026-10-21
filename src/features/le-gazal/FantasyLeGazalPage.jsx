@@ -72,6 +72,7 @@ export default function FantasyLeGazalPage() {
 
           {state.error ? <p style={{ color: "#FCA5A5" }}>{state.error}</p> : null}
 
+          {saved?.discarded > 0 && <p>No se transfieren {formatBeers(saved.discarded)} 🍺 por decimales o límite de ahorro.</p>}
           {saved ? (
             <div>
               <h2>Saldo guardado</h2>
@@ -133,8 +134,9 @@ export default function FantasyLeGazalPage() {
       <div className="le-gazal-arena">
         <div className="le-gazal-cabinet">
           <header className="le-gazal-marquee">
+            <img src={LE_GAZAL_ASSETS.mascot} alt="Mapache de Le Gazal" className="le-gazal-marquee__host" />
             <img src={LE_GAZAL_ASSETS.titleLogo} alt="Le Gazal" className="le-gazal-marquee__title-logo" />
-            <p>Fantasy · saldo virtual persistido en servidor · sin valor económico real</p>
+            <p>Fantasy · cuatro colores de Gazalbide</p>
           </header>
 
           {state.error ? (

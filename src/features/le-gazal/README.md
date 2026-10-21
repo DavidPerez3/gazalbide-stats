@@ -1,33 +1,48 @@
-# Le Gazal
+# Le Gazal — cuatro salamandras (v5)
 
-## Motor actual: recogida por símbolos (v4)
+## Aspecto y personajes
 
-Las nuevas tiradas usan `collectionEngine.js` y `gazalbide_internal.le_gazal_collections`. Se genera el tablero antes de calcular el premio. El mapache recoge BALL (x1) y TROPHY (x2); la salamandra HOOP (x1) y WHISTLE (x2). Todos los símbolos corrientes tienen utilidad. Solo SHIELD activa tiradas gratis; no se generan letras, números, WILD, camisetas ni BONUS_BALL.
+El mapache original es un anfitrión estático junto al logo, arriba a la izquierda, y no participa en las recogidas nuevas. Las cuatro salamandras comparten diseño y camiseta Gazalbide #13 negra, con manchas, ribetes y letras en su color:
 
-Los personajes arrancan en los extremos de la fila central, alternan turnos y eligen entre las cuatro casillas contiguas sin diagonales ni invadir al otro personaje. Se elige el mayor pago incluyendo nivel del suelo; empates en orden arriba, derecha, abajo, izquierda. Cada movimiento precede una recogida remunerada. No hay exploraciones, transformaciones ni recogidas añadidas por un resultado económico previo. Los personajes se recolocan sin transición al preparar un nuevo tablero.
+- Amarilla original: BALL, balón dorado.
+- Rosa/fucsia, inspirada en los colores del femenino: WHISTLE, silbato rosa.
+- Azul eléctrico: SHOE, zapatilla azul.
+- Verde lima: HOOP, canasta verde.
 
-Después de recoger se aplica gravedad y una reposición de esa columna. Cada columna tiene una reserva de cinco símbolos generada al inicio; cuando se agota quedan huecos. Esto limita la duración y garantiza que el resolver termine sin cortar recorridos válidos. Las reposiciones no generan escudos. Termina cuando ninguno de los personajes tiene una recogida compatible.
+Los símbolos nuevos son SVG sencillos (`SalamanderSymbol.jsx`): se distinguen por objeto además del color. Los cuatro colores se mezclan uniformemente por todo el tablero. No hay mitades, letras, números ni iconos de relleno. Los escudos conservan el emblema y activan los bonus; Pol y Pelos siguen reservados para celebrarlos. El panel muestra una sola vez saldo y premio, una línea de resultado/progreso y los controles. Reglas en «Cómo jugar», sin leyenda permanente ni nombres debajo de personajes.
 
-### Bonus y progreso
+### Assets y generación
 
-Se cuentan los escudos del tablero inicial: 3 → 10 giros x2; 4 → 15 giros x3; 5 o más → 20 giros x5. Se puede cobrar por recogidas y activar un bonus en la misma tirada. Los retriggers añaden giros y conservan el mayor multiplicador. Pol y Pelos solo celebran los escudos.
+Se conserva `public/assets/le-gazal/characters/salamander-v1.webp`. Nuevos sprites de 512×512 con alfa:
 
-En giros gratis, cada recogida mejora la posición del suelo: normal → x2 → x3 para las siguientes visitas. La recogida que mejora aún cobra el nivel previo. El suelo no cae. A las 6 y 12 recogidas se abren las columnas 7 y 8 después de resolver el giro. Las columnas amplían el espacio de los siguientes tableros; no añaden recogidas garantizadas. Al acabar el bonus o guardar el saldo, el progreso se limpia.
+- `public/assets/le-gazal/characters/salamander-pink-v1.webp`
+- `public/assets/le-gazal/characters/salamander-blue-v1.webp`
+- `public/assets/le-gazal/characters/salamander-green-v1.webp`
 
-`le_gazal_spin` bloquea la sesión, genera símbolos y reservas, resuelve y guarda premio, eventos, estado del suelo y ledger en una misma transacción. Solo el propietario autenticado puede girar; los generadores y resolvers no son RPC públicos. El navegador muestra las instantáneas guardadas. Recargar restaura el final sin repetir apuestas ni premios. Las sesiones con tiradas gratis antiguas conservan sus giros, apuesta de referencia y multiplicador; la siguiente tirada usa v4.
+Generados con la herramienta integrada image_gen, usando la salamandra original como referencia de edición. Prompt por variante: conservar cara, proporciones, pose, cola, piel negra, estilo ilustrado, texto GAZALBIDE y dorsal 13; sustituir todas las manchas, ribetes y letras amarillas por fucsia #ff3ba7 / azul eléctrico #24bfff / verde lima #91f52b; mantener camiseta y pantalón negros; personaje completo aislado, fondo alfa transparente, sin escenario ni rótulos. La conversión a WebP conserva el alfa; el prebuild comprueba tamaño, formato y transparencia.
 
-### Generación y economía
+## Resolución y economía
 
-RNG reproducible Park–Miller (16807, módulo 2147483647), semilla de 28 bits del UUID aleatorio del giro. El navegador usa el mismo algoritmo para diversión. Cada símbolo inicial tiene aproximadamente un 1,4 % de probabilidad de escudo. Después, dentro de cada mitad del tablero: 4 % símbolo básico propio, 1 % premium propio, 85 % básico del otro personaje, 10 % premium del otro. Todas las columnas están conectadas por los recorridos, por lo que un personaje que llega a la otra mitad puede encadenar recogidas. No se sortea una categoría de pago ni se modifica el tablero para ajustar un premio.
+`salamanderEngine.js` / `gazalbide_internal.le_gazal_salamanders` generan primero símbolos y reservas y resuelven el tablero. Las salamandras arrancan en las cuatro esquinas y alternan amarillo, rosa, azul, verde. Solo entran en una casilla contigua de su color (arriba, derecha, abajo, izquierda), nunca en la de otra salamandra. Eligen el mayor premio incluyendo suelo; empate en ese mismo orden. Sin objetivo no se mueven. Cada movimiento precede una recogida positiva.
 
-`node scripts/simulate_le_gazal_collections.mjs 50000` mide 50.000 giros de pago con apuesta 1, semilla 1729, y todos sus bonus/retriggers hasta terminarlos: 5.130 giros gratis, pago total 33.883, retorno observado 67,766 %, acierto en giros de pago 26,004 %. Es una simulación reproducible, no una garantía de retorno ni una demostración del valor esperado exacto. También verifica que se recogen los cuatro símbolos. Se pueden pasar otros tamaños de muestra.
+Cada recogida paga **0,10 × apuesta × nivel del suelo × multiplicador del bonus**. Los cálculos se realizan en céntimos y se conservan dos decimales. La reserva de cinco símbolos por columna limita la resolución sin cortar recorridos válidos: tras agotarla quedan huecos. Solo aparecen escudos en la generación inicial (aproximadamente 1,4 % de cada casilla); cada color corriente tiene la misma probabilidad en cualquier columna.
 
-### Pruebas y QA
+Los escudos iniciales activan 3 → 10 giros x2; 4 → 15 x3; 5 o más → 20 x5, compatibles con cobrar recogidas. Los retriggers suman giros y conservan el mayor multiplicador. En bonus, recoger mejora el suelo para la siguiente visita: normal → x2 → x3. A las 6 y 12 recogidas se abren columnas hasta 8×5, sin recogidas extra garantizadas. Los eventos incluyen el suelo; el estado final conserva también el último contador de una casilla ya al máximo.
 
-Las pruebas SQL cotejan 480 secuencias completas de JS/Postgres a distintos tamaños y niveles. Comprueban los símbolos reales anteriores a cada movimiento, prioridad incluyendo suelo, empates, bloqueo por el otro personaje, gravedad, pago, fin por ausencia de objetivos, escudos y ausencia de recogidas artificiales al ampliar. Se verifica también el RPC real en PGlite: saldo, ledger, giros gratis, persistencia y titularidad.
+### Persistencia, decimales y retirada
 
-En `/#/fantasy/le-gazal-demo`, las opciones admin preparan tableros conocidos y pasan por el mismo resolver: «Sin premio» (quietos), «Balón contiguo», «Trofeo contiguo», «Varios símbolos contiguos» y 3/4/5 escudos. «Probar mejora y ampliación» prepara un suelo próximo a crecer. Son datos ficticios y no escriben en Supabase. El modo diversión no permite forzar resultados y su progreso vive solo en memoria.
+La sesión, los pagos, los balances por giro y el ledger admiten dos decimales (numeric 14,2). No se recalculan importes antiguos. El RPC mantiene el bloqueo de sesión y la autorización del propietario, y guarda evento, saldo, suelo y ledger en la misma transacción. Al recargar se restaura el resultado sin repetir cobros ni apuestas. Los helpers no son ejecutables por clientes.
 
-## Compatibilidad histórica
+Fantasy mantiene su presupuesto en cervezas enteras. El cashout aplica **floor(balance)** antes del límite de ahorro, tanto manual como automático, sin redondear hacia arriba. El botón muestra la parte entera; su ayuda y las reglas indican que los decimales no se transfieren. El resumen y el apunte de descarte incluyen esos decimales junto al exceso de límite, si existe. Se limpian giros gratis y suelo. El modo diversión nunca escribe en Supabase y reproduce ese resumen con datos ficticios.
 
-`slotEngine.js` conserva el evaluador de las 20 líneas v1 de `paylines.json`; `livingEngine.js` conserva el generador v2 y los temporizadores; `bonusBoard.js` conserva el generador v3 y las utilidades de rodillos con dimensiones variables. Los generadores v1–v3 y sus funciones SQL quedan para las pruebas y las instantáneas históricas. El motor activo no los llama para resolver nuevos giros. No se recalculan saldos ni se reescriben resultados antiguos. Las imágenes y la compatibilidad de sus símbolos se conservan para mostrar el historial.
+### Simulación y comprobaciones
+
+`node scripts/simulate_le_gazal_salamanders.mjs 50000`: semilla 1729, 50.000 giros de pago con apuesta 1 y todos sus bonus/retriggers. Muestra de referencia: 5.540 giros gratis, 525 activaciones, 32.094,30 de pago total, retorno observado **64,1886 %**, 89,516 % de giros de pago con alguna recogida. Es una medición de muestra, no una garantía ni una prueba del valor esperado exacto. El acierto frecuente puede pagar menos que la apuesta.
+
+Pruebas SQL: 480 secuencias completas de JS/Postgres con seis, siete y ocho columnas, distintos niveles y multiplicadores. Se prueban las cuatro identidades y sus símbolos, exclusión de las otras tres posiciones, mezcla de colores por columna, premios positivos en céntimos, conservación de saldo/ledger, autorización y cashout 11,99 → 11 con descarte 0,99. Las pruebas de interfaz mantienen el historial y comprueban cuatro salamandras sin mapache ni nombres sobre el tablero.
+
+QA: `/#/fantasy/le-gazal-demo` permite preparar pérdida quieta, amarilla con balón, recogidas encadenadas, cuatro colores y 3/4/5 escudos. «Probar mejora y ampliación» prepara un bonus ficticio próximo a abrir una columna. «Reiniciar» borra el progreso ficticio. No hay resultados forzados en Fantasy real ni en diversión pública.
+
+## Historial
+
+Los motores v1–v4 (`slotEngine`, `livingEngine`, `bonusBoard`, `collectionEngine`) y sus helpers SQL se conservan para las pruebas y las instantáneas históricas. No resuelven nuevas tiradas. Las imágenes antiguas y el render de símbolos sin paleta permiten restaurar esos resultados sin convertirlos al diseño nuevo.

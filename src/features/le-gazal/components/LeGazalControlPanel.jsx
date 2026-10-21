@@ -11,14 +11,12 @@ export default function LeGazalControlPanel({
   onSpin,
   onCashout,
   result,
-  resultMessage,
-  sessionStats,
   bonusState,
 }) {
   const hasFreeSpin = bonusState.remaining > 0;
   const lockBet = isSpinning || actionLoading || hasFreeSpin;
-  const lastPrize = formatBeers(result?.payout);
-  const totalWon = formatBeers(sessionStats.totalWon);
+  const lastPrize = formatBeers(result?.payout ?? result?.amountWon);
+
   const spinLabel = hasFreeSpin ? "Free Spin" : "Spin";
   const canSpin = hasFreeSpin || Number(balance) >= Number(bet);
 
@@ -32,7 +30,7 @@ export default function LeGazalControlPanel({
         <span className="le-gazal-console__status-pill">
           {hasFreeSpin
             ? `BONUS · ${bonusState.remaining} tiradas restantes · premios x${bonusState.multiplier}`
-            : `Win ${lastPrize}`}
+            : `Premio ${lastPrize} 🍺`}
         </span>
       </div>
 
@@ -72,21 +70,6 @@ export default function LeGazalControlPanel({
         </button>
       </div>
 
-      <div className="le-gazal-console__ticker" aria-live="polite">
-        {resultMessage}
-      </div>
-
-      <div className="le-gazal-console__quickline" aria-label="Resumen de premio">
-        <span>
-          <strong>Win</strong>
-          <em>{lastPrize}</em>
-        </span>
-        <span>
-          <strong>Total Win</strong>
-          <em>{totalWon}</em>
-        </span>
-      </div>
-
       <div className="le-gazal-console__secondary">
         <button type="button" className="le-gazal-console__bet" onClick={onOpenRules}
           disabled={isSpinning || actionLoading}>Cómo jugar</button>
@@ -96,10 +79,11 @@ export default function LeGazalControlPanel({
             className="le-gazal-console__bet"
             onClick={onCashout}
             disabled={isSpinning || actionLoading}
-            aria-label={`Retirarse y ahorrar ${formatBeers(balance)} cervezas`}
+            title="Fantasy recibe cervezas enteras: los decimales restantes no se transfieren."
+            aria-label={`Retirarse y ahorrar ${formatBeers(Math.floor(Number(balance)))} cervezas enteras`}
             style={{ minWidth: "auto", paddingInline: "12px" }}
           >
-            Guardar {formatBeers(balance)} 🍺
+            Guardar {formatBeers(Math.floor(Number(balance)))} 🍺
           </button>
         ) : null}
       </div>

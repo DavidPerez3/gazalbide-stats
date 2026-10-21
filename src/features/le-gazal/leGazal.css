@@ -1263,3 +1263,25 @@
 .le-gazal-living--staging .le-gazal-living__actor img { animation:none; }
 .le-gazal-collection-legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin:7px 2px; color:#b8b5a7; font-size:.7rem; }
 .le-gazal-console__status-pill { min-width:0; overflow-wrap:anywhere; }
+
+/* Four saturated collectors; quiet dark cells keep the board readable on mobile. */
+.le-gazal-marquee { position:relative; padding-left:70px; padding-right:0; }
+.le-gazal-marquee__host { position:absolute; left:6px; right:auto; bottom:0; width:64px; height:76px; object-fit:contain; }
+.le-gazal-color-symbol { width:100%; height:100%; display:grid; place-items:center; filter:drop-shadow(0 2px 3px #0007); }
+.le-gazal-color-symbol svg { width:80%; height:80%; max-height:100%; }
+.le-gazal-living__actor--yellow { filter:drop-shadow(0 0 4px #ffd52a80); }
+.le-gazal-living__actor--pink { filter:drop-shadow(0 0 4px #ff36ac80); }
+.le-gazal-living__actor--blue { filter:drop-shadow(0 0 4px #24bfff80); }
+.le-gazal-living__actor--green { filter:drop-shadow(0 0 4px #95f52d80); }
+.le-gazal-living-status { padding:5px 2px; border:0; background:none; border-radius:0; min-height:28px; margin-top:4px; }
+.le-gazal-board__cell { border-color:#ffffff0b; border-radius:9px; box-shadow:none; background:#111416; }
+.le-gazal-board { border-width:2px; box-shadow:0 4px 15px #0006; }
+.le-gazal-board::before { display:none; }
+.le-gazal-console__secondary { display:flex; flex-wrap:wrap; gap:8px; }
+.le-gazal-machine { box-shadow:none; }
+@media(max-width:600px) {
+ .le-gazal-color-symbol svg { width:86%; height:86%; }
+ .le-gazal-marquee { padding-left:60px; padding-right:0; }
+ .le-gazal-marquee__host { width:56px; height:66px; }
+ .le-gazal-living-status span { font-size:.7rem; }
+}

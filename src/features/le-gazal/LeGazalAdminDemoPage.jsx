@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LE_GAZAL_ASSETS, preloadLeGazalCharacters } from "./assetPaths";
 import { spinLivingSlot } from "./slotEngine";
-import { createCollectionDisplayGrid as createDisplayGrid } from "./collectionEngine";
+import { createSalamanderDisplayGrid as createDisplayGrid } from "./salamanderEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
 import { formatBeers } from "./formatBeers";
 import LeGazalGrid from "./components/LeGazalGrid";
@@ -28,9 +28,9 @@ const DEMO_SCATTER5_MULTIPLIER = 5;
 const SCENARIOS = [
   { value: "random", label: "Aleatoria" },
   { value: "lose", label: "Sin premio" },
-  { value: "small", label: "Balón contiguo" },
-  { value: "medium", label: "Trofeo contiguo" },
-  { value: "high", label: "Varios símbolos contiguos" },
+  { value: "small", label: "Amarilla · balón" },
+  { value: "medium", label: "Recogidas encadenadas" },
+  { value: "high", label: "Cuatro colores" },
   { value: "scatter", label: "3 Scatter · CLUTCH TIME" },
   { value: "scatter4", label: "4 Scatter · CLUTCH TIME+" },
   { value: "scatter5", label: "5 Scatter · LOCURA GAZAL" },
@@ -316,14 +316,14 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
   const cashout = useCallback(() => {
     if (session.status !== "active" || isBusy) return;
     clearTimers();
-    setCashoutSummary({ transferred: Number(session.balance || 0) });
+    setCashoutSummary({ transferred: Math.floor(Number(session.balance || 0)), discarded:Number(session.balance || 0)%1 });
     setSession((previous) => ({
       ...previous,
       status: "cashed_out",
       free_spins_remaining: 0,
       free_spin_bet: null,
       bonus_multiplier: 1,
-      cashout_amount: Number(previous.balance || 0),
+      cashout_amount: Math.floor(Number(previous.balance || 0)),
     }));
   }, [session, isBusy, clearTimers]);
 
@@ -377,6 +377,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
             Has terminado con <strong>{Number(cashoutSummary?.transferred || 0)} 🍺 ficticias</strong>.
             No se ha modificado tu Fantasy, tu ahorro ni ninguna tabla de Supabase.
           </p>
+          {Number(cashoutSummary?.discarded || 0) > 0 && <p>Decimales no transferibles: {formatBeers(cashoutSummary.discarded)} 🍺 ficticias.</p>}
           <div className="le-gazal-demo__actions">
             <button type="button" onClick={resetDemo}>↻ {publicMode ? "Jugar otra vez" : "Reiniciar prueba"}</button>
             <button type="button" onClick={() => navigate(publicMode ? "/fantasy" : "/admin/fantasy")}>← {publicMode ? "Volver a Fantasy" : "Volver a Admin Fantasy"}</button>
@@ -406,7 +407,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
           ) : null}
           {!publicMode && <button type="button" disabled={isBusy} onClick={() => {
             setSession(previous => ({...previous, free_spins_remaining:10, free_spin_bet:3, bonus_multiplier:2,
-              board_state:{columns:6, collections:5, levels:{'1-1':2,'2-1':1,'2-4':2,'3-4':1}}}));
+              board_state:{columns:6, collections:5, levels:{'0-1':2,'0-4':1,'4-1':2,'4-4':1}}}));
             setForcedScenario('high');
           }}>Probar mejora y ampliación</button>}
           <button type="button" onClick={resetDemo} disabled={isBusy}>Reiniciar</button>
@@ -417,6 +418,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
       <div className="le-gazal-arena">
         <div className="le-gazal-cabinet">
           <header className="le-gazal-marquee">
+            <img src={LE_GAZAL_ASSETS.mascot} alt="Mapache de Le Gazal" className="le-gazal-marquee__host" />
             <img src={LE_GAZAL_ASSETS.titleLogo} alt="Le Gazal" className="le-gazal-marquee__title-logo" />
             <p>{publicMode ? "Modo diversión · juega siempre · saldo totalmente ficticio" : "Sandbox Admin · 3, 4 y 5 Scatter animados · saldo totalmente ficticio"}</p>
           </header>

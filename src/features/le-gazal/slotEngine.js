@@ -1,4 +1,4 @@
-import { createCollectionRound } from './collectionEngine';
+import { createSalamanderRound } from './salamanderEngine';
 import PAYLINES from "./paylines.json";
 import {
   BONUS_CONFIG,
@@ -293,7 +293,7 @@ export function spinSlot({
 
 // Preserve the legacy evaluator for historical boards and its regression tests.
 export function spinLivingSlot(options = {}) {
-  return createCollectionRound({seed:Math.floor((options.randomSource || Math.random)()*2147483646),
+  return createSalamanderRound({seed:Math.floor((options.randomSource || Math.random)()*2147483646),
     bet:options.bet, multiplier:options.roundMultiplier || 1,inBonus:options.inBonus,
     boardState:options.boardState,forcedOutcome:options.forcedOutcome});
 }

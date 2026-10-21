@@ -1,3 +1,4 @@
+import { createSalamanderRound } from '../salamanderEngine';
 import { createCollectionRound } from '../collectionEngine';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
@@ -57,8 +58,7 @@ it('explains stationary losses and shows the four useful symbols without charact
  const round=createCollectionRound({forcedOutcome:'lose'});
  const {container,rerender}=render(<LeGazalGrid {...props} grid={round.grid} livingRound={round} winningCombinations={[]}/>);
  expect(screen.getByRole('status')).toHaveTextContent('Sin símbolos compatibles al lado. Sin premio.');
- expect(screen.getByLabelText('Símbolos de cada personaje')).toHaveTextContent('balón x1 / trofeo x2');
- expect(screen.getByLabelText('Símbolos de cada personaje')).toHaveTextContent('canasta x1 / silbato x2');
+ expect(screen.queryByLabelText('Símbolos de cada personaje')).toBeNull();
  expect(container.querySelectorAll('.le-gazal-living__actor span')).toHaveLength(0);
  const scatter=createCollectionRound({forcedOutcome:'scatter'});
  rerender(<LeGazalGrid {...props} grid={scatter.finalGrid} livingRound={scatter} winningCombinations={[]}/>);
@@ -73,4 +73,15 @@ it('shows final bonus progress after a capped x3 pickup without previewing it be
  expect(screen.getByRole('status')).toHaveTextContent('1 recogidas');
  rerender(<LeGazalGrid {...props} grid={round.finalGrid} livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
  expect(screen.getByRole('status')).toHaveTextContent('2 recogidas');
+});
+
+it('renders four color-matched salamanders and basketball symbols with no raccoon or permanent legend on the board',()=>{
+ const round=createSalamanderRound({forcedOutcome:'high'});
+ const {container}=render(<LeGazalGrid {...props} grid={round.grid} livingRound={round} winningCombinations={[]}/>);
+ expect(container.querySelectorAll('.le-gazal-living__actor')).toHaveLength(4);
+ for(const color of ['yellow','pink','blue','green'])expect(container.querySelector(`.le-gazal-living__actor--${color} img`)).toBeInTheDocument();
+ expect(container.querySelector('img[src$="Mapache.png"]')).toBeNull();
+ expect(container.querySelectorAll('[data-symbol-color="SHOE"]')).not.toHaveLength(0);
+ expect(container.querySelectorAll('.le-gazal-living__actor span')).toHaveLength(0);
+ expect(screen.queryByLabelText('Símbolos de cada personaje')).toBeNull();
 });

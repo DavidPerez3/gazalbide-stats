@@ -3,7 +3,7 @@ import { queueLivingPlayback } from "./livingEngine";
 import { useEffect, useRef, useState } from "react";
 import { BONUS_CONFIG } from "./slotConfig";
 import { spinLivingSlot } from "./slotEngine";
-import { createCollectionDisplayGrid as createDisplayGrid } from "./collectionEngine";
+import { createSalamanderDisplayGrid as createDisplayGrid } from "./salamanderEngine";
 import { BONUS_MODES, SLOT_COLUMNS } from "./slotTypes";
 
 const INITIAL_BONUS_STATE = {
