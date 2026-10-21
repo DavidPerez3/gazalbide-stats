@@ -13,7 +13,7 @@ beforeAll(async () => {
   const old = fs.readFileSync('supabase/migrations/20260815230000_le_gazal_fantasy_backend.sql','utf8');
   await db.exec(old.slice(old.indexOf('create table if not exists public.le_gazal_sessions'),old.indexOf('alter table public.le_gazal_sessions enable')));
   await db.exec('alter table le_gazal_spins drop constraint le_gazal_spins_scenario_check;');
-  for (const name of ['20261021075446_le_gazal_patterns','20261021084943_le_gazal_living_board','20261021095220_le_gazal_bonus_upgrades','20261021101859_le_gazal_symbol_collections','20261021111438_le_gazal_four_salamanders','20261021120155_le_gazal_occupied_cells'])
+  for (const name of ['20261021075446_le_gazal_patterns','20261021084943_le_gazal_living_board','20261021095220_le_gazal_bonus_upgrades','20261021101859_le_gazal_symbol_collections','20261021111438_le_gazal_four_salamanders','20261021120155_le_gazal_occupied_cells','20261021122927_le_gazal_chain_prizes'])
     await db.exec(fs.readFileSync(`supabase/migrations/${name}.sql`,'utf8'));
 }, 30000);
 afterAll(async () => db?.close());
@@ -40,6 +40,7 @@ it('moves only to the matching color, excludes all three other actors and conser
     expect(SALAMANDER_VALUES[e.actor][e.symbol]).toBe(1);expect(e.amount).toBeGreaterThan(0);
     collected.add(e.actor);cents+=Math.round(e.amount*100);
    }
+   if(e.kind==='chain')cents+=Math.round(e.amount*100);
    if(e.kind==='expand')break;
    grid=e.grid;positions=e.positions;floor=e.board;
   }
@@ -68,7 +69,7 @@ it('preserves cents across RPCs, ledger and reloads without rounding balances up
  let balance=100025;
  for(let i=0;i<40;i++){
   const r=(await db.query('select le_gazal_spin($1,10) r',[id])).rows[0].r;
-  expect(r.visual_result.patternVersion).toBe(6);expect(r.bet_spent).toBe(0);expect(r.bet).toBe(1);
+  expect(r.visual_result.patternVersion).toBe(7);expect(r.bet_spent).toBe(0);expect(r.bet).toBe(1);
   balance+=Math.round(r.payout*100);expect(Math.round(r.balance*100)).toBe(balance);
   const saved=(await db.query('select * from le_gazal_spins where id=$1',[r.spin_id])).rows[0];
   expect(Number(saved.payout)).toBe(r.payout);expect(Number(saved.balance_after)).toBe(r.balance);
@@ -112,4 +113,54 @@ it('leaves the blue actor cell empty and makes a blue symbol above it reachable 
  expect(blue.length).toBeGreaterThanOrEqual(2);
  for(const e of r.events)for(const p of Object.values(e.positions))expect(e.grid[p.row][p.col]).toBeNull();
  expect(r.amountWon).toBeGreaterThanOrEqual(0.2);
+});
+
+it('pays each cumulative threshold once across actors, with exact cents in both engines',async()=>{
+ const fixtures=[[3,4,0],[23,5,.5],[6,9,.5],[64,10,2],[1,11,2],[74,14,2],[14,15,5],[1565,16,5]];
+ for(const bet of [1,3,10])for(const [seed,count,extras] of fixtures){
+  const r=createSalamanderRound({seed,bet});
+  expect(r.chainCount).toBe(count);expect(r.chainBonus).toBe(extras*bet);
+  expect(Math.round(r.amountWon*100)).toBe(Math.round((count*.1+extras)*bet*100));
+  expect(r.events.filter(e=>e.kind==='chain').map(e=>e.chainCount)).toEqual([5,10,15].filter(n=>n<=count));
+  const sql=(await db.query('select gazalbide_internal.le_gazal_salamanders($1,$2,1,false,null) r',[seed,bet])).rows[0].r;
+  expect(sql).toEqual(r);
+ }
+ expect(createSalamanderRound({seed:1}).amountWon).toBe(3.1);
+ expect(createSalamanderRound({seed:14}).amountWon).toBe(6.5);
+});
+it('never multiplies chain extras by scatter or floor and resets the chain on each free spin',async()=>{
+ const floor={columns:6,collections:99,levels:Object.fromEntries(Array.from({length:30},(_,i)=>[`${Math.floor(i/6)}-${i%6}`,2]))};
+ for(const multiplier of [2,3,5]){
+  const r=createSalamanderRound({seed:14,bet:3,multiplier,inBonus:true,boardState:floor});
+  expect(r.chainCount).toBe(15);expect(r.chainBonus).toBe(15);
+  expect(r.amountWon).toBe(15*.1*3*3*multiplier+15);
+  expect(r.events[0].chainCount).toBe(0);expect(r.events[0].chainBonus).toBe(0);
+  const sql=(await db.query('select gazalbide_internal.le_gazal_salamanders(14,3,$1,true,$2) r',[multiplier,JSON.stringify(floor)])).rows[0].r;
+  expect(sql).toEqual(r);
+ }
+ const first=createSalamanderRound({seed:14,inBonus:true});
+ const next=createSalamanderRound({seed:14,inBonus:true,boardState:first.nextBoard});
+ expect(next.events[0].chainCount).toBe(0);expect(next.events[0].chainBonus).toBe(0);
+ for(const [forcedOutcome,spins,mult] of [['scatter',10,2],['scatter4',15,3],['scatter5',20,5]]){
+  const r=createSalamanderRound({forcedOutcome,inBonus:true,multiplier:5});
+  expect(r.freeSpinsAwarded).toBe(spins);expect(r.awardedMultiplier).toBe(mult);
+ }
+});
+it('adds retrigger spins, retains the higher multiplier and pays the resolved total once',async()=>{
+ // Controlled resolver result at the RPC boundary, rolled back with the session changes.
+ const grid=createSalamanderRound({seed:14}).grid.map(row=>[...row]);
+ grid[2][1]='SHIELD';grid[2][2]='SHIELD';grid[2][3]='SHIELD';
+ const round=resolveSalamanderRound({grid,refills:Array.from({length:5},()=>Array(6).fill(null)),bet:3,multiplier:5,inBonus:true});
+ expect(round.freeSpinsAwarded).toBe(10);
+ await db.exec('begin');
+ try{
+  await db.exec(`select set_config('test.uid','00000000-0000-0000-0000-000000000001',true);
+   update le_gazal_sessions set status='active',balance=100,free_spins_remaining=2,free_spin_bet=3,bonus_multiplier=5;
+   create or replace function gazalbide_internal.le_gazal_salamanders(p_seed integer,p_bet integer,p_multiplier numeric,p_bonus boolean,p_board jsonb) returns jsonb language sql immutable security invoker set search_path='' as $$select '${JSON.stringify(round)}'::jsonb$$;`);
+  const id=(await db.query('select id from le_gazal_sessions')).rows[0].id;
+  const r=(await db.query('select le_gazal_spin($1,10) r',[id])).rows[0].r;
+  expect(r.free_spins_remaining).toBe(11);expect(r.bonus_multiplier).toBe(5);
+  expect(r.bet).toBe(3);expect(r.bet_spent).toBe(0);
+  expect(r.payout).toBe(round.amountWon);expect(r.balance).toBe(100+round.amountWon);
+ }finally{await db.exec('rollback');}
 });

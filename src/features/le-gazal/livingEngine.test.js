@@ -1,5 +1,6 @@
 import { afterEach,expect,it,vi } from 'vitest';
 import { createLivingRound,queueLivingPlayback } from './livingEngine';
+import { createSalamanderRound } from './salamanderEngine';
 afterEach(()=>vi.useRealTimers());
 it('plays each action in order, resolves once and allows reset/unmount to cancel all actions',()=>{
  vi.useFakeTimers();const timers=[],frames=[],finish=vi.fn(),round=createLivingRound({scenario:'medium',seed:0,bet:3});
@@ -19,4 +20,14 @@ it('finishes a stationary round once without inventing animation frames',()=>{
  queueLivingPlayback({round:{events:[],amountWon:0},timers:[],startDelay:100,onFrame:frame,onFinish:finish});
  vi.advanceTimersByTime(99);expect(finish).not.toHaveBeenCalled();
  vi.advanceTimersByTime(1);expect(frame).toHaveBeenCalledWith(null);expect(finish).toHaveBeenCalledTimes(1);
+});
+
+it('plays all three chain celebrations once and skips them without changing rewards in reduced motion',()=>{
+ vi.useFakeTimers();const round=createSalamanderRound({forcedOutcome:'chain'});
+ for(const reducedMotion of [false,true]){
+  const frames=[],finish=vi.fn();
+  queueLivingPlayback({round,reducedMotion,timers:[],onFrame:f=>frames.push(f),onFinish:finish});vi.runAllTimers();
+  expect(frames.filter(f=>f.playing && f.kind==='chain')).toHaveLength(reducedMotion?0:3);
+  expect(frames.at(-1).collected).toBe(6.5);expect(finish).toHaveBeenCalledTimes(1);
+ }
 });
