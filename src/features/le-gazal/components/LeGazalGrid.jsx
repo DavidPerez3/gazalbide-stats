@@ -35,6 +35,8 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
   }, [rows, columns]);
   const showLiving = livingRound ? livingRound.mode === "living" : living;
+  const actorPositions=livingFrame?.positions || livingRound?.starts || {yellow:{row:0,col:0},pink:{row:0,col:columns-1},blue:{row:rows-1,col:0},green:{row:rows-1,col:columns-1}};
+  const occupied=new Set(showLiving ? Object.values(actorPositions).map(({row,col})=>`${row}-${col}`) : []);
   const phase = livingFrame?.playing ? livingFrame.kind : "idle";
   const winningSet = new Set(isSpinning ? [] : winningCellKeys || []);
   const preview = PAYLINES.find(p => p.id === previewId);
@@ -54,12 +56,12 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
           vectorEffect="non-scaling-stroke" pathLength="1" />)}
       </svg>
       {Array.from({length:columns},(_,col) => <div key={col}
-        className={`le-gazal-board__column ${phase==='cascade' && livingFrame.col===col ? 'le-gazal-board__column--dropping':''}${isSpinning ? stoppedColumns?.[col] ? ' le-gazal-board__column--settled' : ' le-gazal-board__column--spinning' : ''}`}
+        className={`le-gazal-board__column ${phase==='cascade' && (livingFrame.columns || [livingFrame.col]).includes(col) ? 'le-gazal-board__column--dropping':''}${isSpinning ? stoppedColumns?.[col] ? ' le-gazal-board__column--settled' : ' le-gazal-board__column--spinning' : ''}`}
         style={{animationDelay:`${col*.035}s`}}>
         {Array.from({length:rows},(_,row) => <div key={row} data-cell-key={`${row}-${col}`}
           className={`le-gazal-board__cell le-gazal-board__cell--level-${floor?.levels?.[`${row}-${col}`] || 0} ${livingFrame?.playing && livingFrame.row===row && livingFrame.col===col ? `le-gazal-board__cell--${phase}` : ""} ${winningSet.has(`${row}-${col}`) ? 'le-gazal-board__cell--winning' : ''}`}>
           {(floor?.levels?.[`${row}-${col}`] || 0) > 0 && <span className="le-gazal-tile-level" aria-hidden="true">x{1+floor.levels[`${row}-${col}`]}</span>}
-          {displayGrid[row][col] && <SlotSymbol symbolId={displayGrid[row][col]} palette={!livingRound || livingRound.patternVersion >= 5} />}
+          {!occupied.has(`${row}-${col}`) && displayGrid[row][col] && <SlotSymbol symbolId={displayGrid[row][col]} palette={!livingRound || livingRound.patternVersion >= 5} />}
         </div>)}
       </div>)}
     </div>

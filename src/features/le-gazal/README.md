@@ -1,4 +1,4 @@
-# Le Gazal — cuatro salamandras (v5)
+# Le Gazal — cuatro salamandras (v6)
 
 ## Aspecto y personajes
 
@@ -37,7 +37,7 @@ Fantasy mantiene su presupuesto en cervezas enteras. El cashout aplica **floor(b
 
 ### Simulación y comprobaciones
 
-`node scripts/simulate_le_gazal_salamanders.mjs 50000`: semilla 1729, 50.000 giros de pago con apuesta 1 y todos sus bonus/retriggers. Muestra de referencia: 5.540 giros gratis, 525 activaciones, 32.094,30 de pago total, retorno observado **64,1886 %**, 89,516 % de giros de pago con alguna recogida. Es una medición de muestra, no una garantía ni una prueba del valor esperado exacto. El acierto frecuente puede pagar menos que la apuesta.
+`node scripts/simulate_le_gazal_salamanders.mjs 10000`: muestra v6 con semilla 1729, 10.000 giros de pago y todos sus bonus: 875 giros gratis, 84 activaciones, pago total 5.790,40, retorno observado 57,904 %, y 89,86 % de giros con alguna recogida. Es una comprobación de muestra, no una garantía ni una prueba del valor esperado exacto. El precio de cada recogida no cambia con esta corrección. Los símbolos en las posiciones iniciales ocupadas ya no cuentan para recogidas ni escudos.
 
 Pruebas SQL: 480 secuencias completas de JS/Postgres con seis, siete y ocho columnas, distintos niveles y multiplicadores. Se prueban las cuatro identidades y sus símbolos, exclusión de las otras tres posiciones, mezcla de colores por columna, premios positivos en céntimos, conservación de saldo/ledger, autorización y cashout 11,99 → 11 con descarte 0,99. Las pruebas de interfaz mantienen el historial y comprueban cuatro salamandras sin mapache ni nombres sobre el tablero.
 
@@ -46,3 +46,10 @@ QA: `/#/fantasy/le-gazal-demo` permite preparar pérdida quieta, amarilla con ba
 ## Historial
 
 Los motores v1–v4 (`slotEngine`, `livingEngine`, `bonusBoard`, `collectionEngine`) y sus helpers SQL se conservan para las pruebas y las instantáneas históricas. No resuelven nuevas tiradas. Las imágenes antiguas y el render de símbolos sin paleta permiten restaurar esos resultados sin convertirlos al diseño nuevo.
+
+
+## Casillas ocupadas y gravedad (v6)
+
+Una casilla ocupada por una salamandra no contiene símbolos. Se limpian las cuatro posiciones iniciales antes de contar escudos y de guardar el tablero. Cada movimiento retira el objetivo de la cuadrícula antes de mostrar a la recolectora sobre él; el evento siguiente paga la recogida. La gravedad compacta exclusivamente las casillas libres de las columnas de origen y destino, conservando el orden de sus símbolos y rellenando arriba desde sus reservas finitas. La posición ocupada siempre permanece vacía y la casilla liberada vuelve a estar disponible. Los eventos identifican ambas columnas para animarlas.
+
+El render también oculta cualquier símbolo bajo las posiciones de los personajes en los rodillos o en instantáneas antiguas, sin modificar sus pagos. Las nuevas instantáneas llevan patternVersion 6. Las pruebas verifican todas las posiciones de las cuatro salamandras en cada evento y reproducen un símbolo azul que antes acababa detrás de la recolectora azul.

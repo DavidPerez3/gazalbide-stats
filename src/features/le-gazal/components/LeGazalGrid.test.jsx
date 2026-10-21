@@ -85,3 +85,16 @@ it('renders four color-matched salamanders and basketball symbols with no raccoo
  expect(container.querySelectorAll('.le-gazal-living__actor span')).toHaveLength(0);
  expect(screen.queryByLabelText('Símbolos de cada personaje')).toBeNull();
 });
+
+it('never renders a symbol behind a salamander, including reel frames and restored historical boards',()=>{
+ const round=createSalamanderRound({forcedOutcome:'lose'});
+ const invalid=round.grid.map(row=>[...row]);
+ for(const p of Object.values(round.starts))invalid[p.row][p.col]='SHOE';
+ invalid[3][0]='SHOE';
+ const frame={grid:invalid,positions:round.starts,playing:false};
+ const {container,rerender}=render(<LeGazalGrid {...props} grid={invalid} livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
+ for(const p of Object.values(round.starts))expect(container.querySelector(`[data-cell-key="${p.row}-${p.col}"] [data-symbol-color]`)).toBeNull();
+ expect(container.querySelector('[data-cell-key="3-0"] [data-symbol-color="SHOE"]')).toBeInTheDocument();
+ rerender(<LeGazalGrid {...props} grid={invalid} living isSpinning winningCombinations={[]}/>);
+ for(const p of Object.values(round.starts))expect(container.querySelector(`[data-cell-key="${p.row}-${p.col}"] [data-symbol-color]`)).toBeNull();
+});

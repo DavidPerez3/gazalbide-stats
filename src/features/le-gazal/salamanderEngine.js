@@ -17,9 +17,11 @@ export function salamanderTarget(grid, positions, actor, levels = {}) {
   return best;
 }
 export function resolveSalamanderRound({ grid: source, refills, bet = 1, multiplier = 1, inBonus = false, boardState }) {
-  const grid = copy(source), initial = copy(source), columns = grid[0].length;
+  const grid = copy(source), columns = grid[0].length;
   const board = copy(inBonus ? boardState || emptyBonusBoard() : emptyBonusBoard());
   const initialBoard = copy(board), positions = { yellow:{row:0,col:0}, pink:{row:0,col:columns-1}, blue:{row:4,col:0}, green:{row:4,col:columns-1} };
+  for(const {row,col} of Object.values(positions)) grid[row][col]=null;
+  const initial=copy(grid);
   const starts = copy(positions), events = [], used = Array(columns).fill(0);
   let amountWon = 0, units = 0;
   const push = (kind,actor,row,col,amount=0,symbol=null) => events.push({ kind,actor,row,col,amount,symbol,
@@ -32,14 +34,23 @@ export function resolveSalamanderRound({ grid: source, refills, bet = 1, multipl
       if (!target) continue;
       moved = true;
       const {row,col,symbol,value} = target, key = `${row}-${col}`, level = inBonus ? board.levels[key] || 0 : 0;
+      const originCol=positions[actor].col;
+      grid[row][col]=null;
       positions[actor] = {row,col}; push('move',actor,row,col,0,symbol);
       const previous = Math.floor(units*bet*multiplier*10+0.000001);
       units += value*(1+level);
       const amount = (Math.floor(units*bet*multiplier*10+0.000001)-previous)/100;
       amountWon = Math.round((amountWon+amount)*100)/100; grid[row][col] = null; push('collect',actor,row,col,amount,symbol);
-      for (let r=row;r>0;r--) grid[r][col] = grid[r-1][col];
-      grid[0][col] = refills[used[col]++]?.[col] || null;
+      const affected=[...new Set([originCol,col])];
+      for(const column of affected){
+        const freeRows=Array.from({length:5},(_,r)=>r).filter(r=>!Object.values(positions).some(p=>p.row===r && p.col===column));
+        const symbols=freeRows.map(r=>grid[r][column]).filter(s=>s!==null);
+        const missing=freeRows.length-symbols.length;
+        for(let n=0;n<missing;n++) symbols.unshift(refills[used[column]++]?.[column] || null);
+        freeRows.forEach((r,i)=>{grid[r][column]=symbols[i];});
+      }
       push('cascade',actor,row,col);
+      events.at(-1).columns=affected;
       if (inBonus) {
         board.collections++;
         board.levels[key] = Math.min(2,level+1);
@@ -60,7 +71,7 @@ export function resolveSalamanderRound({ grid: source, refills, bet = 1, multipl
     for (let r=0;r<5;r++) for (let c=columns;c<unlocked;c++) grid[r].push(['BALL','WHISTLE','SHOE','HOOP'][(r+c)%4]);
     board.columns = unlocked; push('expand','green',2,unlocked-1);
   }
-  return { patternVersion:5, mode:'living', payoutUnit:0.1, bonusBoard:inBonus, grid:initial, finalGrid:copy(grid), starts, events,
+  return { patternVersion:6, mode:'living', payoutUnit:0.1, bonusBoard:inBonus, grid:initial, finalGrid:copy(grid), starts, events,
     amountWon, initialBoard, nextBoard:copy(board), winningCombinations:[], winningCellKeys:[], scenarioId,
     freeSpinsAwarded, awardedMultiplier, activatedClutchTime:freeSpinsAwarded>0,
     clutchMode:shields>=5 ? BONUS_MODES.SCATTER_MADNESS : shields===4 ? BONUS_MODES.SCATTER_PLUS : shields===3 ? BONUS_MODES.SCATTER : BONUS_MODES.NONE,
@@ -94,5 +105,5 @@ export function createSalamanderRound({seed=1,bet=1,multiplier=1,inBonus=false,b
   return resolveSalamanderRound({grid,refills,bet,multiplier,inBonus,boardState});
 }
 export function createSalamanderDisplayGrid() {
-  return Array.from({length:5},()=>Array.from({length:6},()=>['BALL','WHISTLE','SHOE','HOOP'][Math.floor(Math.random()*4)]));
+  return Array.from({length:5},(_,r)=>Array.from({length:6},(_,c)=>(r===0||r===4)&&(c===0||c===5) ? null : ['BALL','WHISTLE','SHOE','HOOP'][Math.floor(Math.random()*4)]));
 }
