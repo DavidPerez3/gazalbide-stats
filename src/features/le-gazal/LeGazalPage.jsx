@@ -7,7 +7,6 @@ import LeGazalControlPanel from "./components/LeGazalControlPanel";
 import LeGazalRulesModal from "./components/LeGazalRulesModal";
 import LeGazalBonusModal from "./components/LeGazalBonusModal";
 import LeGazalDebugPanel from "./components/LeGazalDebugPanel";
-import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
 import "./leGazal.css";
 import "./leGazalMobile.css";
 
@@ -26,6 +25,8 @@ export default function LeGazalPage() {
   const location = useLocation();
   const debugEnabled = getDebugEnabled(location.search);
   const {
+    livingFrame,
+    livingRound,
     bet,
     setBet,
     bonusIntro,
@@ -78,6 +79,7 @@ export default function LeGazalPage() {
               <section className="le-gazal-machine card">
                 <LeGazalGrid
                   grid={grid}
+                  living livingRound={livingRound} livingFrame={livingFrame}
                   isSpinning={isSpinning}
                   stoppedColumns={stoppedColumns}
                   winningCellKeys={result ? result.winningCellKeys : []}
@@ -102,7 +104,6 @@ export default function LeGazalPage() {
               />
             </div>
 
-            <LeGazalMascotPanel />
           </div>
 
           {debugEnabled ? <LeGazalDebugPanel onRunScenario={spin} /> : null}

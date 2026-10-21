@@ -1,3 +1,4 @@
+import { createLivingRound } from "./livingEngine";
 import PAYLINES from "./paylines.json";
 import {
   BONUS_CONFIG,
@@ -288,4 +289,13 @@ export function spinSlot({
     scenarioId,
     message: buildResultMessage(evaluated),
   };
+}
+
+// Preserve the legacy evaluator for historical boards and its regression tests.
+export function spinLivingSlot(options = {}) {
+  const legacy = spinSlot(options);
+  const round = createLivingRound({scenario:legacy.scenarioId,
+    seed:Math.floor((options.randomSource || Math.random)()*256),bet:options.bet,
+    multiplier:options.roundMultiplier || 1});
+  return {...legacy,...round};
 }

@@ -1,14 +1,14 @@
+import { queueLivingPlayback } from "./livingEngine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LE_GAZAL_ASSETS, preloadLeGazalCharacters } from "./assetPaths";
-import { createDisplayGrid, spinSlot } from "./slotEngine";
+import { createDisplayGrid, spinLivingSlot } from "./slotEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
 import { formatBeers } from "./formatBeers";
 import LeGazalGrid from "./components/LeGazalGrid";
 import LeGazalControlPanel from "./components/LeGazalControlPanel";
 import LeGazalRulesModal from "./components/LeGazalRulesModal";
 import LeGazalBonusModal from "./components/LeGazalBonusModal";
-import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
 import LeGazalClutchAnimation from "./components/LeGazalClutchAnimation";
 import LeGazalClutchPlusAnimation from "./components/LeGazalClutchPlusAnimation";
 import LeGazalMadnessAnimation from "./components/LeGazalMadnessAnimation";
@@ -101,6 +101,8 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
   const [session, setSession] = useState(createDemoSession);
   const [bet, setBet] = useState(3);
   const [grid, setGrid] = useState(() => createDisplayGrid());
+  const [livingFrame, setLivingFrame] = useState(null);
+  const [livingRound, setLivingRound] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [stoppedColumns, setStoppedColumns] = useState(() => Array(SLOT_COLUMNS).fill(true));
   const [result, setResult] = useState(null);
@@ -160,7 +162,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
 
   const finishAnimation = useCallback((spinOutcome, nextResult, previousSession) => {
     clearTimers();
-    setGrid(spinOutcome.grid);
+    setGrid(spinOutcome.finalGrid || spinOutcome.grid);
     const allStopped = Array(SLOT_COLUMNS).fill(true);
     setStoppedColumns(allStopped);
     stoppedColumnsRef.current = allStopped;
@@ -218,6 +220,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     const spinBet = hasFreeSpin ? Number(session.free_spin_bet || bet) : Number(bet);
     if (!hasFreeSpin && spinBet > Number(session.balance || 0)) return;
 
+    setLivingFrame(null);
     setResult(null);
     setWinningCellKeys([]);
     setBonusIntro(null);
@@ -233,12 +236,13 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     const requestedScenario = forcedScenario;
     const engineScenario = requestedScenario === "random" ? null : requestedScenario;
 
-    const visualOutcome = spinSlot({
+    const visualOutcome = spinLivingSlot({
       bet: spinBet,
       roundMultiplier,
       forcedOutcome: engineScenario,
     });
 
+    setLivingRound(visualOutcome);
     if (forcedScenario !== "random") setForcedScenario("random");
 
     const betSpent = hasFreeSpin ? 0 : spinBet;
@@ -307,11 +311,12 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     }
 
     const finishDelay = baseDelay + SLOT_COLUMNS * stepDelay + (prefersReducedMotion ? 20 : 260);
-    const finishTimeoutId = window.setTimeout(
-      () => finishAnimation(visualOutcome, nextResult, previousSession),
-      finishDelay
-    );
-    timeoutRefs.current.push(finishTimeoutId);
+    queueLivingPlayback({round:visualOutcome,startDelay:finishDelay,reducedMotion:prefersReducedMotion,
+      timers:timeoutRefs.current,onFrame:frame=>{
+        if(intervalRef.current){window.clearInterval(intervalRef.current);intervalRef.current=null;}
+        setLivingFrame(frame);
+      },onFinish:()=>finishAnimation(visualOutcome,nextResult,previousSession)});
+
   }, [session, isBusy, bet, clearTimers, forcedScenario, prefersReducedMotion, finishAnimation]);
 
   const cashout = useCallback(() => {
@@ -334,8 +339,10 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     setWinningCellKeys([]);
     setBet(3);
     setGrid(createDisplayGrid());
+    setLivingRound(null);
     setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
     stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(true);
+    setLivingFrame(null);
     setResult(null);
     setBonusIntro(null);
     setBonusSummary(null);
@@ -431,6 +438,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
               <section className="le-gazal-machine card">
                 <LeGazalGrid
                   grid={grid}
+                  living livingRound={livingRound} livingFrame={livingFrame}
                   isSpinning={isSpinning}
                   stoppedColumns={stoppedColumns}
                   winningCellKeys={winningCellKeys}
@@ -456,7 +464,6 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
               />
             </div>
 
-            <LeGazalMascotPanel />
           </div>
         </div>
       </div>

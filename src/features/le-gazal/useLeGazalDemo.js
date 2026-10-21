@@ -1,6 +1,7 @@
+import { queueLivingPlayback } from "./livingEngine";
 import { useEffect, useRef, useState } from "react";
 import { BONUS_CONFIG } from "./slotConfig";
-import { createDisplayGrid, spinSlot } from "./slotEngine";
+import { createDisplayGrid, spinLivingSlot } from "./slotEngine";
 import { BONUS_MODES, SLOT_COLUMNS } from "./slotTypes";
 
 const INITIAL_BONUS_STATE = {
@@ -46,6 +47,8 @@ export function useLeGazalDemo() {
 
   const [bet, setBet] = useState(3);
   const [grid, setGrid] = useState(() => createDisplayGrid());
+  const [livingFrame, setLivingFrame] = useState(null);
+  const [livingRound, setLivingRound] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [stoppedColumns, setStoppedColumns] = useState(() => Array(SLOT_COLUMNS).fill(true));
   const [result, setResult] = useState(null);
@@ -106,7 +109,7 @@ export function useLeGazalDemo() {
   }
 
   function applySpinResult(spinOutcome, currentBonusRemaining) {
-    setGrid(spinOutcome.grid);
+    setGrid(spinOutcome.finalGrid || spinOutcome.grid);
     setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
     setIsSpinning(false);
     setResult(spinOutcome);
@@ -189,12 +192,14 @@ export function useLeGazalDemo() {
     clearTimers();
 
     const activeMultiplier = bonusState.remaining > 0 ? bonusState.multiplier : 1;
-    const spinOutcome = spinSlot({
+    const spinOutcome = spinLivingSlot({
       bet,
       roundMultiplier: activeMultiplier,
       forcedOutcome,
     });
 
+    setLivingRound(spinOutcome);
+    setLivingFrame(null);
     setResult(null);
     setBonusIntro(null);
     setBonusSummary(null);
@@ -226,21 +231,23 @@ export function useLeGazalDemo() {
     }
 
     const finishDelay = baseDelay + SLOT_COLUMNS * stepDelay + (prefersReducedMotion ? 20 : 260);
-    const finishTimeoutId = window.setTimeout(() => {
-      clearTimers();
-      applySpinResult(spinOutcome, bonusState.remaining);
-    }, finishDelay);
+    queueLivingPlayback({round:spinOutcome,startDelay:finishDelay,reducedMotion:prefersReducedMotion,
+      timers:timeoutRefs.current,onFrame:frame=>{
+        if(intervalRef.current){window.clearInterval(intervalRef.current);intervalRef.current=null;}
+        setLivingFrame(frame);
+      },onFinish:()=>{clearTimers();applySpinResult(spinOutcome,bonusState.remaining);}});
 
-    timeoutRefs.current.push(finishTimeoutId);
   }
 
   function resetDemo() {
     clearTimers();
     setBet(3);
     setGrid(createDisplayGrid());
+    setLivingRound(null);
     setIsSpinning(false);
     setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
     stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(true);
+    setLivingFrame(null);
     setResult(null);
     setRulesOpen(false);
     setBonusIntro(null);
@@ -258,6 +265,8 @@ export function useLeGazalDemo() {
   }
 
   return {
+    livingFrame,
+    livingRound,
     bet,
     setBet,
     bonusIntro,

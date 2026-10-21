@@ -1,12 +1,12 @@
+import LeGazalScatterCelebration from "./components/LeGazalScatterCelebration";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LE_GAZAL_ASSETS } from "./assetPaths";
+import { LE_GAZAL_ASSETS, preloadLeGazalCharacters } from "./assetPaths";
 import { useLeGazalFantasy } from "./useLeGazalFantasy";
 import LeGazalGrid from "./components/LeGazalGrid";
 import LeGazalControlPanel from "./components/LeGazalControlPanel";
 import LeGazalRulesModal from "./components/LeGazalRulesModal";
 import LeGazalBonusModal from "./components/LeGazalBonusModal";
-import LeGazalMascotPanel from "./components/LeGazalMascotPanel";
 import "./leGazal.css";
 import "./leGazalMobile.css";
 import { formatBeers } from "./formatBeers";
@@ -31,6 +31,7 @@ const buttonStyle = {
 };
 
 export default function FantasyLeGazalPage() {
+  useEffect(() => { preloadLeGazalCharacters(); }, []);
   const navigate = useNavigate();
   const state = useLeGazalFantasy();
   const [allocation, setAllocation] = useState(1);
@@ -160,6 +161,7 @@ export default function FantasyLeGazalPage() {
               <section className="le-gazal-machine card">
                 <LeGazalGrid
                   grid={state.grid}
+                  living livingRound={state.livingRound} livingFrame={state.livingFrame}
                   isSpinning={state.isSpinning}
                   stoppedColumns={state.stoppedColumns}
                   winningCellKeys={state.winningCellKeys}
@@ -186,13 +188,12 @@ export default function FantasyLeGazalPage() {
               />
             </div>
 
-            <LeGazalMascotPanel />
           </div>
         </div>
       </div>
 
       <LeGazalRulesModal open={state.rulesOpen} onClose={state.closeRules} />
-      <LeGazalBonusModal modal={state.bonusIntro} onClose={state.closeBonusIntro} />
+      <LeGazalScatterCelebration modal={state.bonusIntro} onClose={state.closeBonusIntro} reduceMotion={state.prefersReducedMotion} />
       <LeGazalBonusModal modal={state.bonusSummary} onClose={state.closeBonusSummary} />
     </section>
   );

@@ -12,6 +12,7 @@ export const LE_GAZAL_ASSETS = {
   jersey: `${BASE}assets/Camiseta.png`,
   hoop: `${BASE}assets/Canasta.png`,
   shield: `${BASE}assets/Escudo.png`,
+  salamander: `${BASE}assets/le-gazal/characters/salamander-v1.webp`,
   mascot: `${BASE}assets/Mapache.png`,
   whistle: `${BASE}assets/Silbato.png`,
   trophy: `${BASE}assets/Trofeo.png`,
@@ -35,7 +36,7 @@ export function preloadLeGazalCharacters() {
   if (typeof Image === "undefined") return Promise.resolve();
   if (characterPreloadPromise) return characterPreloadPromise;
 
-  const sources = [...new Set(Object.values(LE_GAZAL_ASSETS.characters))];
+  const sources = [...new Set([...Object.values(LE_GAZAL_ASSETS.characters), LE_GAZAL_ASSETS.mascot, LE_GAZAL_ASSETS.salamander])];
   characterPreloadPromise = Promise.all(
     sources.map((source) => new Promise((resolve) => {
       const image = new Image();
