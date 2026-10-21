@@ -1,8 +1,9 @@
+import { queueLivingPlayback } from "./livingEngine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../../lib/seasons.js";
-import { createDisplayGrid, spinSlot } from "./slotEngine";
+import { createDisplayGrid, spinLivingSlot } from "./slotEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
 
 function getReducedMotionPreference() {
@@ -65,6 +66,8 @@ export function useLeGazalFantasy() {
 
   const [bet, setBet] = useState(3);
   const [grid, setGrid] = useState(() => createDisplayGrid());
+  const [livingFrame, setLivingFrame] = useState(null);
+  const [livingRound, setLivingRound] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [stoppedColumns, setStoppedColumns] = useState(() =>
     Array(SLOT_COLUMNS).fill(true)
@@ -160,7 +163,9 @@ export function useLeGazalFantasy() {
           .order("spin_number", { ascending: false }).limit(1).maybeSingle();
         if (lastSpinError) throw lastSpinError;
         if (lastSpin?.visual_result) {
-          setGrid(lastSpin.visual_result.grid);
+          setGrid(lastSpin.visual_result.finalGrid || lastSpin.visual_result.grid);
+          setLivingRound(lastSpin.visual_result);
+          setLivingFrame({...lastSpin.visual_result.events?.at(-1),playing:false});
           setWinningCellKeys(lastSpin.visual_result.winningCellKeys);
           setResult({ ...lastSpin, balance: lastSpin.balance_after });
         }
@@ -268,7 +273,8 @@ export function useLeGazalFantasy() {
         setSession(data);
         setOffer(null);
         setCashoutSummary(null);
-        setResult(null);
+        setLivingFrame(null);
+    setResult(null);
         return data;
       } catch (err) {
         console.error("Error abriendo Le Gazal:", err);
@@ -303,7 +309,7 @@ export function useLeGazalFantasy() {
   const finishAnimation = useCallback(
     (spinOutcome, serverResult, previousSession) => {
       clearTimers();
-      setGrid(spinOutcome.grid);
+      setGrid(spinOutcome.finalGrid || spinOutcome.grid);
       setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
       stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(true);
       setResult(serverResult);
@@ -318,6 +324,7 @@ export function useLeGazalFantasy() {
       if (Number(serverResult.free_spins_awarded || 0) > 0) {
         const isBonus = serverResult.scenario === "bonus";
         setBonusIntro({
+          scenario:serverResult.scenario,
           title: serverResult.scenario === "scatter5" ? "LOCURA GAZAL" : isBonus || serverResult.scenario === "scatter4" ? "CLUTCH TIME+" : "CLUTCH TIME",
           description: `${serverResult.free_spins_awarded} tiradas gratis con multiplicador x${serverResult.bonus_multiplier}.`,
           freeSpins: Number(serverResult.free_spins_awarded),
@@ -355,6 +362,7 @@ export function useLeGazalFantasy() {
     }
 
     setError(null);
+    setLivingFrame(null);
     setResult(null);
     setWinningCellKeys([]);
     setBonusIntro(null);
@@ -374,12 +382,13 @@ export function useLeGazalFantasy() {
       );
       if (rpcError) throw rpcError;
 
-      const visualOutcome = serverResult.visual_result || spinSlot({
+      const visualOutcome = serverResult.visual_result || spinLivingSlot({
         bet: Number(serverResult.bet),
         roundMultiplier: Number(serverResult.round_multiplier || 1),
         forcedOutcome: serverResult.scenario,
       });
 
+      setLivingRound(visualOutcome);
       const spinOutcome = {
         ...visualOutcome,
         amountWon: Number(serverResult.payout || 0),
@@ -436,10 +445,12 @@ export function useLeGazalFantasy() {
         SLOT_COLUMNS * stepDelay +
         (prefersReducedMotion ? 20 : 260);
 
-      const finishTimeoutId = window.setTimeout(() => {
-        finishAnimation(spinOutcome, serverResult, previousSession);
-      }, finishDelay);
-      timeoutRefs.current.push(finishTimeoutId);
+      queueLivingPlayback({round:spinOutcome,startDelay:finishDelay,reducedMotion:prefersReducedMotion,
+        timers:timeoutRefs.current,onFrame:frame=>{
+          if(intervalRef.current){window.clearInterval(intervalRef.current);intervalRef.current=null;}
+          setLivingFrame(frame);
+        },onFinish:()=>finishAnimation(spinOutcome,serverResult,previousSession)});
+
     } catch (err) {
       console.error("Error ejecutando tirada Le Gazal:", err);
       clearTimers();
@@ -516,6 +527,8 @@ export function useLeGazalFantasy() {
   }, [session, result]);
 
   return {
+    livingFrame,
+    livingRound,
     teamId,
     gameweek,
     offer,

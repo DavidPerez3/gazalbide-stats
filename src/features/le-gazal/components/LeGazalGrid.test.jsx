@@ -25,3 +25,14 @@ it('offers 20 accessible pattern previews and clears a preview when the next spi
  rerender(<LeGazalGrid {...props}/>);
  expect(container.querySelector('.le-gazal-board__lines polyline')).toHaveAttribute('points','50,50 150,150 250,250');
 });
+
+it('uses the original raccoon and salamander inside a living board without showing paylines',()=>{
+ const round={mode:'living',amountWon:3,starts:{raccoon:{row:1,col:0},salamander:{row:3,col:5}}};
+ const frame={kind:'collect',actor:'raccoon',row:1,col:1,amount:3,collected:3,playing:true,positions:{raccoon:{row:1,col:1},salamander:{row:3,col:5}},grid};
+ const {container}=render(<LeGazalGrid {...props} living livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
+ expect(container.querySelector('img[src$="Mapache.png"]')).toBeInTheDocument();
+ expect(container.querySelector('img[src$="salamander-v1.webp"]')).toBeInTheDocument();
+ expect(container.querySelector('img[src*="pol-"]')).toBeNull();
+ expect(screen.getByRole('status')).toHaveTextContent('Mapache recoge 3 🍺');
+ expect(screen.queryByText('20 líneas activas · Ver patrones')).not.toBeInTheDocument();
+});
