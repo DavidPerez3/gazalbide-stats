@@ -1,3 +1,4 @@
+import { replaceLivingColumn, livingSpinFrame } from './bonusBoard';
 import { queueLivingPlayback } from "./livingEngine";
 import { useEffect, useRef, useState } from "react";
 import { BONUS_CONFIG } from "./slotConfig";
@@ -20,24 +21,12 @@ function getReducedMotionPreference() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function replaceColumn(previousGrid, nextGrid, columnIndex) {
-  return previousGrid.map((row, rowIndex) =>
-    row.map((cell, colIndex) => (colIndex === columnIndex ? nextGrid[rowIndex][columnIndex] : cell))
-  );
+function replaceColumn(previous, next, column) {
+  return replaceLivingColumn(previous, next, column);
 }
 
-function mergeSpinFrame(previousGrid, nextGrid, stoppedColumns) {
-  const randomFrame = createDisplayGrid();
-
-  return previousGrid.map((row, rowIndex) =>
-    row.map((cell, colIndex) => {
-      if (stoppedColumns[colIndex]) {
-        return nextGrid[rowIndex][colIndex];
-      }
-
-      return randomFrame[rowIndex][colIndex] || cell;
-    })
-  );
+function mergeSpinFrame(previous, next, stopped) {
+  return livingSpinFrame(previous, next, stopped, createDisplayGrid());
 }
 
 export function useLeGazalDemo() {
@@ -110,7 +99,7 @@ export function useLeGazalDemo() {
 
   function applySpinResult(spinOutcome, currentBonusRemaining) {
     setGrid(spinOutcome.finalGrid || spinOutcome.grid);
-    setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
+    setStoppedColumns(Array((spinOutcome.finalGrid || spinOutcome.grid)[0].length).fill(true));
     setIsSpinning(false);
     setResult(spinOutcome);
     if (spinOutcome.amountWon > 0) {
@@ -141,6 +130,7 @@ export function useLeGazalDemo() {
       let nextState = {
         ...previous,
         remaining: remainingAfterCurrent,
+        board: spinOutcome.nextBoard || null,
         totalWon: previous.totalWon + (wasFreeSpin ? spinOutcome.amountWon : 0),
       };
 
@@ -149,9 +139,10 @@ export function useLeGazalDemo() {
         const totalFreeSpins = remainingAfterCurrent + config.freeSpins;
 
         nextState = {
+          board: spinOutcome.nextBoard || null,
           mode: spinOutcome.clutchMode,
           remaining: totalFreeSpins,
-          multiplier: config.multiplier,
+          multiplier: Math.max(previous.multiplier, config.multiplier),
           awarded: previous.awarded + config.freeSpins,
           totalWon: wasFreeSpin ? nextState.totalWon : 0,
         };
@@ -160,7 +151,7 @@ export function useLeGazalDemo() {
           title: config.title,
           description: config.description,
           freeSpins: config.freeSpins,
-          multiplier: config.multiplier,
+          multiplier: Math.max(previous.multiplier, config.multiplier),
         });
       }
 
@@ -196,6 +187,7 @@ export function useLeGazalDemo() {
       bet,
       roundMultiplier: activeMultiplier,
       forcedOutcome,
+      inBonus: bonusState.remaining > 0, boardState: bonusState.board,
     });
 
     setLivingRound(spinOutcome);
@@ -204,8 +196,9 @@ export function useLeGazalDemo() {
     setBonusIntro(null);
     setBonusSummary(null);
     setIsSpinning(true);
-    stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(false);
-    setStoppedColumns(Array(SLOT_COLUMNS).fill(false));
+    setGrid(spinOutcome.grid);
+    stoppedColumnsRef.current = Array(spinOutcome.grid[0].length).fill(false);
+    setStoppedColumns(Array(spinOutcome.grid[0].length).fill(false));
 
     if (!prefersReducedMotion) {
       intervalRef.current = window.setInterval(() => {
@@ -216,7 +209,7 @@ export function useLeGazalDemo() {
     const baseDelay = prefersReducedMotion ? 0 : 360;
     const stepDelay = prefersReducedMotion ? 36 : 190;
 
-    for (let columnIndex = 0; columnIndex < SLOT_COLUMNS; columnIndex += 1) {
+    for (let columnIndex = 0; columnIndex < spinOutcome.grid[0].length; columnIndex += 1) {
       const timeoutId = window.setTimeout(() => {
         stoppedColumnsRef.current[columnIndex] = true;
         setStoppedColumns((previous) => {
@@ -230,7 +223,7 @@ export function useLeGazalDemo() {
       timeoutRefs.current.push(timeoutId);
     }
 
-    const finishDelay = baseDelay + SLOT_COLUMNS * stepDelay + (prefersReducedMotion ? 20 : 260);
+    const finishDelay = baseDelay + spinOutcome.grid[0].length * stepDelay + (prefersReducedMotion ? 20 : 260);
     queueLivingPlayback({round:spinOutcome,startDelay:finishDelay,reducedMotion:prefersReducedMotion,
       timers:timeoutRefs.current,onFrame:frame=>{
         if(intervalRef.current){window.clearInterval(intervalRef.current);intervalRef.current=null;}

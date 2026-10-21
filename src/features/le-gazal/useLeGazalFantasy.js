@@ -1,3 +1,4 @@
+import { replaceLivingColumn, livingSpinFrame } from './bonusBoard';
 import { queueLivingPlayback } from "./livingEngine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -13,24 +14,12 @@ function getReducedMotionPreference() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function replaceColumn(previousGrid, nextGrid, columnIndex) {
-  return previousGrid.map((row, rowIndex) =>
-    row.map((cell, colIndex) =>
-      colIndex === columnIndex ? nextGrid[rowIndex][columnIndex] : cell
-    )
-  );
+function replaceColumn(previous, next, column) {
+  return replaceLivingColumn(previous, next, column);
 }
 
-function mergeSpinFrame(previousGrid, nextGrid, stoppedColumns) {
-  const randomFrame = createDisplayGrid();
-  return previousGrid.map((row, rowIndex) =>
-    row.map((cell, colIndex) => {
-      if (stoppedColumns[colIndex]) {
-        return nextGrid[rowIndex][colIndex];
-      }
-      return randomFrame[rowIndex][colIndex] || cell;
-    })
-  );
+function mergeSpinFrame(previous, next, stopped) {
+  return livingSpinFrame(previous, next, stopped, createDisplayGrid());
 }
 
 function resultMessage(result) {
@@ -310,8 +299,8 @@ export function useLeGazalFantasy() {
     (spinOutcome, serverResult, previousSession) => {
       clearTimers();
       setGrid(spinOutcome.finalGrid || spinOutcome.grid);
-      setStoppedColumns(Array(SLOT_COLUMNS).fill(true));
-      stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(true);
+      setStoppedColumns(Array((spinOutcome.finalGrid || spinOutcome.grid)[0].length).fill(true));
+      stoppedColumnsRef.current = Array((spinOutcome.finalGrid || spinOutcome.grid)[0].length).fill(true);
       setResult(serverResult);
       setWinningCellKeys(spinOutcome.winningCellKeys);
       setSession(spinOutcome.nextSession);
@@ -386,6 +375,7 @@ export function useLeGazalFantasy() {
         bet: Number(serverResult.bet),
         roundMultiplier: Number(serverResult.round_multiplier || 1),
         forcedOutcome: serverResult.scenario,
+        inBonus: hasFreeSpin, boardState: session.board_state,
       });
 
       setLivingRound(visualOutcome);
@@ -396,6 +386,7 @@ export function useLeGazalFantasy() {
 
       const nextSession = {
         ...session,
+        board_state: serverResult.board_state,
         balance: Number(serverResult.balance || 0),
         free_spins_remaining: Number(serverResult.free_spins_remaining || 0),
         free_spin_bet:
@@ -411,8 +402,9 @@ export function useLeGazalFantasy() {
       };
       spinOutcome.nextSession = nextSession;
 
-      stoppedColumnsRef.current = Array(SLOT_COLUMNS).fill(false);
-      setStoppedColumns(Array(SLOT_COLUMNS).fill(false));
+      setGrid(spinOutcome.grid);
+      stoppedColumnsRef.current = Array(spinOutcome.grid[0].length).fill(false);
+      setStoppedColumns(Array(spinOutcome.grid[0].length).fill(false));
 
       if (!prefersReducedMotion) {
         intervalRef.current = window.setInterval(() => {
@@ -425,7 +417,7 @@ export function useLeGazalFantasy() {
       const baseDelay = prefersReducedMotion ? 0 : 360;
       const stepDelay = prefersReducedMotion ? 36 : 190;
 
-      for (let columnIndex = 0; columnIndex < SLOT_COLUMNS; columnIndex += 1) {
+      for (let columnIndex = 0; columnIndex < spinOutcome.grid[0].length; columnIndex += 1) {
         const timeoutId = window.setTimeout(() => {
           stoppedColumnsRef.current[columnIndex] = true;
           setStoppedColumns((previous) => {
@@ -442,7 +434,7 @@ export function useLeGazalFantasy() {
 
       const finishDelay =
         baseDelay +
-        SLOT_COLUMNS * stepDelay +
+        spinOutcome.grid[0].length * stepDelay +
         (prefersReducedMotion ? 20 : 260);
 
       queueLivingPlayback({round:spinOutcome,startDelay:finishDelay,reducedMotion:prefersReducedMotion,

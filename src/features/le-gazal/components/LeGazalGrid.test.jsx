@@ -36,3 +36,18 @@ it('uses the original raccoon and salamander inside a living board without showi
  expect(screen.getByRole('status')).toHaveTextContent('Mapache recoge 3 🍺');
  expect(screen.queryByText('20 líneas activas · Ver patrones')).not.toBeInTheDocument();
 });
+
+it('renders the expanded floor and its levels without character name tags, then shrinks on reset',()=>{
+ const expanded=Array.from({length:5},()=>Array(8).fill('TROPHY'));
+ const floor={columns:8,collections:12,levels:{'2-6':2}};
+ const round={mode:'living',bonusBoard:true,amountWon:6,initialBoard:floor};
+ const frame={grid:expanded,board:floor,playing:false};
+ const {container,rerender}=render(<LeGazalGrid {...props} grid={expanded} livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
+ expect(container.querySelectorAll('[data-cell-key]')).toHaveLength(40);
+ expect(container.querySelector('[data-cell-key="2-6"]')).toHaveTextContent('x3');
+ expect(container.querySelectorAll('.le-gazal-living__actor span')).toHaveLength(0);
+ expect(screen.getByRole('status')).toHaveTextContent('Pista al máximo');
+ rerender(<LeGazalGrid {...props} livingRound={{mode:'living'}} winningCombinations={[]}/>);
+ expect(container.querySelectorAll('[data-cell-key]')).toHaveLength(30);
+ expect(container.querySelector('.le-gazal-tile-level')).toBeNull();
+});

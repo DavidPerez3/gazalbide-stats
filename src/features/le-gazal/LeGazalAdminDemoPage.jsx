@@ -1,3 +1,4 @@
+import { replaceLivingColumn, livingSpinFrame } from './bonusBoard';
 import { queueLivingPlayback } from "./livingEngine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,21 +42,12 @@ function getReducedMotionPreference() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function replaceColumn(previousGrid, nextGrid, columnIndex) {
-  return previousGrid.map((row, rowIndex) =>
-    row.map((cell, colIndex) =>
-      colIndex === columnIndex ? nextGrid[rowIndex][columnIndex] : cell
-    )
-  );
+function replaceColumn(previous, next, column) {
+  return replaceLivingColumn(previous, next, column);
 }
 
-function mergeSpinFrame(previousGrid, nextGrid, stoppedColumns) {
-  const randomFrame = createDisplayGrid();
-  return previousGrid.map((row, rowIndex) =>
-    row.map((cell, colIndex) =>
-      stoppedColumns[colIndex] ? nextGrid[rowIndex][colIndex] : randomFrame[rowIndex][colIndex] || cell
-    )
-  );
+function mergeSpinFrame(previous, next, stopped) {
+  return livingSpinFrame(previous, next, stopped, createDisplayGrid());
 }
 
 function createDemoSession() {
@@ -163,7 +155,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
   const finishAnimation = useCallback((spinOutcome, nextResult, previousSession) => {
     clearTimers();
     setGrid(spinOutcome.finalGrid || spinOutcome.grid);
-    const allStopped = Array(SLOT_COLUMNS).fill(true);
+    const allStopped = Array((spinOutcome.finalGrid || spinOutcome.grid)[0].length).fill(true);
     setStoppedColumns(allStopped);
     stoppedColumnsRef.current = allStopped;
     setResult(nextResult);
@@ -240,6 +232,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
       bet: spinBet,
       roundMultiplier,
       forcedOutcome: engineScenario,
+      inBonus: hasFreeSpin, boardState: session.board_state,
     });
 
     setLivingRound(visualOutcome);
@@ -253,7 +246,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     );
     const freeSpinsRemaining = remainingAfterConsumed + freeSpinsAwarded;
     const bonusMultiplier = freeSpinsAwarded > 0
-      ? Number(visualOutcome.awardedMultiplier || 1)
+      ? Math.max(Number(session.bonus_multiplier || 1), Number(visualOutcome.awardedMultiplier || 1))
       : freeSpinsRemaining > 0
         ? Number(session.bonus_multiplier || 1)
         : 1;
@@ -274,6 +267,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
 
     const nextSession = {
       ...session,
+      board_state: freeSpinsRemaining > 0 ? visualOutcome.nextBoard || null : null,
       balance: nextBalance,
       free_spins_remaining: freeSpinsRemaining,
       free_spin_bet: freeSpinsRemaining > 0 ? Number(session.free_spin_bet || spinBet) : null,
@@ -284,7 +278,8 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     };
     visualOutcome.nextSession = nextSession;
 
-    const allMoving = Array(SLOT_COLUMNS).fill(false);
+    setGrid(visualOutcome.grid);
+    const allMoving = Array(visualOutcome.grid[0].length).fill(false);
     stoppedColumnsRef.current = allMoving;
     setStoppedColumns(allMoving);
 
@@ -297,7 +292,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
     const baseDelay = prefersReducedMotion ? 0 : 360;
     const stepDelay = prefersReducedMotion ? 36 : 190;
 
-    for (let columnIndex = 0; columnIndex < SLOT_COLUMNS; columnIndex += 1) {
+    for (let columnIndex = 0; columnIndex < visualOutcome.grid[0].length; columnIndex += 1) {
       const timeoutId = window.setTimeout(() => {
         stoppedColumnsRef.current[columnIndex] = true;
         setStoppedColumns((previous) => {
@@ -310,7 +305,7 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
       timeoutRefs.current.push(timeoutId);
     }
 
-    const finishDelay = baseDelay + SLOT_COLUMNS * stepDelay + (prefersReducedMotion ? 20 : 260);
+    const finishDelay = baseDelay + visualOutcome.grid[0].length * stepDelay + (prefersReducedMotion ? 20 : 260);
     queueLivingPlayback({round:visualOutcome,startDelay:finishDelay,reducedMotion:prefersReducedMotion,
       timers:timeoutRefs.current,onFrame:frame=>{
         if(intervalRef.current){window.clearInterval(intervalRef.current);intervalRef.current=null;}
@@ -410,6 +405,11 @@ export default function LeGazalAdminDemoPage({ publicMode = false }) {
               </select>
             </label>
           ) : null}
+          {!publicMode && <button type="button" disabled={isBusy} onClick={() => {
+            setSession(previous => ({...previous, free_spins_remaining:10, free_spin_bet:3, bonus_multiplier:2,
+              board_state:{columns:6, collections:5, levels:{'1-1':2,'2-1':1,'2-4':2,'3-4':1}}}));
+            setForcedScenario('high');
+          }}>Probar mejora y ampliación</button>}
           <button type="button" onClick={resetDemo} disabled={isBusy}>Reiniciar</button>
           <button type="button" onClick={() => navigate(publicMode ? "/fantasy" : "/admin/fantasy")} disabled={isBusy}>Salir</button>
         </div>
