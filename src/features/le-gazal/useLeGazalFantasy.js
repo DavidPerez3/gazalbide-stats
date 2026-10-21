@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../../lib/seasons.js";
 import { spinLivingSlot } from "./slotEngine";
-import { createCollectionDisplayGrid as createDisplayGrid } from "./collectionEngine";
+import { createSalamanderDisplayGrid as createDisplayGrid } from "./salamanderEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
 
 function getReducedMotionPreference() {

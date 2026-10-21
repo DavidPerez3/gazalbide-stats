@@ -1,3 +1,4 @@
+import SalamanderSymbol from './SalamanderSymbol';
 import { getSymbolDefinition } from "../slotConfig";
 
 function BasketballIcon() {
@@ -110,7 +111,8 @@ function renderArt(symbol) {
   return <span className="le-gazal-symbol__value">{symbol.shortLabel}</span>;
 }
 
-export default function SlotSymbol({ symbolId }) {
+export default function SlotSymbol({ symbolId, palette=false }) {
+  if(palette && ['BALL','HOOP','SHOE','WHISTLE'].includes(symbolId)) return <SalamanderSymbol symbol={symbolId}/>;
   const symbol = getSymbolDefinition(symbolId);
 
   return (

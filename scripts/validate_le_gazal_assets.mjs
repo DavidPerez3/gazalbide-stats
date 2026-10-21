@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
 const REQUIRED_ASSETS = [
+  ...['salamander-v1','salamander-pink-v1','salamander-blue-v1','salamander-green-v1'].map(name=>({path:`public/assets/le-gazal/characters/${name}.webp`,minWidth:512,minHeight:512})),
   { path: "public/assets/le-gazal/characters/pol-idle-v5.webp", minWidth: 1000, minHeight: 1500 },
   { path: "public/assets/le-gazal/characters/pol-run-v5.webp", minWidth: 1000, minHeight: 1500 },
   { path: "public/assets/le-gazal/characters/pol-horns-v5.webp", minWidth: 1000, minHeight: 1500 },

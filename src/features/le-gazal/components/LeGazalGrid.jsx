@@ -59,7 +59,7 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
         {Array.from({length:rows},(_,row) => <div key={row} data-cell-key={`${row}-${col}`}
           className={`le-gazal-board__cell le-gazal-board__cell--level-${floor?.levels?.[`${row}-${col}`] || 0} ${livingFrame?.playing && livingFrame.row===row && livingFrame.col===col ? `le-gazal-board__cell--${phase}` : ""} ${winningSet.has(`${row}-${col}`) ? 'le-gazal-board__cell--winning' : ''}`}>
           {(floor?.levels?.[`${row}-${col}`] || 0) > 0 && <span className="le-gazal-tile-level" aria-hidden="true">x{1+floor.levels[`${row}-${col}`]}</span>}
-          {displayGrid[row][col] && <SlotSymbol symbolId={displayGrid[row][col]} />}
+          {displayGrid[row][col] && <SlotSymbol symbolId={displayGrid[row][col]} palette={!livingRound || livingRound.patternVersion >= 5} />}
         </div>)}
       </div>)}
     </div>
@@ -69,12 +69,9 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
       </span>)}
     </div>}
     {showLiving && <div className="le-gazal-living-status" role="status">
-      <strong>{livingRound?.bonusBoard ? `Pista del bonus · ${columns} × ${rows}` : "Tablero viviente"}</strong><span>{livingMessage(livingFrame,livingRound)}</span>
+      {livingRound?.bonusBoard && <strong>{`BONUS · ${columns} × ${rows}`}</strong>}<span>{livingMessage(livingFrame,livingRound)}</span>
       {livingRound?.bonusBoard && <small>{floor?.collections || 0} recogidas · {columns < 8 ? `${6 - ((floor?.collections || 0) % 6)} para ampliar` : "Pista al máximo · 8 columnas"}</small>}
       {livingFrame?.playing && <small>Recogido: {livingFrame.collected} 🍺</small>}
-    </div>}
-    {showLiving && (!livingRound || livingRound.patternVersion >= 4) && <div className="le-gazal-collection-legend" aria-label="Símbolos de cada personaje">
-      <span>Mapache · balón x1 / trofeo x2</span><span>Salamandra · canasta x1 / silbato x2</span>
     </div>}
     {!showLiving && <details className="le-gazal-patterns" onToggle={e => { if (!e.currentTarget.open) setPreviewId(null); }}>
       <summary>20 líneas activas · Ver patrones</summary>

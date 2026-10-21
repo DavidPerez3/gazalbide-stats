@@ -55,6 +55,7 @@ export default function LeGazalPage() {
       <div className="le-gazal-arena">
         <div className="le-gazal-cabinet">
           <header className="le-gazal-marquee" aria-label="Cabecera de Le Gazal">
+            <img src={LE_GAZAL_ASSETS.mascot} alt="Mapache de Le Gazal" className="le-gazal-marquee__host" />
             <img
               src={LE_GAZAL_ASSETS.titleLogo}
               alt={LE_GAZAL_COPY.title}
