@@ -1285,3 +1285,8 @@
  .le-gazal-marquee__host { width:56px; height:66px; }
  .le-gazal-living-status span { font-size:.7rem; }
 }
+
+.le-gazal-chain-progress { flex-basis:100%; display:flex; gap:8px; align-items:center; }
+.le-gazal-chain-progress span { flex:1; }
+.le-gazal-chain-progress progress { width:70px; height:5px; accent-color:#edc743; }
+.le-gazal-living__effect--chain { left:50% !important; top:50% !important; padding:10px 14px; border:1px solid #ebc34b; border-radius:12px; background:#171308f2; color:#ffdf69; font-size:clamp(.8rem,2.8vw,1.3rem); }

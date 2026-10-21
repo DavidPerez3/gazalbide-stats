@@ -13,14 +13,15 @@ export default function LeGazalLivingActors({geometry,round,frame,reduceMotion,c
     className={`le-gazal-living__actor le-gazal-living__actor--${id} ${active && frame.actor===id ? `le-gazal-living__actor--${frame.kind}`:''}`}>
     <img src={LE_GAZAL_ASSETS.salamanders[id] || (id==='raccoon'?LE_GAZAL_ASSETS.mascot:LE_GAZAL_ASSETS.salamander)} alt="" draggable="false"/>
   </div>)}
-  {active && ['transform','collect','signal','upgrade','expand'].includes(frame.kind) && <div key={frame.index} style={styleFor(frame)}
-   className={`le-gazal-living__effect le-gazal-living__effect--${frame.kind}`}>{frame.kind==='collect'?`+${formatBeers(frame.amount)} 🍺`:frame.kind==='upgrade'?`x${1+(frame.board?.levels[`${frame.row}-${frame.col}`] || 0)}`:frame.kind==='expand'?'PISTA AMPLIADA':'✦'}</div>}
+  {active && ['transform','collect','chain','signal','upgrade','expand'].includes(frame.kind) && <div key={frame.index} style={styleFor(frame)}
+   className={`le-gazal-living__effect le-gazal-living__effect--${frame.kind}`}>{frame.kind==='chain'?`¡CADENA ${frame.chainCount}! +${formatBeers(frame.amount)} 🍺`:frame.kind==='collect'?`+${formatBeers(frame.amount)} 🍺`:frame.kind==='upgrade'?`x${1+(frame.board?.levels[`${frame.row}-${frame.col}`] || 0)}`:frame.kind==='expand'?'PISTA AMPLIADA':'✦'}</div>}
  </div>;
 }
 export function livingMessage(frame,round){
  if(!round)return 'Las cuatro salamandras preparan la pista.';
  if(!frame?.playing && round.freeSpinsAwarded)return `${round.freeSpinsAwarded} tiradas gratis x${round.awardedMultiplier}${round.amountWon ? ` · ${formatBeers(round.amountWon)} 🍺 recogidas` : ''}.`;
  if(!frame?.playing)return round.amountWon ? `Jugada resuelta · ${formatBeers(round.amountWon)} 🍺 recogidas.` : 'Sin símbolos compatibles al lado. Sin premio.';
+ if(frame.kind==='chain')return `¡Cadena de ${frame.chainCount}! +${formatBeers(frame.amount)} 🍺 extra.`;
  const who=NAMES[frame.actor];
  return ({upgrade:`Casilla mejorada: próximas recogidas x${1+(frame.board?.levels[`${frame.row}-${frame.col}`] || 0)}.`,expand:`¡Pista ampliada a ${frame.board?.columns} columnas!`,transform:`${who} activa una casilla.`,move:`${who} va a recoger el símbolo.`,collect:`${who} recoge ${formatBeers(frame.amount)} 🍺.`,cascade:'Los símbolos caen y rellenan el hueco.',signal:'La salamandra activa los símbolos especiales.',scout:`${who} explora la pista.`})[frame.kind];
 }

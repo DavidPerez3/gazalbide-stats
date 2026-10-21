@@ -31,6 +31,7 @@ const SCENARIOS = [
   { value: "small", label: "Amarilla · balón" },
   { value: "medium", label: "Recogidas encadenadas" },
   { value: "high", label: "Cuatro colores" },
+  { value: "chain", label: "Cadena de 15 · tres extras" },
   { value: "scatter", label: "3 Scatter · CLUTCH TIME" },
   { value: "scatter4", label: "4 Scatter · CLUTCH TIME+" },
   { value: "scatter5", label: "5 Scatter · LOCURA GAZAL" },

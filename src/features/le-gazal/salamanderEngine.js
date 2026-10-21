@@ -2,6 +2,7 @@ import { emptyBonusBoard } from './bonusBoard.js';
 import { BONUS_MODES } from './slotTypes.js';
 const copy = value => JSON.parse(JSON.stringify(value));
 export const SALAMANDER_VALUES = { yellow: { BALL: 1 }, pink: { WHISTLE: 1 }, blue: { SHOE: 1 }, green: { HOOP: 1 } };
+export const CHAIN_MILESTONES = [{count:5,extra:0.5},{count:10,extra:1.5},{count:15,extra:3}];
 // Ties: up, right, down, left. Actors alternate; an idle actor never emits a move.
 const DIRECTIONS = [[-1,0],[0,1],[1,0],[0,-1]];
 export function salamanderTarget(grid, positions, actor, levels = {}) {
@@ -23,9 +24,9 @@ export function resolveSalamanderRound({ grid: source, refills, bet = 1, multipl
   for(const {row,col} of Object.values(positions)) grid[row][col]=null;
   const initial=copy(grid);
   const starts = copy(positions), events = [], used = Array(columns).fill(0);
-  let amountWon = 0, units = 0;
+  let amountWon = 0, units = 0, chainCount = 0, chainBonus = 0;
   const push = (kind,actor,row,col,amount=0,symbol=null) => events.push({ kind,actor,row,col,amount,symbol,
-    grid:copy(grid),positions:copy(positions),collected:amountWon,board:copy(board) });
+    grid:copy(grid),positions:copy(positions),collected:amountWon,board:copy(board),chainCount,chainBonus });
   // The finite reserve (five replacement symbols per column) guarantees termination.
   while (true) {
     let moved = false;
@@ -40,7 +41,16 @@ export function resolveSalamanderRound({ grid: source, refills, bet = 1, multipl
       const previous = Math.floor(units*bet*multiplier*10+0.000001);
       units += value*(1+level);
       const amount = (Math.floor(units*bet*multiplier*10+0.000001)-previous)/100;
+      chainCount++;
       amountWon = Math.round((amountWon+amount)*100)/100; grid[row][col] = null; push('collect',actor,row,col,amount,symbol);
+      const milestone = CHAIN_MILESTONES.find(m => m.count === chainCount);
+      if (milestone) {
+        // One shared chain per spin. Extras never inherit floor/scatter multipliers.
+        const extra = milestone.extra * bet;
+        chainBonus = Math.round((chainBonus+extra)*100)/100;
+        amountWon = Math.round((amountWon+extra)*100)/100;
+        push('chain',actor,row,col,extra);
+      }
       const affected=[...new Set([originCol,col])];
       for(const column of affected){
         const freeRows=Array.from({length:5},(_,r)=>r).filter(r=>!Object.values(positions).some(p=>p.row===r && p.col===column));
@@ -71,13 +81,15 @@ export function resolveSalamanderRound({ grid: source, refills, bet = 1, multipl
     for (let r=0;r<5;r++) for (let c=columns;c<unlocked;c++) grid[r].push(['BALL','WHISTLE','SHOE','HOOP'][(r+c)%4]);
     board.columns = unlocked; push('expand','green',2,unlocked-1);
   }
-  return { patternVersion:6, mode:'living', payoutUnit:0.1, bonusBoard:inBonus, grid:initial, finalGrid:copy(grid), starts, events,
+  return { patternVersion:7, mode:'living', payoutUnit:0.1, chainCount, chainBonus, chainBet:bet, bonusBoard:inBonus, grid:initial, finalGrid:copy(grid), starts, events,
     amountWon, initialBoard, nextBoard:copy(board), winningCombinations:[], winningCellKeys:[], scenarioId,
     freeSpinsAwarded, awardedMultiplier, activatedClutchTime:freeSpinsAwarded>0,
     clutchMode:shields>=5 ? BONUS_MODES.SCATTER_MADNESS : shields===4 ? BONUS_MODES.SCATTER_PLUS : shields===3 ? BONUS_MODES.SCATTER : BONUS_MODES.NONE,
     message:freeSpinsAwarded ? `${freeSpinsAwarded} tiradas gratis x${awardedMultiplier}.` : amountWon ? `${amountWon} 🍺 recogidas.` : 'Sin símbolos compatibles al lado. Sin premio.' };
 }
 export function createSalamanderRound({seed=1,bet=1,multiplier=1,inBonus=false,boardState,forcedOutcome=null} = {}) {
+  // Admin-only reproducible chain fixture; public play never supplies forcedOutcome.
+  if (forcedOutcome === 'chain') { seed = 14; forcedOutcome = null; }
   let state = seed % 2147483646 + 1;
   const random = () => { state = state*16807%2147483647; return state%10000; };
   const columns = inBonus ? boardState?.columns || 6 : 6;

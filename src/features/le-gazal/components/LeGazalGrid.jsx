@@ -3,6 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import PAYLINES from "../paylines.json";
 import LeGazalCoinBurst from "./LeGazalCoinBurst";
 import SlotSymbol from "./SlotSymbol";
+import { CHAIN_MILESTONES } from '../salamanderEngine';
+import { formatBeers } from '../formatBeers';
 
 const COLORS = ["#facc15", "#67e8f9", "#f0abfc", "#86efac"];
 export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningCellKeys,
@@ -38,6 +40,9 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
   const actorPositions=livingFrame?.positions || livingRound?.starts || {yellow:{row:0,col:0},pink:{row:0,col:columns-1},blue:{row:rows-1,col:0},green:{row:rows-1,col:columns-1}};
   const occupied=new Set(showLiving ? Object.values(actorPositions).map(({row,col})=>`${row}-${col}`) : []);
   const phase = livingFrame?.playing ? livingFrame.kind : "idle";
+  const chainCount = isSpinning && !livingFrame?.playing ? 0 : livingFrame?.playing
+    ? livingFrame.chainCount || 0 : livingRound?.chainCount || 0;
+  const nextMilestone = CHAIN_MILESTONES.find(m => m.count > chainCount);
   const winningSet = new Set(isSpinning ? [] : winningCellKeys || []);
   const preview = PAYLINES.find(p => p.id === previewId);
   const lines = isSpinning ? [] : preview ? [{id:'preview',cells:preview.rows.map((row,col)=>({row,col}))}] : winningCombinations;
@@ -74,6 +79,10 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
       {livingRound?.bonusBoard && <strong>{`BONUS · ${columns} × ${rows}`}</strong>}<span>{livingMessage(livingFrame,livingRound)}</span>
       {livingRound?.bonusBoard && <small>{floor?.collections || 0} recogidas · {columns < 8 ? `${6 - ((floor?.collections || 0) % 6)} para ampliar` : "Pista al máximo · 8 columnas"}</small>}
       {livingFrame?.playing && <small>Recogido: {livingFrame.collected} 🍺</small>}
+      {livingRound?.patternVersion >= 7 && <div className="le-gazal-chain-progress">
+        <span>{nextMilestone ? `${chainCount}/${nextMilestone.count} · próximo extra +${formatBeers(nextMilestone.extra * livingRound.chainBet)} 🍺` : `${chainCount} recogidas · todos los extras conseguidos`}</span>
+        <progress aria-label="Recogidas para el siguiente extra" value={Math.min(chainCount,15)} max={nextMilestone?.count || 15} />
+      </div>}
     </div>}
     {!showLiving && <details className="le-gazal-patterns" onToggle={e => { if (!e.currentTarget.open) setPreviewId(null); }}>
       <summary>20 líneas activas · Ver patrones</summary>
