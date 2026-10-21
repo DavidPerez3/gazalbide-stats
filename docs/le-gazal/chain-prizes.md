@@ -1,4 +1,6 @@
-# Chain prizes (v7)
+# Chain prizes (v7, historical)
+
+Superseded by [random routes v8](random-routes.md). The figures below describe the v7 engine; the simulation script now runs the current engine.
 
 One shared pickup counter per spin, across all four salamanders. Cumulative extras at 5 / 10 / 15 pickups: +0.5 / +1.5 / +3 times the bet, paid once at each threshold. Floor upgrades and scatter multipliers apply only to base pickups; they never multiply the extras. Every free spin starts a fresh chain. Bonus floor progress still persists across free spins.
 

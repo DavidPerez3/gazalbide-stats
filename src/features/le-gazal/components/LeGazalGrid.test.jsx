@@ -102,12 +102,26 @@ it('never renders a symbol behind a salamander, including reel frames and restor
 it('reveals chain progress during playback and celebrates an extra without leaking the final count',()=>{
  const round=createSalamanderRound({forcedOutcome:'chain',bet:3});
  const {container,rerender}=render(<LeGazalGrid {...props} grid={round.grid} isSpinning livingRound={round} winningCombinations={[]}/>);
- expect(screen.getByText('0/5 · próximo extra +1,5 🍺')).toBeInTheDocument();
+ expect(screen.getByText('0/5 · próximo extra +0,9 🍺')).toBeInTheDocument();
  const event=round.events.find(e=>e.kind==='chain' && e.chainCount===10);
  rerender(<LeGazalGrid {...props} grid={event.grid} livingRound={round} livingFrame={{...event,playing:true}} winningCombinations={[]}/>);
- expect(screen.getByText('10/15 · próximo extra +9 🍺')).toBeInTheDocument();
- expect(container.querySelector('.le-gazal-living__effect--chain')).toHaveTextContent('¡CADENA 10! +4,5 🍺');
+ expect(screen.getByText('10/15 · próximo extra +5,4 🍺')).toBeInTheDocument();
+ expect(container.querySelector('.le-gazal-living__effect--chain')).toHaveTextContent('¡CADENA 10! +2,7 🍺');
  rerender(<LeGazalGrid {...props} grid={round.finalGrid} livingRound={round} livingFrame={{...round.events.at(-1),playing:false}} winningCombinations={[]}/>);
  expect(screen.getByText('15 recogidas · todos los extras conseguidos')).toBeInTheDocument();
  expect(container.querySelector('.le-gazal-living__effect--chain')).toBeNull();
+});
+
+it('masks random occupied cells and only explains exhausted reserves once playback finishes',()=>{
+ const round=createSalamanderRound({seed:187});
+ const invalid=round.grid.map(row=>[...row]);
+ for(const p of Object.values(round.starts))invalid[p.row][p.col]='SHOE';
+ const {container,rerender}=render(<LeGazalGrid {...props} grid={invalid} livingRound={round} isSpinning winningCombinations={[]}/>);
+ for(const p of Object.values(round.starts))expect(container.querySelector(`[data-cell-key="${p.row}-${p.col}"] [data-symbol-color]`)).toBeNull();
+ expect(screen.queryByText(/Reserva agotada/)).toBeNull();
+ const frame={...round.events.at(-1),playing:true};
+ rerender(<LeGazalGrid {...props} grid={round.finalGrid} livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
+ expect(screen.queryByText(/Reserva agotada/)).toBeNull();
+ rerender(<LeGazalGrid {...props} grid={round.finalGrid} livingRound={round} livingFrame={{...frame,playing:false}} winningCombinations={[]}/>);
+ expect(screen.getByText(/Reserva agotada/)).toBeInTheDocument();
 });
