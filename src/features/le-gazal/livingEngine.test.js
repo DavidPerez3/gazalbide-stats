@@ -13,3 +13,10 @@ it('reduced motion goes straight to the final state with the same winnings',()=>
  queueLivingPlayback({round,timers:[],reducedMotion:true,onFrame:f=>frames.push(f),onFinish:finish});vi.runAllTimers();
  expect(frames).toHaveLength(1);expect(frames[0].collected).toBe(12);expect(frames[0].playing).toBe(false);expect(finish).toHaveBeenCalledTimes(1);
 });
+
+it('finishes a stationary round once without inventing animation frames',()=>{
+ vi.useFakeTimers();const finish=vi.fn(),frame=vi.fn();
+ queueLivingPlayback({round:{events:[],amountWon:0},timers:[],startDelay:100,onFrame:frame,onFinish:finish});
+ vi.advanceTimersByTime(99);expect(finish).not.toHaveBeenCalled();
+ vi.advanceTimersByTime(1);expect(frame).toHaveBeenCalledWith(null);expect(finish).toHaveBeenCalledTimes(1);
+});

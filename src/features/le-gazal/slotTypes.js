@@ -25,6 +25,4 @@ export const DEBUG_SCENARIOS = [
   { id: "scatter", label: "3 scatters" },
   { id: "scatter4", label: "4 scatters" },
   { id: "scatter5", label: "5 scatters" },
-  { id: "bonus", label: "3 bonus" },
-  { id: "wild", label: "Combo con wild" },
 ];

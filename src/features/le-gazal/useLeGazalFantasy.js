@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
 import { CURRENT_SEASON_ID } from "../../lib/seasons.js";
-import { createDisplayGrid, spinLivingSlot } from "./slotEngine";
+import { spinLivingSlot } from "./slotEngine";
+import { createCollectionDisplayGrid as createDisplayGrid } from "./collectionEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
 
 function getReducedMotionPreference() {

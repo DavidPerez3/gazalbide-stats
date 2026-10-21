@@ -2,7 +2,8 @@ import { replaceLivingColumn, livingSpinFrame } from './bonusBoard';
 import { queueLivingPlayback } from "./livingEngine";
 import { useEffect, useRef, useState } from "react";
 import { BONUS_CONFIG } from "./slotConfig";
-import { createDisplayGrid, spinLivingSlot } from "./slotEngine";
+import { spinLivingSlot } from "./slotEngine";
+import { createCollectionDisplayGrid as createDisplayGrid } from "./collectionEngine";
 import { BONUS_MODES, SLOT_COLUMNS } from "./slotTypes";
 
 const INITIAL_BONUS_STATE = {
