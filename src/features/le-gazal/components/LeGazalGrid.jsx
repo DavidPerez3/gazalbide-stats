@@ -78,6 +78,7 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
     {showLiving && <div className="le-gazal-living-status" role="status">
       {livingRound?.bonusBoard && <strong>{`BONUS · ${columns} × ${rows}`}</strong>}<span>{livingMessage(livingFrame,livingRound)}</span>
       {livingRound?.bonusBoard && <small>{floor?.collections || 0} recogidas · {columns < 8 ? `${6 - ((floor?.collections || 0) % 6)} para ampliar` : "Pista al máximo · 8 columnas"}</small>}
+      {!isSpinning && !livingFrame?.playing && livingRound?.reserveExhausted && <small>Reserva agotada en alguna columna · pueden quedar huecos</small>}
       {livingFrame?.playing && <small>Recogido: {livingFrame.collected} 🍺</small>}
       {livingRound?.patternVersion >= 7 && <div className="le-gazal-chain-progress">
         <span>{nextMilestone ? `${chainCount}/${nextMilestone.count} · próximo extra +${formatBeers(nextMilestone.extra * livingRound.chainBet)} 🍺` : `${chainCount} recogidas · todos los extras conseguidos`}</span>

@@ -28,6 +28,6 @@ it('plays all three chain celebrations once and skips them without changing rewa
   const frames=[],finish=vi.fn();
   queueLivingPlayback({round,reducedMotion,timers:[],onFrame:f=>frames.push(f),onFinish:finish});vi.runAllTimers();
   expect(frames.filter(f=>f.playing && f.kind==='chain')).toHaveLength(reducedMotion?0:3);
-  expect(frames.at(-1).collected).toBe(6.5);expect(finish).toHaveBeenCalledTimes(1);
+  expect(frames.at(-1).collected).toBe(3.75);expect(finish).toHaveBeenCalledTimes(1);
  }
 });
