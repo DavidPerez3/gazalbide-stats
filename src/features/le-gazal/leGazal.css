@@ -231,16 +231,6 @@
   pointer-events: none;
 }
 
-.le-gazal-board__payline {
-  position: absolute;
-  z-index: 2;
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 214, 84, 0), rgba(255, 214, 84, 0.95), rgba(255, 214, 84, 0));
-  box-shadow: 0 0 14px rgba(255, 204, 0, 0.42);
-  pointer-events: none;
-}
-
 .le-gazal-board__column {
   position: relative;
   z-index: 3;
@@ -1218,3 +1208,23 @@
     transition: none;
   }
 }
+
+/* Payline coordinates are measured at actual cell centers, including responsive gaps. */
+.le-gazal-board__lines { position:absolute; inset:0; width:100%; height:100%; z-index:5; pointer-events:none; overflow:visible; }
+.le-gazal-board__lines polyline { filter:drop-shadow(0 0 4px #facc1590); stroke-dasharray:1; stroke-dashoffset:0; animation:leGazalTrace .7s ease-out both; }
+.le-gazal-board__lines--preview polyline { stroke-dasharray:.035 .025; animation:none; opacity:.8; }
+@keyframes leGazalTrace { from { stroke-dashoffset:1; opacity:.3; } to { stroke-dashoffset:0; opacity:1; } }
+.le-gazal-line-wins { display:flex; flex-wrap:wrap; gap:8px; padding:12px 0 4px; }
+.le-gazal-line-wins span { font-size:.8rem; border:1px solid var(--line-color); border-radius:10px; padding:7px 10px; color:var(--line-color); background:#111; }
+.le-gazal-line-wins strong { white-space:nowrap; margin-left:8px; }
+.le-gazal-patterns { margin-top:12px; padding:10px 12px; border:1px solid #d6b24c40; border-radius:12px; background:#10100f; }
+.le-gazal-patterns summary { color:#e4c568; font-size:.85rem; cursor:pointer; min-height:24px; }
+.le-gazal-patterns p { color:#aaa; font-size:.78rem; line-height:1.5; }
+.le-gazal-patterns__grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
+.le-gazal-patterns__grid button { min-height:56px; min-width:0; border:1px solid #d6b24c40; border-radius:8px; background:#181817; color:#d9bd62; cursor:pointer; }
+.le-gazal-patterns__grid button[aria-pressed=true] { border-color:#facc15; background:#302812; }
+.le-gazal-patterns__grid svg { display:block; margin:auto; width:42px; height:35px; }
+.le-gazal-patterns__grid span { font-size:.7rem; }
+.le-gazal-patterns__grid button:focus-visible,.le-gazal-patterns summary:focus-visible { outline:2px solid #facc15; outline-offset:3px; }
+.le-gazal-board-wrap--reduced .le-gazal-board__lines polyline { animation:none; }
+@media(prefers-reduced-motion:reduce) { .le-gazal-board__lines polyline { animation:none; } }

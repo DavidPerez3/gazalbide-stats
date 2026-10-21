@@ -117,18 +117,11 @@ export const LE_GAZAL_SYMBOLS = [
   },
 ];
 
-export const LE_GAZAL_PAYTABLE = {
-  TEN: { 3: 0.35, 4: 0.75, 5: 1.25, 6: 2 },
-  J: { 3: 0.35, 4: 0.75, 5: 1.25, 6: 2 },
-  Q: { 3: 0.4, 4: 0.8, 5: 1.35, 6: 2.2 },
-  K: { 3: 0.45, 4: 0.95, 5: 1.5, 6: 2.5 },
-  A: { 3: 0.5, 4: 1, 5: 1.75, 6: 2.8 },
-  BALL: { 3: 0.8, 4: 1.5, 5: 2.8, 6: 4.5 },
-  HOOP: { 3: 0.9, 4: 1.8, 5: 3.2, 6: 5.2 },
-  WHISTLE: { 3: 1, 4: 2, 5: 3.6, 6: 5.8 },
-  JERSEY88: { 3: 1.5, 4: 3.5, 5: 6.5, 6: 10 },
-  TROPHY: { 3: 2.2, 4: 4.8, 5: 8.5, 6: 13 },
-};
+// Same line-length multipliers as the authoritative Fantasy tiers.
+export const LE_GAZAL_PAYTABLE = Object.fromEntries(
+  ["TEN","J","Q","K","A","BALL","HOOP","WHISTLE","JERSEY88","TROPHY"]
+    .map(symbol => [symbol, {3: 1, 4: 2, 5: 3, 6: 4}])
+);
 
 export const BONUS_CONFIG = {
   [BONUS_MODES.SCATTER]: {
