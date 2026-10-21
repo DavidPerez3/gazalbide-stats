@@ -3,7 +3,8 @@ import { queueLivingPlayback } from "./livingEngine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LE_GAZAL_ASSETS, preloadLeGazalCharacters } from "./assetPaths";
-import { createDisplayGrid, spinLivingSlot } from "./slotEngine";
+import { spinLivingSlot } from "./slotEngine";
+import { createCollectionDisplayGrid as createDisplayGrid } from "./collectionEngine";
 import { SLOT_COLUMNS } from "./slotTypes";
 import { formatBeers } from "./formatBeers";
 import LeGazalGrid from "./components/LeGazalGrid";
@@ -27,14 +28,12 @@ const DEMO_SCATTER5_MULTIPLIER = 5;
 const SCENARIOS = [
   { value: "random", label: "Aleatoria" },
   { value: "lose", label: "Sin premio" },
-  { value: "small", label: "Premio pequeño" },
-  { value: "medium", label: "Premio medio" },
-  { value: "high", label: "Premio grande" },
-  { value: "wild", label: "Wild" },
+  { value: "small", label: "Balón contiguo" },
+  { value: "medium", label: "Trofeo contiguo" },
+  { value: "high", label: "Varios símbolos contiguos" },
   { value: "scatter", label: "3 Scatter · CLUTCH TIME" },
   { value: "scatter4", label: "4 Scatter · CLUTCH TIME+" },
   { value: "scatter5", label: "5 Scatter · LOCURA GAZAL" },
-  { value: "bonus", label: "Bonus legacy · CLUTCH TIME+" },
 ];
 
 function getReducedMotionPreference() {
@@ -70,7 +69,7 @@ function demoResultMessage(result) {
     return `CLUTCH TIME: ${result.free_spins_awarded} tiradas gratis. Saldo ${result.balance} 🍺 de prueba.`;
   }
   if (result.scenario === "scatter4") {
-    return `CLUTCH TIME+: ${result.free_spins_awarded} tiradas gratis con calderos multi y jackpot multi. Saldo ${result.balance} 🍺 de prueba.`;
+    return `CLUTCH TIME+: ${result.free_spins_awarded} tiradas gratis x${result.bonus_multiplier}. Saldo ${result.balance} 🍺 de prueba.`;
   }
   if (result.scenario === "scatter5") {
     return `LOCURA GAZAL: ${result.free_spins_awarded} tiradas gratis x${result.bonus_multiplier}. Saldo ${result.balance} 🍺 de prueba.`;

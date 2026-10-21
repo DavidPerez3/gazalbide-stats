@@ -1,5 +1,4 @@
-import { createBonusRound } from './bonusBoard';
-import { createLivingRound } from "./livingEngine";
+import { createCollectionRound } from './collectionEngine';
 import PAYLINES from "./paylines.json";
 import {
   BONUS_CONFIG,
@@ -294,10 +293,7 @@ export function spinSlot({
 
 // Preserve the legacy evaluator for historical boards and its regression tests.
 export function spinLivingSlot(options = {}) {
-  const legacy = spinSlot(options);
-  const makeRound = options.inBonus ? createBonusRound : createLivingRound;
-  const round = makeRound({boardState:options.boardState,scenario:legacy.scenarioId,
-    seed:Math.floor((options.randomSource || Math.random)()*256),bet:options.bet,
-    multiplier:options.roundMultiplier || 1});
-  return {...legacy,...round};
+  return createCollectionRound({seed:Math.floor((options.randomSource || Math.random)()*2147483646),
+    bet:options.bet, multiplier:options.roundMultiplier || 1,inBonus:options.inBonus,
+    boardState:options.boardState,forcedOutcome:options.forcedOutcome});
 }

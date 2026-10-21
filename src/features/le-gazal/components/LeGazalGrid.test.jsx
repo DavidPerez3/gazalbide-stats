@@ -1,3 +1,4 @@
+import { createCollectionRound } from '../collectionEngine';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
 import LeGazalGrid from './LeGazalGrid';
@@ -50,4 +51,26 @@ it('renders the expanded floor and its levels without character name tags, then 
  rerender(<LeGazalGrid {...props} livingRound={{mode:'living'}} winningCombinations={[]}/>);
  expect(container.querySelectorAll('[data-cell-key]')).toHaveLength(30);
  expect(container.querySelector('.le-gazal-tile-level')).toBeNull();
+});
+
+it('explains stationary losses and shows the four useful symbols without character tags',()=>{
+ const round=createCollectionRound({forcedOutcome:'lose'});
+ const {container,rerender}=render(<LeGazalGrid {...props} grid={round.grid} livingRound={round} winningCombinations={[]}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('Sin símbolos compatibles al lado. Sin premio.');
+ expect(screen.getByLabelText('Símbolos de cada personaje')).toHaveTextContent('balón x1 / trofeo x2');
+ expect(screen.getByLabelText('Símbolos de cada personaje')).toHaveTextContent('canasta x1 / silbato x2');
+ expect(container.querySelectorAll('.le-gazal-living__actor span')).toHaveLength(0);
+ const scatter=createCollectionRound({forcedOutcome:'scatter'});
+ rerender(<LeGazalGrid {...props} grid={scatter.finalGrid} livingRound={scatter} winningCombinations={[]}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('10 tiradas gratis x2');
+ expect(screen.getByRole('status')).not.toHaveTextContent('Sin premio');
+});
+
+it('shows final bonus progress after a capped x3 pickup without previewing it before playback',()=>{
+ const round=createCollectionRound({forcedOutcome:'small',inBonus:true,boardState:{columns:6,collections:1,levels:{'2-1':2}}});
+ const frame={...round.events.at(-1),playing:false};
+ const {rerender}=render(<LeGazalGrid {...props} grid={round.grid} isSpinning livingRound={round} winningCombinations={[]}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('1 recogidas');
+ rerender(<LeGazalGrid {...props} grid={round.finalGrid} livingRound={round} livingFrame={frame} winningCombinations={[]}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('2 recogidas');
 });

@@ -31,7 +31,7 @@ export default function LeGazalControlPanel({
         </span>
         <span className="le-gazal-console__status-pill">
           {hasFreeSpin
-            ? `${bonusState.remaining} gratis x${bonusState.multiplier}`
+            ? `BONUS · ${bonusState.remaining} tiradas restantes · premios x${bonusState.multiplier}`
             : `Win ${lastPrize}`}
         </span>
       </div>
@@ -88,6 +88,8 @@ export default function LeGazalControlPanel({
       </div>
 
       <div className="le-gazal-console__secondary">
+        <button type="button" className="le-gazal-console__bet" onClick={onOpenRules}
+          disabled={isSpinning || actionLoading}>Cómo jugar</button>
         {onCashout ? (
           <button
             type="button"

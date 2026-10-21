@@ -1258,3 +1258,8 @@
 .le-gazal-board__cell--upgrade { animation:leGazalAssist .36s ease-out; }
 .le-gazal-living__effect--expand { left:50% !important; top:50% !important; white-space:nowrap; font-size:clamp(.7rem,2vw,1.1rem); padding:10px; border-radius:12px; background:#16140aee; color:#fadd71; }
 .le-gazal-living__effect--upgrade { color:#fff0a0; }
+
+.le-gazal-living--staging .le-gazal-living__actor { transition:none; }
+.le-gazal-living--staging .le-gazal-living__actor img { animation:none; }
+.le-gazal-collection-legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin:7px 2px; color:#b8b5a7; font-size:.7rem; }
+.le-gazal-console__status-pill { min-width:0; overflow-wrap:anywhere; }

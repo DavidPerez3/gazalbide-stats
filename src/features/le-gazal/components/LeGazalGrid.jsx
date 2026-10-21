@@ -9,7 +9,9 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
   winningCombinations = [], coinBurstKey, amountWon, reduceMotion, living = false, livingRound = null, livingFrame = null }) {
   const displayGrid = livingFrame?.grid || grid;
   const rows = displayGrid.length, columns = displayGrid[0].length;
-  const floor = livingFrame?.board || livingRound?.initialBoard;
+  const floor = livingFrame?.playing ? livingFrame.board : isSpinning
+    ? livingRound?.initialBoard
+    : livingRound?.nextBoard || livingFrame?.board || livingRound?.initialBoard;
   const boardRef = useRef(null);
   const [geometry, setGeometry] = useState(null);
   const [previewId, setPreviewId] = useState(null);
@@ -44,7 +46,7 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
     <div ref={boardRef} className={`le-gazal-board ${isSpinning ? 'le-gazal-board--spinning' : ''}`}
       style={{gridTemplateColumns:`repeat(${columns}, minmax(0, 1fr))`,'--board-columns':columns}}
       role="img" aria-label={preview && !isSpinning ? `Vista previa: línea ${preview.id}, ${preview.label}` : `Rodillos de Le Gazal. ${!isSpinning && winningCombinations.length ? `${winningCombinations.length} líneas premiadas` : ''}`}>
-      {showLiving && <LeGazalLivingActors geometry={geometry} round={livingRound} frame={livingFrame} reduceMotion={reduceMotion} columns={columns} rows={rows} />}
+      {showLiving && <LeGazalLivingActors geometry={geometry} round={livingRound} frame={livingFrame} reduceMotion={reduceMotion} columns={columns} rows={rows} staging={isSpinning && !livingFrame?.playing} />}
       <svg className={`le-gazal-board__lines ${preview ? 'le-gazal-board__lines--preview' : ''}`}
         viewBox={`0 0 ${geometry?.width || 600} ${geometry?.height || 500}`} preserveAspectRatio="none" aria-hidden="true">
         {lines.map((line,i) => <polyline key={line.id} points={points(line.cells)} fill="none"
@@ -68,8 +70,11 @@ export default function LeGazalGrid({ grid, isSpinning, stoppedColumns, winningC
     </div>}
     {showLiving && <div className="le-gazal-living-status" role="status">
       <strong>{livingRound?.bonusBoard ? `Pista del bonus · ${columns} × ${rows}` : "Tablero viviente"}</strong><span>{livingMessage(livingFrame,livingRound)}</span>
-      {livingRound?.bonusBoard && <small>{floor?.collections || 0} recogidas · {columns < 8 ? `${6 - ((floor?.collections || 0) % 6)} para ampliar` : "Pista al máximo · +2 recogidas en jugadas premiadas"}</small>}
+      {livingRound?.bonusBoard && <small>{floor?.collections || 0} recogidas · {columns < 8 ? `${6 - ((floor?.collections || 0) % 6)} para ampliar` : "Pista al máximo · 8 columnas"}</small>}
       {livingFrame?.playing && <small>Recogido: {livingFrame.collected} 🍺</small>}
+    </div>}
+    {showLiving && (!livingRound || livingRound.patternVersion >= 4) && <div className="le-gazal-collection-legend" aria-label="Símbolos de cada personaje">
+      <span>Mapache · balón x1 / trofeo x2</span><span>Salamandra · canasta x1 / silbato x2</span>
     </div>}
     {!showLiving && <details className="le-gazal-patterns" onToggle={e => { if (!e.currentTarget.open) setPreviewId(null); }}>
       <summary>20 líneas activas · Ver patrones</summary>
