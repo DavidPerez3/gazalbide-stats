@@ -46,3 +46,10 @@ Los enlaces sociales y el sitemap describen la página principal. Las rutas con 
 - Si se solicitan quintetos, verificar nombres y minutos; el histórico sin tramos indica que no hay datos. Los quintetos se detallan por partido, no se mezclan como si fueran un solo encuentro.
 - Bloquear ventanas emergentes debe mostrar cómo permitir la pestaña. Un error de carga debe cerrar la pestaña de preparación y mostrar el error, sin entregar un informe parcial.
 - Verificar móvil vertical y escritorio. PDF usa formato A4 y fondo claro para imprimir. Excel sigue funcionando como antes.
+
+
+## Tablas con columnas fijas
+
+- En un partido, deslizar horizontalmente hasta la mitad y hasta el final en móvil vertical, horizontal y escritorio. Dorsal y jugador permanecen fijos, sin datos ni bordes móviles asomando por el margen izquierdo.
+- Comprobar cabeceras y filas, con y sin hover; ordenar por dorsal y puntos y repetir el desplazamiento.
+- Revisar también tablas de jugador, estadísticas, rankings, quintetos y Fantasy: conservar sus desplazamientos y ordenación actuales. Las tablas que no tenían columnas fijas siguen desplazándose normalmente.

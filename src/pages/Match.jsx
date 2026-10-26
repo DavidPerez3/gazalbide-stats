@@ -167,16 +167,7 @@ export default function Match() {
       </div>
 
       {/* Tabla con ordenación y columnas sticky */}
-      <div
-        className="card table-wrap relative overflow-x-auto"
-        style={{
-          padding: 8,
-          "--table-bg": "#0b0b0b", // color de fondo de las celdas (ajústalo a tu tema)
-        }}
-      >
-        {/* MÁSCARA IZQUIERDA: tapa líneas/bordes al hacer scroll */}
-        <div className="pointer-events-none sticky left-0 top-0 h-full w-3 bg-[var(--table-bg)] z-[60]" />
-
+      <div className="card table-wrap">
         <table className="table sticky-first-two border-separate w-full">
           <thead>
             <tr>
@@ -187,13 +178,8 @@ export default function Match() {
                   <th
                     key={c.key}
                     className={[
-                      // 👇 header sticky arriba
-                      "sticky top-0 z-40 bg-[var(--table-bg)]",
-                      // 👇 primera columna: sticky a la izq + z por encima
-                      isNum ? "col-num left-0 z-60" : "",
-                      // 👇 segunda columna: sticky a la izq calculada + z intermedia
-                      isName ? "col-name [left:var(--col-num-w)] z-50" : "",
-                      "px-3 py-2 text-left whitespace-nowrap"
+                      isNum ? "col-num" : "",
+                      isName ? "col-name" : ""
                     ].join(" ")}
                     role="columnheader"
                     aria-sort={
@@ -228,11 +214,7 @@ export default function Match() {
                   return (
                     <td
                       key={c.key}
-                      className={`${isNum ? "col-num sticky left-0 z-30 bg-[var(--table-bg)]" : ""} ${
-                        isName
-                          ? "col-name sticky z-20 [left:var(--col-num-w)] bg-[var(--table-bg)]"
-                          : ""
-                      } px-3 py-2 whitespace-nowrap`}
+                      className={isNum ? "col-num" : isName ? "col-name" : undefined}
                     >
                       {isName ? (
                         <span className="cell-name">{c.render(r)}</span>
