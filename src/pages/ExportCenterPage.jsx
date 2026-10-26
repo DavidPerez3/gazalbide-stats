@@ -1,3 +1,4 @@
+import PdfReportPanel from "../features/reports/PdfReportPanel.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ExcelExportButton from "../components/ExcelExportButton.jsx";
@@ -110,9 +111,9 @@ export default function ExportCenterPage() {
       <header className="exports-page__header">
         <div>
           <p className="exports-page__eyebrow">Administración · Datos oficiales</p>
-          <h1>Exportaciones Excel</h1>
+          <h1>Exportaciones</h1>
           <p className="text-dim">
-            Descarga copias de trabajo de las estadísticas publicadas. Los Excel son una salida; Supabase sigue siendo la fuente oficial.
+            Genera informes visuales en PDF o descarga hojas de trabajo Excel de las estadísticas publicadas.
           </p>
         </div>
         <label className="stats-field exports-page__scope">
@@ -125,6 +126,8 @@ export default function ExportCenterPage() {
           </select>
         </label>
       </header>
+
+      <PdfReportPanel initialScope={scope} />
 
       {loading ? <div className="card card--p">Preparando datos oficiales…</div> : null}
       {error ? <div className="card card--p exports-page__error">{error}</div> : null}

@@ -1,3 +1,4 @@
+import PdfReportPanel from "../features/reports/PdfReportPanel.jsx";
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { loadHistoricalPlayerRows } from '../lib/historyRepository.js';
@@ -20,6 +21,7 @@ export default function StatisticsPage() {
   const comparison=comparePlayers(filtered,first,second);
   if(loading)return <p role="status">Cargando estadísticas oficiales…</p>;
   return <section className="advanced-stats"><h1>Estadísticas de Gazalbide</h1><p>Solo partidos publicados. Los porcentajes se calculan con tiros totales; las comparaciones entre jugadores usan partidos compartidos.</p>{error&&<p role="alert">{error}</p>}
+    <PdfReportPanel initialScope={season} />
     <MatchTypeFilter value={matchType} onChange={setMatchType} />
     <div className="stats-controls"><label>Temporada<select value={season} onChange={(e)=>setSeason(e.target.value)}><option value="all">Todas</option>{seasons.map((id)=><option key={id}>{id}</option>)}</select></label><label>Rival<select value={opponent} onChange={(e)=>setOpponent(e.target.value)}><option value="all">Todos</option>{opponents.map((name)=><option key={name}>{name}</option>)}</select></label></div>
     <nav className="stats-controls" aria-label="Análisis"><button aria-pressed={tab==='team'} onClick={()=>setTab('team')}>Equipo y evolución</button><button aria-pressed={tab==='players'} onClick={()=>setTab('players')}>Cara a cara</button></nav>

@@ -46,7 +46,7 @@ const modules = [
     id: "exports",
     icon: "📥",
     title: "Estadísticas y exportaciones",
-    description: "Consultar los datos disponibles para descarga y exportar Excel de partidos, temporadas, histórico y quintetos/+/-.",
+    description: "Generar informes PDF visuales y exportar Excel de partidos, temporadas, histórico y quintetos/+/-.",
     status: "Operativo",
     available: true,
     path: "/admin/exportaciones",
