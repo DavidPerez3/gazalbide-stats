@@ -1,3 +1,4 @@
+import PdfReportPanel from "../features/reports/PdfReportPanel.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Player from "./Player.jsx";
@@ -127,6 +128,7 @@ export default function PlayerProfilePage() {
           </p>
         </div>
       </section>
+      <PdfReportPanel key={`${activeSeasonId}:${decodedName}`} playerName={player?.name || decodedName} />
       <PlayerCareerPanel playerId={player?.id} playerName={player?.name || decodedName} />
       <div className="player-season-detail">
         <Player key={`${activeSeasonId}:${decodedName}`} />

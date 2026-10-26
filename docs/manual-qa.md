@@ -34,3 +34,15 @@ Los enlaces sociales y el sitemap describen la página principal. Las rutas con 
 - Publicar estadísticas con minutos para el primero y sin minutos para el segundo: solo el segundo queda anulado, equivalente a cuota 1,00.
 - Un jugador que participa cuenta con su cuota original aunque su estado provisional siguiera siendo Lesionado.
 - Los mercados suspendidos vuelven a admitir apuestas al estar disponibles sus participantes, únicamente antes del cierre. Los boletos ya reembolsados permanecen anulados.
+
+
+## Informes PDF
+
+- En un partido publicado: abrir Exportar PDF, seleccionar bloques y abrir el informe. Comprobar resultado, parciales oficiales (incluidas prórrogas), metidos/intentos y porcentajes.
+- En un perfil: Exportar PDF debe limitar tablas y gráficos al jugador, manteniendo los resultados del equipo como contexto.
+- En Estadísticas o Admin → Exportaciones: elegir temporada o histórico, Liga (por defecto), Amistosos o ambos. Seleccionar uno o varios partidos. El informe usa su propia selección explícita, independiente de los filtros de las tablas de la pantalla.
+- Desmarcar contenido: el PDF omite esos bloques. Sin partidos o sin bloques no se puede generar.
+- Abrir informe → Guardar como PDF / Imprimir → Guardar como PDF. En iOS usar las opciones de impresión/compartir de Safari. Revisar salto de página, tablas, gráficos, nombres largos y leyenda. No se necesita una impresora.
+- Si se solicitan quintetos, verificar nombres y minutos; el histórico sin tramos indica que no hay datos. Los quintetos se detallan por partido, no se mezclan como si fueran un solo encuentro.
+- Bloquear ventanas emergentes debe mostrar cómo permitir la pestaña. Un error de carga debe cerrar la pestaña de preparación y mostrar el error, sin entregar un informe parcial.
+- Verificar móvil vertical y escritorio. PDF usa formato A4 y fondo claro para imprimir. Excel sigue funcionando como antes.

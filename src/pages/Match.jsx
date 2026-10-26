@@ -1,3 +1,4 @@
+import PdfReportPanel from "../features/reports/PdfReportPanel.jsx";
 import "../home-dashboard.css";
 import ShotAccuracy from "../components/ShotAccuracy.jsx";
 import MatchNavigation from "../components/MatchNavigation.jsx";
@@ -134,6 +135,7 @@ export default function Match() {
   return (
     <section className="space-y-4">
       <MatchNavigation matchId={id} />
+      <PdfReportPanel key={id} matchId={id} />
       {/* Título */}
       <h2 style={{ fontSize: "22px", fontWeight: 700 }}>
         <span style={{ color: "var(--color-gold)" }}>{meta.date || "Fecha"}</span> · vs {meta.opponent || "—"}
