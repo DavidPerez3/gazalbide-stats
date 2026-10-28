@@ -1,0 +1,5 @@
+import { afterEach,expect,it } from 'vitest';
+import { applyRouteMetadata,routeMetadata } from './routeMetadata';
+afterEach(()=>document.head.querySelectorAll('meta[name="description"],meta[name="robots"]').forEach(e=>e.remove()));
+it('describes public sections but marks private/unknown routes noindex',()=>{for(const p of ['/','/jugador/Oier','/partido/test','/live/42','/ayuda'])expect(routeMetadata(p).robots).toBe('index,follow');for(const p of ['/admin/live','/fantasy/team/a','/porra','/notificaciones','/login','/missing'])expect(routeMetadata(p).robots).toBe('noindex,nofollow');});
+it('updates metadata in place and restores public indexing after private navigation',()=>{applyRouteMetadata('/admin');expect(document.title).toContain('Administración');applyRouteMetadata('/ayuda');expect(document.title).toBe('Ayuda · Gazalbide Stats');expect(document.head.querySelector('meta[name="robots"]').content).toBe('index,follow');expect(document.head.querySelectorAll('meta[name="description"]')).toHaveLength(1);});

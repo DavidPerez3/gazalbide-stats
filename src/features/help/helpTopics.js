@@ -1,0 +1,31 @@
+// Sources and review checklist: docs/ux-accessibility-seo.md. No balances or rules are changed here.
+export const HELP_TOPICS = [
+ {id:'estadisticas',title:'Estadísticas y rankings',questions:[
+  ['¿Dónde consulto partidos y jugadores?','En Inicio puedes abrir los partidos y su tabla. Jugadores muestra la plantilla y cada perfil; Ranking y Estadísticas permiten consultar clasificaciones y comparaciones. El selector de temporada distingue la actual y el histórico. Liga y Amistosos se consultan por separado en las vistas que ofrecen ese filtro.'],
+  ['¿Cómo leo tiros y tablas?','Los tiros muestran metidos / intentados y porcentaje. Los porcentajes agregados usan el total de intentos, no la media de porcentajes de partidos. Desliza horizontalmente las tablas anchas; en el box score, dorsal y jugador permanecen fijos. Las cabeceras con botón permiten ordenar. En los perfiles tienes una leyenda de abreviaturas.'],
+  ['¿Puedo descargar un informe?','Exportar PDF está disponible en partidos, perfiles y Estadísticas. Elige partidos y contenido, abre el informe y pulsa Guardar como PDF / Imprimir. Admin → Exportaciones también conserva las descargas Excel. Los filtros del informe se eligen dentro de su propio panel.']
+ ]},
+ {id:'live',title:'Directo y datos oficiales',questions:[
+  ['¿Qué diferencia hay entre provisional y oficial?','Live Center y Fantasy Live muestran el seguimiento provisional. El partido pasa a oficial cuando un administrador revisa y publica los datos. Las estadísticas publicadas y las puntuaciones oficiales pueden cambiar respecto al directo después de corregir acciones.'],
+  ['¿Cómo funciona la toma de estadísticas?','El personal autorizado prepara el partido y el quinteto desde Admin → Live Stats. El anotador permite manejar reloj, periodos, acciones y sustituciones. Las indicaciones de la pantalla explican cómo arrastrar acciones y jugadores. Antes de publicar hay una revisión de integridad. La ayuda no aparece encima del anotador.'],
+  ['¿Qué hago si falla la sincronización?','Comprueba la conexión y los mensajes de guardado del Live. No borres los datos del navegador ni la sesión local para intentar arreglarlo durante un partido. Usa las opciones de recuperación que muestre el anotador y revisa el estado de guardado antes de cambiar de dispositivo o publicar.']
+ ]},
+ {id:'fantasy',title:'Fantasy',questions:[
+  ['¿Cómo preparo una alineación válida?','Guarda cinco jugadores distintos, elige un capitán dentro del quinteto y un entrenador habilitado, sin superar el presupuesto de esa jornada. Revisa el deadline. Si la alineación guardada cumple los requisitos al vencer el plazo, el cierre automático la finaliza y conserva el sobrante dentro del límite de ahorro configurado. Una alineación inválida no obtiene ese cierre válido.'],
+  ['¿Cómo se calculan los puntos?','La base es el PIR de cada jugador. El capitán multiplica su aportación por dos y las sinergias activas aplican los multiplicadores de la configuración de rasgos. Los multiplicadores también afectan a un PIR negativo. El desglose muestra base, capitán y sinergias; el bonus de victoria es actualmente cero. Fantasy Live es provisional hasta la publicación.'],
+  ['¿Dónde veo mi historial y las reglas vigentes?','Desde Fantasy puedes acceder a tu equipo, mercado, historial y ranking. Usa el desglose de puntos y las indicaciones de presupuesto, disponibilidad, rasgos y plazo de cada jornada: los valores configurables pueden variar entre temporadas. Las cervezas y monedas son saldos virtuales de la aplicación.']
+ ]},
+ {id:'gazalbet',title:'GazalBet',questions:[
+  ['¿Se utiliza dinero real?','GazalBet usa fichas virtuales. En la pantalla se muestran el saldo, los mercados disponibles, sus cuotas y el momento de cierre. Puedes apostar por separado o reunir selecciones en una combinada. No se apuesta después del cierre del mercado.'],
+  ['¿Cómo funcionan cuotas y selecciones anuladas?','El boleto guarda la cuota de cada selección. En una combinada, una selección anulada equivale a cuota 1 y no invalida por sí sola las restantes. Un jugador dudoso queda pendiente de participación; si vuelve a disponible se reactiva esa selección. La liquidación tiene en cuenta la participación registrada al publicar. Los boletos ya reembolsados no vuelven a activarse. Consulta siempre el estado y desglose de tu boleto.']
+ ]},
+ {id:'instalacion',title:'Instalación y avisos',questions:[
+  ['¿Cómo instalo la aplicación?','En Android abre la web en un navegador compatible y usa Instalar aplicación o Añadir a pantalla de inicio en su menú. Si el navegador ofrece la instalación, también puede aparecer en el menú de la web. En iPhone/iPad abre Safari, pulsa Compartir y Añadir a pantalla de inicio; después abre la app desde su icono.'],
+  ['¿Cómo activo o desactivo notificaciones?','Inicia sesión y abre Avisos. Activa este dispositivo, concede el permiso del navegador y elige las categorías. Puedes probar un aviso, desactivar el dispositivo o pausar los avisos de tu cuenta. Si el permiso está bloqueado, cámbialo en los ajustes del sitio o dispositivo. En iPhone/iPad puede ser necesario abrir la PWA instalada. La compatibilidad depende del navegador.'],
+  ['¿Funciona sin conexión?','La PWA guarda recursos para volver a abrir contenido disponible en caché. El acceso a datos actualizados y las operaciones online necesitan conexión. Instalarla no convierte toda la aplicación en un servicio offline.']
+ ]},
+ {id:'acceso',title:'Acceso y problemas habituales',questions:[
+  ['¿Por qué no puedo entrar a una sección?','Las estadísticas públicas se pueden consultar sin entrar. Fantasy, GazalBet y Avisos requieren sesión; la gestión y el anotador requieren además permisos de administrador. Entrar con una cuenta no concede permisos de administración.'],
+  ['¿Qué reviso si no veo cambios o no puedo acceder?','Comprueba conexión, cuenta y temporada seleccionada. Reabre la web con conexión para recibir los recursos nuevos. Si falla el acceso, vuelve a la pantalla de login; si usas contraseña, tienes recuperación desde esa pantalla. No compartas contraseñas ni códigos de sesión. Para incidencias de cuenta puedes usar el contacto que figura en la política de privacidad.']
+ ]}
+];

@@ -176,7 +176,7 @@ export default function NotificationSettingsPage() {
     }
   }
 
-  if (loading) return <div className="card card--p">Cargando notificaciones…</div>;
+  if (loading) return <div className="card card--p" role="status">Cargando notificaciones…</div>;
 
   const blocked = permission === "denied";
   const iosNeedsInstall = support.isiOS && !support.standalone && !support.supported;
@@ -195,7 +195,7 @@ export default function NotificationSettingsPage() {
         </div>
       </div>
 
-      {message && <div className={`notifications-page__message is-${message.type}`}>{message.text}</div>}
+      {message && <div role={message.type === "error" ? "alert" : "status"} className={`notifications-page__message is-${message.type}`}>{message.text}</div>}
 
       <div className="card card--p notifications-page__device">
         <div>
@@ -235,7 +235,7 @@ export default function NotificationSettingsPage() {
               <p>Este interruptor pausa todos los envíos sin borrar tus dispositivos.</p>
             </div>
             <label className="notification-switch">
-              <input type="checkbox" checked={prefs.enabled} onChange={(e) => updatePreference("enabled", e.target.checked)} />
+              <input type="checkbox" aria-label="Activar avisos de la cuenta" checked={prefs.enabled} onChange={(e) => updatePreference("enabled", e.target.checked)} />
               <span />
             </label>
           </div>

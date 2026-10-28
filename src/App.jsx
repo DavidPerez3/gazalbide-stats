@@ -1,6 +1,7 @@
+import RouteExperience, { SkipLink } from "./components/RouteExperience.jsx";
 import BottomNavigation from "./components/BottomNavigation.jsx";
 import { OfflineStatus } from "./components/AppInstall.jsx";
-import { Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import SeasonTabs from "./components/SeasonTabs.jsx";
 import FantasyEconomySummary from "./components/FantasyEconomySummary.jsx";
@@ -32,6 +33,7 @@ export default function App() {
     isFantasy ||
     isLeGazal ||
     isNotifications ||
+    pathname === "/ayuda" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
@@ -39,6 +41,7 @@ export default function App() {
   if (isLiveScorer) {
     return (
       <div className="live-app-shell">
+        <RouteExperience />
         <Outlet />
       </div>
     );
@@ -48,9 +51,11 @@ export default function App() {
     const demoSuffix = isLeGazalDemo ? " le-gazal-demo-shell" : "";
     return (
       <div className={`le-gazal-app-shell${demoSuffix}`}>
+        <RouteExperience />
+        <SkipLink />
         <Navbar />
       <OfflineStatus />
-        <main className={`main le-gazal-app-main${demoSuffix}`}>
+        <main id="main-content" tabIndex={-1} className={`main le-gazal-app-main${demoSuffix}`}>
           <div className={`container le-gazal-app-container${demoSuffix}`}>
             <Outlet />
           </div>
@@ -62,12 +67,14 @@ export default function App() {
 
   return (
     <div className={`h-100${hasBottomNav ? " app-with-bottom-nav" : ""}`}>
-      <Navbar />
+      <RouteExperience />
+        <SkipLink />
+        <Navbar />
       <OfflineStatus />
       {isFantasy && !isCoachSelection && <FantasyEconomySummary />}
       {isFantasyHome && <FantasyLeGazalOffer />}
       {!hidesSeasonTabs && <SeasonTabs />}
-      <main className="main">
+      <main id="main-content" tabIndex={-1} className="main">
         <div className="container">
           {isFantasyHome && <FantasyLivePreview />}
           <Outlet />
@@ -76,7 +83,8 @@ export default function App() {
       </main>
       <footer className="footer">
         <div className="container">© {new Date().getFullYear()} Gazalbide CB
-          <nav aria-label="Información legal" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: ".5rem" }}>
+          <nav aria-label="Ayuda e información legal" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: ".5rem" }}>
+            <Link to="/ayuda">Ayuda</Link>
             <a href={`${import.meta.env.BASE_URL}privacidad.html`}>Privacidad</a>
             <a href={`${import.meta.env.BASE_URL}condiciones.html`}>Condiciones de uso</a>
           </nav>

@@ -8,15 +8,17 @@ export default function Players() {
   const { activeSeason } = useSeason();
   const [q, setQ] = useState("");
   const [players, setPlayers] = useState([]);
+  const [error,setError]=useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setLoading(true);setError(false);
     getPlayers(activeSeason.id)
       .then((data) => {
         if (!cancelled) setPlayers(data || []);
       })
+      .catch(()=>{if(!cancelled)setError(true);})
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -41,15 +43,16 @@ export default function Players() {
       </div>
 
       {loading ? (
-        <div className="text-dim">Cargando…</div>
-      ) : players.length === 0 ? (
+        <div role="status" className="text-dim">Cargando…</div>
+      ) : error ? <p role="alert">No se pudo cargar la plantilla. Recarga para intentarlo de nuevo.</p> : players.length === 0 ? (
         <div className="card season-empty">
           <strong>Plantilla {activeSeason.label} pendiente</strong>
           <span>{activeSeason.current ? "Todavía no se ha configurado la plantilla de la nueva temporada. Los jugadores antiguos siguen en 2025-2026 · Histórico." : "No hay jugadores registrados para esta temporada."}</span>
         </div>
       ) : (
         <>
-          <input className="input mb-4" placeholder="Buscar por nombre o dorsal..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input mb-4" aria-label="Buscar jugador por nombre o dorsal" placeholder="Buscar por nombre o dorsal..." value={q} onChange={(e) => setQ(e.target.value)} />
+          {!filtered.length&&<p role="status">No hay jugadores que coincidan con tu búsqueda.</p>}
           <div className="grid grid--3 players-page__grid">
             {filtered.map((p) => (
               <article key={`${p.number}-${p.name}`} className="card card--p player-list-card">
@@ -60,7 +63,7 @@ export default function Players() {
                     <div className="player-list-card__name">{p.name}</div>
                   </div>
                 </div>
-                <Link className="player-list-card__link" to={`/jugador/${encodeURIComponent(p.name)}`}>Ver detalle</Link>
+                <Link className="player-list-card__link" aria-label={`Ver detalle de ${p.name}`} to={`/jugador/${encodeURIComponent(p.name)}`}>Ver detalle</Link>
               </article>
             ))}
           </div>

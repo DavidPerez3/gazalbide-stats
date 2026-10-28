@@ -34,6 +34,7 @@ export default function PlayerPhoto({
     return (
       <div
         className={`${classes} player-photo--placeholder`}
+        role={decorative ? undefined : "img"}
         aria-label={decorative ? undefined : `Sin foto de ${player?.name || "jugador"}`}
         aria-hidden={decorative ? "true" : undefined}
       >
