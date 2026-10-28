@@ -25,3 +25,12 @@ describe('deploy configuration', () => {
     expect(manifest.shortcuts.map((item) => item.url)).toEqual(['./#/fantasy', './#/porra']);
   });
 });
+
+it('emits a real-host 404 recovery document without guessed redirects or private sitemap URLs',async()=>{
+ const {siteMetadataPlugin}=await import('../../scripts/site-config.mjs');
+ const os=await import('node:os');const path=await import('node:path');
+ for(const config of [siteConfig(),siteConfig({VITE_APP_BASE:'/',VITE_PUBLIC_SITE_URL:'https://gazalbide.ddns.net/'})]){
+  const out=fs.mkdtempSync(path.join(os.tmpdir(),'gazal-seo-'));
+  try{const plugin=siteMetadataPlugin(config);plugin.configResolved({root:out,build:{outDir:'.'}});plugin.writeBundle();const html=fs.readFileSync(path.join(out,'404.html'),'utf8');expect(html).toContain(`href="${config.url}"`);expect(html).toContain('noindex,nofollow');expect(html).not.toContain('http-equiv');const sitemap=fs.readFileSync(path.join(out,'sitemap.xml'),'utf8');expect(sitemap).toContain(`<loc>${config.url}</loc>`);expect(sitemap).not.toContain('#');expect(sitemap).not.toContain('admin');expect(fs.readFileSync(path.join(out,'robots.txt'),'utf8')).toContain(`Sitemap: ${config.url}sitemap.xml`);const tags=plugin.transformIndexHtml();expect(tags.find(t=>t.tag==='link'&&t.attrs.rel==='canonical').attrs.href).toBe(config.url);expect(tags.find(t=>t.attrs.property==='og:url').attrs.content).toBe(config.url);}finally{fs.rmSync(out,{recursive:true,force:true});}
+ }
+});

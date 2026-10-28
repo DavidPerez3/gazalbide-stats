@@ -1,3 +1,6 @@
+import HelpPage from "./pages/HelpPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
+import "./accessibility.css";
 import StatisticsPage from "./pages/StatisticsPage.jsx";
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -62,6 +65,8 @@ async function startApp() {
       element: <App />,
       children: [
         { index: true, element: <Home /> },
+        { path: "ayuda", element: <HelpPage /> },
+        { path: "*", element: <NotFoundPage /> },
         { path: "partido/:id", element: <Match /> },
         { path: "live/:matchId", element: <LiveCenterPage /> },
         { path: "jugadores", element: <Players /> },

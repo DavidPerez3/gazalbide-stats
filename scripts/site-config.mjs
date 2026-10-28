@@ -1,3 +1,4 @@
+import { notFoundHTML } from "./not-found-page.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -29,6 +30,7 @@ export function siteMetadataPlugin(config) {
     writeBundle() {
       fs.writeFileSync(path.join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${config.url}sitemap.xml\n`);
       fs.writeFileSync(path.join(outDir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${escape(config.url)}</loc></url></urlset>\n`);
+      fs.writeFileSync(path.join(outDir, "404.html"), notFoundHTML(config));
       const cname = path.join(outDir, 'CNAME');
       if (config.domain) fs.writeFileSync(cname, `${config.domain}\n`);
       else if (fs.existsSync(cname)) fs.unlinkSync(cname);

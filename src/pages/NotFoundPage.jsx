@@ -1,0 +1,2 @@
+import { Link } from 'react-router-dom';
+export default function NotFoundPage(){return <section className="card card--p not-found" aria-labelledby="not-found-title"><img src={`${import.meta.env.BASE_URL}logo.png`} alt="Escudo de Gazalbide CB" width="96" height="96"/><p className="text-dim">Error 404</p><h1 id="not-found-title">No encontramos esta página</h1><p>El enlace puede estar incompleto o la página ya no existe.</p><Link className="recovery-link" to="/">Volver al inicio</Link><Link to="/ayuda">Consultar la ayuda</Link></section>;}

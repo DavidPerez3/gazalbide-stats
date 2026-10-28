@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import AppInstall from "./AppInstall.jsx";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const toggleRef = useRef(null);
+  useEffect(()=>{if(!isOpen)return;const escape=e=>{if(e.key==="Escape"){setIsOpen(false);toggleRef.current?.focus();}};document.addEventListener("keydown",escape);return()=>document.removeEventListener("keydown",escape);},[isOpen]);
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -39,7 +41,7 @@ export default function Navbar() {
           >
             <img
               src={`${BASE}logo.png`}
-              alt="logo"
+              alt="Escudo de Gazalbide CB"
               className="brand__logo cursor-pointer"
             />
             <span className="brand__title">Gazalbide CB</span>
@@ -47,18 +49,20 @@ export default function Navbar() {
         </div>
 
         <button
+          ref={toggleRef}
           className={toggleClassName}
           type="button"
           onClick={handleToggle}
           aria-expanded={isOpen}
-          aria-label="Abrir menú de navegación"
+          aria-label={isOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+          aria-controls="site-navigation"
         >
           <span className="navbar__toggle-bar" />
           <span className="navbar__toggle-bar" />
           <span className="navbar__toggle-bar" />
         </button>
 
-        <nav className={`nav ${isOpen ? "nav--open" : ""}`}>
+        <nav id="site-navigation" aria-label="Navegación principal superior" className={`nav ${isOpen ? "nav--open" : ""}`}>
           <NavLink to="/" className={link} onClick={handleLinkClick}>
             Inicio
           </NavLink>
@@ -103,6 +107,7 @@ export default function Navbar() {
               </button>
             </>
           )}
+          <NavLink to="/ayuda" className={link} onClick={handleLinkClick}>Ayuda</NavLink>
           <AppInstall />
         </nav>
       </div>
