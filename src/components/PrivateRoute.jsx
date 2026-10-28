@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 export default function PrivateRoute({ children, adminOnly = false }) {
   const { user, profile, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading) return <p role="status">Comprobando acceso…</p>;
 
   if (!user) {
     return <Navigate to="/login" replace />;

@@ -38,6 +38,7 @@ export default function Match() {
   const { id } = useParams();
   const [meta, setMeta] = useState(null);
   const [rows, setRows] = useState([]);
+  const [error,setError]=useState(false);
   const [loading, setLoading] = useState(true);
 
   // Orden
@@ -46,16 +47,18 @@ export default function Match() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);setError(false);setMeta(null);setRows([]);
     (async () => {
       try {
         const matches = await getMatches("all", { matchType: "all" });
         const found = matches.find((m) => m.id === id) || null;
         if (!cancelled) setMeta(found);
+        if(!found)return;
 
         const stats = await getMatchStats(id);
         if (!cancelled) setRows(stats || []);
       } catch (e) {
-        console.error(e);
+        console.error(e);if(!cancelled)setError(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -118,7 +121,8 @@ export default function Match() {
   const Indicator = ({ colKey }) =>
     colKey === sortKey ? <span className="sort-ind">{sortDir === "asc" ? "▲" : "▼"}</span> : null;
 
-  if (loading) return <section><div className="text-dim">Cargando partido…</div></section>;
+  if (loading) return <section><div role="status" className="text-dim">Cargando partido…</div></section>;
+  if(error)return <p role="alert">No se pudo cargar el partido. Recarga para intentarlo de nuevo.</p>;
   if (!meta) {
     return (
       <section>
@@ -167,7 +171,7 @@ export default function Match() {
       </div>
 
       {/* Tabla con ordenación y columnas sticky */}
-      <div className="card table-wrap">
+      <div className="card table-wrap" role="region" aria-label="Estadísticas del partido, desplazamiento horizontal" tabIndex={0}>
         <table className="table sticky-first-two border-separate w-full">
           <thead>
             <tr>
@@ -192,9 +196,6 @@ export default function Match() {
                       type="button"
                       className="th-btn"
                       onClick={() => onClickHeader(c.key)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") onClickHeader(c.key);
-                      }}
                       title={`Ordenar por ${c.title}`}
                     >
                       {c.title}
@@ -206,6 +207,7 @@ export default function Match() {
             </tr>
           </thead>
           <tbody>
+            {!rows.length&&<tr><td colSpan={columns.length}>No hay estadísticas publicadas para este partido.</td></tr>}
             {sortedRows.map((r, i) => (
               <tr key={i} className="hover:bg-neutral-900">
                 {columns.map((c) => {
