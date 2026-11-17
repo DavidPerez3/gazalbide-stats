@@ -1,3 +1,5 @@
+import { loadHistoricalPlayerRows, loadPlayerDisciplineAdjustments } from "./historyRepository.js";
+import { aggregatePlayerRows } from "./historyStats.js";
 import {
   getMatchesFromSupabase,
   getMatchStatsFromSupabase,
@@ -128,14 +130,22 @@ export async function getPlayers(seasonId) {
   );
 }
 
-export async function getTechs(seasonId) {
+export async function getTechs(seasonId, { matchType = "league" } = {}) {
   const resolved = resolveSeasonId(seasonId);
-  if (resolved !== LEGACY_SEASON_ID) return {};
-  try {
-    return await getJson("data/techs.json");
-  } catch {
-    return {};
+  // Keep the explicit JSON emergency mode, without mixing its legacy totals
+  // into friendlies or adding them again to the imported database adjustments.
+  if (STATS_SOURCE !== "supabase") {
+    return resolved === LEGACY_SEASON_ID && matchType !== "friendly"
+      ? getJson("data/techs.json") : {};
   }
+  const [rows, adjustments] = await Promise.all([
+    loadHistoricalPlayerRows({ seasonId: resolved, matchType }),
+    matchType === "friendly" ? [] : loadPlayerDisciplineAdjustments({ seasonId: resolved }),
+  ]);
+  return Object.fromEntries(aggregatePlayerRows(rows, adjustments).map(player => [
+    String(player.number === "" ? player.playerId : player.number),
+    { tech_fouls: player.technical, name: player.name, player_id: player.playerId },
+  ]));
 }
 
 export async function getMatchStats(matchId) {

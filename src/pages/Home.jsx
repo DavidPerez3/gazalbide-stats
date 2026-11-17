@@ -23,6 +23,7 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [order, setOrder] = useState("desc");
   const [techs, setTechs] = useState({});
+  const [techsError, setTechsError] = useState(false);
   const [plannedGameweeks, setPlannedGameweeks] = useState([]);
   const [gameweeksError, setGameweeksError] = useState("");
   const [teamTotals, setTeamTotals] = useState({
@@ -33,8 +34,12 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setTechsError(false);
       const [seasonTechs, seasonPlayers, loadedMatches] = await Promise.all([
-        getTechs(activeSeason.id),
+        getTechs(activeSeason.id, { matchType }).catch(() => {
+          if (!cancelled) setTechsError(true);
+          return {};
+        }),
         getPlayers(activeSeason.id),
         getMatches(activeSeason.id, { matchType }),
       ]);
@@ -129,7 +134,7 @@ export default function Home() {
       if (value > topValue) { topValue = value; topPlayerId = playerId; }
     }
     const topPlayerObj = players.find((p) => String(p.number) === String(topPlayerId));
-    return { total, topPlayerId, topPlayer: topPlayerObj?.name ?? "—", topValue };
+    return { total, topPlayerId, topPlayer: techs[topPlayerId]?.name ?? topPlayerObj?.name ?? "—", topValue };
   }, [techs, players]);
 
   return (
@@ -145,9 +150,10 @@ export default function Home() {
         <div className="home-team-secondary">
           <div><strong>{loading ? '—' : avgPF.replace('.', ',')}</strong><span>PF / partido</span></div>
           <div><strong>{loading ? '—' : avgPA.replace('.', ',')}</strong><span>PA / partido</span></div>
-          <div title={techTotals.topPlayerId ? `Máximo: #${techTotals.topPlayerId} ${techTotals.topPlayer} (${techTotals.topValue})` : 'Sin técnicas'}><strong>{loading ? '—' : techTotals.total}</strong><span>Técnicas</span></div>
+          <div title={techsError ? "No se pudieron cargar las técnicas" : techTotals.topPlayerId ? `Máximo: #${techTotals.topPlayerId} ${techTotals.topPlayer} (${techTotals.topValue})` : 'Sin técnicas'}><strong>{loading || techsError ? '—' : techTotals.total}</strong><span>Técnicas</span></div>
         </div>
       </div>
+      {!loading && techsError && <p role="status">No se pudieron cargar las técnicas. Recarga para intentarlo de nuevo.</p>}
       {!loading && matches.length > 0 && <DashboardHighlights seasonId={activeSeason.id} matchType={matchType} />}
       {matchType === "league" && <LeaguePreview seasonId={activeSeason.id} />}
       <div className="home-panel home-shoulder">
